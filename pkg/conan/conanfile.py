@@ -7,7 +7,7 @@ class SysStringConan(ConanFile):
     license = "BSD 3-Clause License"
     author = "Eugene Gershnik gershnik@hotmail.com"
     url = "https://github.com/gershnik/sys_string"
-    description = "A pointer-sized, immutable, Unicode-first C++ string class that is optimized for interoperability with platform-native string types."
+    description = "C++ string class optimized for interoperability with platform-native string types."
     topics = ("string class", "unicode")
     settings = "cppstd", "os", "compiler", "build_type", "arch"
     options = {"shared": [True, False], "fPIC": [True, False]}

@@ -53,7 +53,7 @@ This library has been tested with
 If you use CMake clone this repository and add the `lib` directory as subdirectory. Something like
 
 ```cmake
-add_subdirectory(PATH_TO_SYS_STRING\lib, sys_string)
+add_subdirectory(PATH_TO_SYS_STRING/lib, sys_string)
 ```
 
 You need to have your compiler to default to at least C++17 or set `CMAKE_CXX_STANDARD` to at least 17 in order for build to succeed.

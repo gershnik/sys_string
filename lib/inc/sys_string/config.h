@@ -19,6 +19,9 @@
     #define SYS_STRING_CONSTEXPR_ALGO
 #endif
 
+#if defined(_WIN32)
+    #define SYS_STRING_WCHAR_T_IS_UTF16 1
+#endif
 
 #if __SIZEOF_POINTER__ == 8 || (defined(_MSC_VER) && _WIN64)
     #define SYS_STRING_SIZEOF_POINTER 8

@@ -62,6 +62,9 @@ namespace sysstr
     #endif
     template<> struct utf_encoding_value<char16_t>      { static constexpr utf_encoding value = utf16; };
     template<> struct utf_encoding_value<char32_t>      { static constexpr utf_encoding value = utf32; };
+    #if SYS_STRING_WCHAR_T_IS_UTF16
+    template<> struct utf_encoding_value<wchar_t>       { static constexpr utf_encoding value = utf16; };
+    #endif
 
     template<class T> constexpr utf_encoding utf_encoding_of = utf_encoding_value<std::remove_cv_t<T>>::value;
 
@@ -74,6 +77,9 @@ namespace sysstr
     #endif
     template<> struct has_utf_encoding_type<char16_t>       : public std::true_type {};
     template<> struct has_utf_encoding_type<char32_t>       : public std::true_type {};
+    #if SYS_STRING_WCHAR_T_IS_UTF16
+    template<> struct has_utf_encoding_type<wchar_t>        : public std::true_type {};
+    #endif
 
     template<class T> constexpr bool has_utf_encoding = has_utf_encoding_type<std::remove_cv_t<T>>::value;
 

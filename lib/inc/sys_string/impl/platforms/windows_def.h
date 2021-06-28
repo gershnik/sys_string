@@ -261,6 +261,10 @@ namespace sysstr::util
             storage(buffer_from(str, len), handle_retain::no)
         {}
 
+        storage(const wchar_t * str, size_t len) :
+            storage((char16_t*)str, len)
+        {}
+
         ~storage() noexcept
             { release(m_str); }
 

@@ -150,6 +150,7 @@ namespace sysstr
         return sink;
     }
 
+    #ifndef __INTELLISENSE__
     template<>
     template<class FwdCursor>
     SYS_STRING_FORCE_INLINE
@@ -195,6 +196,7 @@ namespace sysstr
 
         return char32_t{decoder.value()};
     }
+    #endif
 
     //MARK:- UTF-8
 
@@ -261,6 +263,7 @@ namespace sysstr
         return sink;
     }
 
+    #ifndef __INTELLISENSE__
     template<>
     template<class FwdCursor>
     SYS_STRING_FORCE_INLINE
@@ -330,6 +333,7 @@ namespace sysstr
                 return char32_t{u'\uFFFD'};
         }
     }
+    #endif
 
     //MARK:- UTF-32
 
@@ -349,6 +353,7 @@ namespace sysstr
         return sink;
     }
 
+    #ifndef __INTELLISENSE__
     template<>
     template<class FwdCursor>
     SYS_STRING_FORCE_INLINE
@@ -366,6 +371,7 @@ namespace sysstr
     {
         return utf32_input::read(cursor);
     }
+    #endif
 }
 
 #endif 

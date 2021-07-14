@@ -27,7 +27,7 @@ namespace sysstr
         using hash_type = size_t;
         using native_handle_type = HSTRING;
 
-        static constexpr size_type max_size = std::numeric_limits<UINT32>::max() / sizeof(char16_t);
+        static constexpr size_type max_size = std::numeric_limits<UINT32>::max() / sizeof(char16_t) - 1;
     };
 }
 
@@ -107,7 +107,7 @@ namespace sysstr::util
         {
             value_type * new_buffer;
             HSTRING_BUFFER new_handle;
-            auto res = WindowsPreallocateStringBuffer(size, (WCHAR**)&new_buffer, &new_handle);
+            auto res = WindowsPreallocateStringBuffer(size + 1, (WCHAR**)&new_buffer, &new_handle);
             if (FAILED(res))
             {
                 if (res == MEM_E_INVALID_SIZE || res == E_OUTOFMEMORY)
@@ -143,6 +143,8 @@ namespace sysstr::util
     {
         [[maybe_unused]] auto capacity = builder.capacity();
         auto size = builder.size();
+        if (auto buf = builder.begin())
+            buf[size] = 0;
         HSTRING_BUFFER handle = builder.release();
         HSTRING ret;
         auto res = WindowsPromoteStringBuffer(handle, &ret);
@@ -151,7 +153,7 @@ namespace sysstr::util
         if (ret)
         { 
             auto header = (hstring_header *)ret;
-            assert(header->length == capacity);
+            assert(header->length == capacity + 1);
             header->length = size;
         }
         return ret;

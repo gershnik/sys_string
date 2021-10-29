@@ -258,7 +258,7 @@ namespace sysstr::util
         }
         iter_cursor operator--(int) noexcept
         {
-            index_cursor ret = *this;
+            iter_cursor ret = *this;
             (*this) += -1;
             return ret;
         }
@@ -270,7 +270,7 @@ namespace sysstr::util
         
         friend constexpr iter_cursor operator+(const iter_cursor & lhs, difference_type rhs) noexcept
         {
-            index_cursor ret(lhs);
+            iter_cursor ret(lhs);
             ret += rhs;
             return ret;
         }

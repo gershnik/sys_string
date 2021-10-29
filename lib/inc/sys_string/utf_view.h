@@ -51,8 +51,10 @@ namespace sysstr
             static constexpr bool is_forward = Cursor::is_forward;
         public:
             constexpr utf_cursor() noexcept:
-                m_char_idx(0)
+                m_char_idx(0),
+                m_current_storage_size(0)
             {}
+            
             SYS_STRING_FORCE_INLINE
             constexpr utf_cursor(const Cursor & wrapped) noexcept:
                 m_next(wrapped)
@@ -95,7 +97,7 @@ namespace sysstr
             }
             
             friend constexpr bool operator==(const utf_cursor & lhs, const utf_cursor & rhs) noexcept
-                { return lhs.m_char_idx == rhs.m_char_idx && lhs.m_current == rhs.m_current; }
+                { return lhs.m_char_idx == rhs.m_char_idx && lhs.storage_pos() == rhs.storage_pos(); }
             friend constexpr bool operator!=(const utf_cursor & lhs, const utf_cursor & rhs) noexcept
                 { return !(lhs == rhs); }
             
@@ -109,23 +111,28 @@ namespace sysstr
                 { return !(lhs == rhs); }
             
             reverse_type reverse() const noexcept
-                { return this->m_current.reverse(); }
+                { return this->storage_cursor().reverse(); }
             
             utf_cursor<utf32, Cursor> char_start() const noexcept
-                { return this->m_current; }
+                { return this->storage_cursor(); }
             
             size_type storage_pos() const noexcept
-                { return this->m_current.position(); }
+            {
+                if constexpr (is_forward)
+                    return this->m_next.position() - this->m_current_storage_size;
+                else
+                    return this->m_next.position() + this->m_current_storage_size;
+            }
             
             size_type storage_size() const noexcept
-                { return this->m_next - this->m_current; }
+                { return this->m_current_storage_size; }
             
             const Cursor storage_cursor() const noexcept
-                { return this->m_current; }
+                { return this->m_next - this->m_current_storage_size; }
             
             friend auto operator<<(std::ostream & str, const utf_cursor & c) -> std::ostream &
             {
-                str << c.m_current << ", char " << c.m_char_idx << " in {";
+                str << c.storage_cursor() << ", char " << c.m_char_idx << " in {";
                 for (uint8_t i = 0; i < c.m_encoder.size(); ++i)
                 {
                     if (i)
@@ -139,26 +146,35 @@ namespace sysstr
             SYS_STRING_FORCE_INLINE
             constexpr void load_next() noexcept
             {
-                this->m_current = this->m_next;
-
                 if (this->m_next)
                 {
+                    auto original_pos = this->m_next.position();
                     auto c = current_utf32(this->m_next);
                     this->m_encoder.put(c);
-                    this->m_char_idx = is_forward ? 0 : this->m_encoder.size() - 1;
+                    if constexpr (is_forward)
+                    {
+                        this->m_char_idx = 0;
+                        this->m_current_storage_size = uint8_t(this->m_next.position() - original_pos);
+                    }
+                    else
+                    {
+                        this->m_char_idx = uint8_t(this->m_encoder.size() - 1);
+                        this->m_current_storage_size = uint8_t(original_pos - this->m_next.position());
+                    }
                 }
                 else
                 {
                     this->m_encoder.clear();
                     this->m_char_idx = 0;
+                    this->m_current_storage_size = 0;
                 }
             }
 
         private:
-            Cursor m_current;
             Cursor m_next;
             utf_codepoint_encoder<OutputEnc, false> m_encoder;
-            unsigned m_char_idx;
+            uint8_t m_char_idx;
+            uint8_t m_current_storage_size;
         };
 
         template<class Cursor>
@@ -182,10 +198,9 @@ namespace sysstr
 
             SYS_STRING_FORCE_INLINE
             constexpr utf_cursor(const Cursor & wrapped) noexcept :
-                m_current(wrapped),
-                m_next(wrapped),
-                m_value(wrapped ? current_utf32(m_next) : 0)
+                m_current(wrapped)
             {
+                this->load_next();
             }
             
             constexpr value_type operator*() const noexcept
@@ -197,9 +212,9 @@ namespace sysstr
             SYS_STRING_FORCE_INLINE
             constexpr utf_cursor & operator++() noexcept
             {
-                this->m_current = this->m_next;
-                if (this->m_next)
-                    this->m_value = current_utf32(this->m_next);
+                this->m_current += this->m_current_storage_size;
+                this->m_current_storage_size = 0;
+                this->load_next();
                 return *this;
             }
 
@@ -235,7 +250,7 @@ namespace sysstr
                 { return this->m_current.position(); }
             
             size_type storage_size() const noexcept
-                { return this->m_next - this->m_current; }
+                { return this->m_current_storage_size; }
             
             const Cursor storage_cursor() const noexcept
                 { return this->m_current; }
@@ -246,9 +261,22 @@ namespace sysstr
                 return str;
             }
         private:
+            SYS_STRING_FORCE_INLINE
+            void load_next() noexcept
+            {
+                if (Cursor next = this->m_current)
+                {
+                    this->m_value = current_utf32(next);
+                    if constexpr (is_forward)
+                        this->m_current_storage_size = uint8_t(next.position() - this->m_current.position());
+                    else
+                        this->m_current_storage_size = uint8_t(this->m_current.position() - next.position());
+                }
+            }
+        private:
             Cursor m_current;
-            Cursor m_next;
             value_type m_value = 0;
+            uint8_t m_current_storage_size = 0;
         };
     }
 

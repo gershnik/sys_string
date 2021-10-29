@@ -62,36 +62,41 @@ namespace sysstr
     template<utf_encoding To>
     struct utf32_output
     {
-        template<class OutIt>
+        template<class Sink>
         struct write
         {
+            write(Sink s) : sink(s) {}
+            
             SYS_STRING_FORCE_INLINE
-            constexpr void operator()(char32_t value) noexcept(noexcept(*this->dest++ = utf_char_of<utf32>()))
+            constexpr void operator()(char32_t value) noexcept(noexcept(sink(utf_char_of<To>())))
             {
                 utf_codepoint_encoder<To, false> encoder;
                 encoder.put(value);
                 for(auto first = encoder.begin(), last = encoder.end(); first != last; ++first)
-                    *this->dest++ = *first;
-                //this->dest = std::copy(encoder.begin(), encoder.end(), this->dest); Slow!
+                    sink(*first);
             }
                 
-            OutIt dest;
+            Sink sink;
         };
+        template<class Sink> write(Sink sink) -> write<Sink>;
     };
 
     template<>
     struct utf32_output<utf32>
     {
-        template<class OutIt>
+        template<class Sink>
         struct write
         {
-            constexpr void operator()(char32_t value) noexcept(noexcept(*this->dest++ = value))
+            write(Sink s) : sink(s) {}
+            
+            constexpr void operator()(char32_t value) noexcept(noexcept(sink(value)))
             {
-                *this->dest++ = value;
+                sink(value);
             }
                 
-            OutIt dest;
+            Sink sink;
         };
+        template<class Sink> write(Sink sink) -> write<Sink>;
     };
 
     template<utf_encoding From, utf_encoding To>
@@ -99,8 +104,12 @@ namespace sysstr
     SYS_STRING_FORCE_INLINE
     OutIt utf_converter<From, To>::convert(InIt first, InIt last, OutIt dest) noexcept(noexcept(reading(first, last)) && noexcept(writing(dest)))
     {
-        using sink = typename utf32_output<To>::template write<OutIt>;
-        return utf32_input<From>::read(first, last, sink{dest}).dest;
+        OutIt ret = dest;
+        auto sink = typename utf32_output<To>::write([&ret](auto value) {
+            *ret++ = value;
+        });
+        utf32_input<From>::read(first, last, sink);
+        return ret;
     }
 
 

@@ -10,6 +10,9 @@
 #endif
 
 #include <sys_string/impl/util/char_buffer.h>
+#include <sys_string/impl/util/generic_buffer.h>
+
+#include <variant>
 
 #include <CoreFoundation/CoreFoundation.h>
 
@@ -35,50 +38,163 @@ namespace sysstr::util
             throw std::runtime_error("CFString creation failed");
         return src;
     }
-
+    
+    struct apple_reallocator
+    {
+        void * alloc(size_t size)
+        {
+            if (auto ret = ::CFAllocatorAllocate(nullptr, size, 0))
+                return ret;
+            throw std::bad_alloc();
+        }
+        
+        void free(void * p) noexcept
+            { ::CFAllocatorDeallocate(nullptr, p); }
+        
+        void * realloc(void * p, size_t size)
+        {
+            if (auto ret = ::CFAllocatorReallocate(nullptr, p, size, 0))
+                return ret;
+            throw std::bad_alloc();
+        }
+    };
+    
     class builder_storage
     {
     public:
         using value_type = sys_string_traits::storage_type;
         using size_type = sys_string_traits::size_type;
         
+        class dynamic_t
+        {
+        public:
+            dynamic_t() noexcept = default;
+            dynamic_t(size_t size):
+                m_ptr((value_type *)CFAllocatorAllocate(nullptr, size * sizeof(value_type), 0))
+            {
+                if (!m_ptr)
+                    throw std::bad_alloc();
+            }
+            dynamic_t(const dynamic_t &) = delete;
+            dynamic_t(dynamic_t && src) noexcept :
+                m_ptr(src.m_ptr)
+            { src.m_ptr = nullptr; }
+            ~dynamic_t() noexcept
+            {
+                if (m_ptr)
+                    CFAllocatorDeallocate(nullptr, m_ptr);
+            }
+            dynamic_t & operator=(const dynamic_t &) = delete;
+            dynamic_t & operator=(dynamic_t && rhs) noexcept
+            {
+                if (this != &rhs)
+                {
+                    m_ptr = rhs.m_ptr;
+                    rhs.m_ptr = nullptr;
+                }
+                return *this;
+            }
+            
+            constexpr value_type * data() const noexcept
+                { return m_ptr; }
+            
+            void reallocate(size_type size)
+            {
+                auto result = (value_type *)CFAllocatorReallocate(nullptr, m_ptr, size * sizeof(value_type), 0);
+                if (!result)
+                    throw std::bad_alloc();
+                m_ptr = result;
+            }
+            
+            value_type * release() noexcept
+            {
+                auto ret = m_ptr;
+                m_ptr = nullptr;
+                return ret;
+            }
+        private:
+            value_type * m_ptr = nullptr;
+        };
+        
+        static constexpr size_type minimum_capacity = 64;
+        
+        using static_t = std::array<value_type, minimum_capacity>;
+        
+        using buffer_t = std::variant<static_t, dynamic_t>;
+        
+    public:
         constexpr size_type capacity() const noexcept
             { return m_capacity; }
         constexpr value_type * buffer() const noexcept
-            { return m_buffer; }
+        {
+            return std::visit([](const auto & val) {
+                return const_cast<value_type *>(val.data());
+            }, m_buffer);
+        }
         static constexpr size_type max_size() noexcept
             { return sys_string_traits::max_size; }
         
-        void reallocate(size_type size, size_type /*used_size*/)
+        void reallocate(size_type size, size_type used_size)
         {
-            auto result = (value_type *)CFAllocatorReallocate(nullptr, m_buffer, size * sizeof(value_type), 0);
-            if (!result)
-                throw std::bad_alloc();
-            m_buffer = result;
-            m_capacity = size;
+            struct reallocator
+            {
+                size_type size;
+                size_type used_size;
+                
+                size_t operator()(dynamic_t & buf) const
+                {
+                    buf.reallocate(size);
+                    return size;
+                }
+                
+                size_t operator()(static_t & buf) const
+                {
+                    if (size > minimum_capacity)
+                    {
+                        dynamic_t new_buf(size);
+                        memcpy(new_buf.data(), buf.data(), used_size * sizeof(value_type));
+                        return size;
+                    }
+                    return minimum_capacity;
+                }
+            };
+            
+            m_capacity = std::visit(reallocator{size, used_size}, m_buffer);
         }
         
-        constexpr value_type * release() noexcept
+        buffer_t release() noexcept
         {
-            value_type * ret = m_buffer;
-            this->m_buffer = nullptr;
-            this->m_capacity = 0;
-            return ret;
+            this->m_capacity = minimum_capacity;
+            return std::move(m_buffer);
         }
     private:
-        value_type * m_buffer = nullptr;
-        size_type m_capacity = 0;
+        buffer_t m_buffer;
+        size_type m_capacity = minimum_capacity;
     };
 
     using builder_impl = char_buffer<builder_storage>;
 
     inline CFStringRef convert_to_string(builder_impl & builder) noexcept
     {
-        auto str =  !builder.empty() ?
-                        check_create(CFStringCreateWithCharactersNoCopy(nullptr, (const UniChar *)builder.begin(), builder.size(), nullptr)) :
-                        nullptr;
-        builder.release();
-        return str;
+        struct converter
+        {
+            sys_string_traits::size_type size;
+            
+            CFStringRef operator()(builder_storage::dynamic_t && buf) const
+            {
+                CFStringRef str = size ? check_create(CFStringCreateWithCharactersNoCopy(nullptr, (const UniChar *)buf.data(), size, nullptr)) :
+                                        nullptr;
+                buf.release();
+                return str;
+            }
+            
+            CFStringRef operator()(builder_storage::static_t && buf) const
+            {
+                return size ? check_create(CFStringCreateWithCharacters(nullptr, (const UniChar *)buf.data(), size)) :
+                                        nullptr;
+            }
+        };
+        return std::visit(converter{builder.size()}, builder.release());
     }
 
     sys_string build(builder_impl & builder) noexcept;
@@ -310,10 +426,10 @@ namespace sysstr::util
         {
             using converter = utf_converter<utf_encoding_of<Char>, utf16>;
             builder_impl buf;
-//            size_t utf16_count = converter::converted_length(str, str + len);
-//            buf.resize(utf16_count);
-//            converter::convert(str, str + len, buf.begin());
-            converter::convert(str, str + len, std::back_inserter(buf));
+            size_t utf16_count = converter::converted_length(str, str + len);
+            buf.resize(utf16_count);
+            converter::convert(str, str + len, buf.begin());
+//            converter::convert(str, str + len, std::back_inserter(buf));
             return convert_to_string(buf);
         }
     private:

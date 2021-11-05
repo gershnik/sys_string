@@ -85,7 +85,7 @@ namespace sysstr
                 else
                 {
                     char32_t lc = util::sigma_tolower()(cursor);
-                    auto writer = typename utf32_output<OutEnc>::write([&](auto value) {
+                    auto writer = utf32_output<OutEnc>::make_writer([&](auto value) {
                         *dest++ = value;
                     });
                     writer(lc);

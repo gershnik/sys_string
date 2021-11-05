@@ -385,8 +385,8 @@ namespace sysstr::util::generic
         using reverse_iterator = std::reverse_iterator<const CharT *>;
         using const_reverse_iterator = reverse_iterator;
         
-        using cursor = iter_cursor<const char_access, true>;
-        using reverse_cursor = iter_cursor<const char_access, false>;
+        using cursor = iter_cursor<char_access::const_iterator, char_access::const_iterator, cursor_direction::forward, size_type>;
+        using reverse_cursor = iter_cursor<char_access::const_iterator, char_access::const_iterator, cursor_direction::backward, size_type>;
     public:
         char_access(const buffer<CharT, SizeT> & buffer) noexcept:
             m_chars(buffer.data()),

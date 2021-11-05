@@ -39,11 +39,11 @@ namespace sysstr
         using const_reverse_iterator = utf32_view::const_reverse_iterator;
         
     private:
-        template<bool Forward>
-        using const_storage_cursor = decltype(util::cursor_begin<Forward>(std::declval<const impl_type>()));
+        template<util::cursor_direction Direction>
+        using const_storage_cursor = decltype(util::cursor_begin<Direction>(std::declval<const impl_type>()));
         
-        template<bool Forward>
-        using storage_cursor = decltype(util::cursor_begin<Forward>(std::declval<impl_type>()));
+        template<util::cursor_direction Direction>
+        using storage_cursor = decltype(util::cursor_begin<Direction>(std::declval<impl_type>()));
 
     public:
 
@@ -63,17 +63,17 @@ namespace sysstr
             { m_impl.resize(new_size); }
         
         iterator begin() const noexcept
-            { return storage_begin<true>(); }
+            { return storage_begin<util::cursor_direction::forward>(); }
         iterator end() const noexcept
-            { return storage_end<true>(); }
+            { return storage_end<util::cursor_direction::forward>(); }
         const_iterator cbegin() const noexcept
             { return begin(); }
         const_iterator cend() const noexcept
             { return end(); }
         reverse_iterator rbegin() const noexcept
-            { return storage_begin<false>(); }
+            { return storage_begin<util::cursor_direction::backward>(); }
         reverse_iterator rend() const noexcept
-            { return storage_end<false>(); }
+            { return storage_end<util::cursor_direction::backward>(); }
         const_reverse_iterator crbegin() const noexcept
             { return rbegin(); }
         const_reverse_iterator crend() const noexcept
@@ -94,7 +94,7 @@ namespace sysstr
 
             auto pos = where.storage_pos();
             insert_one(m_impl, m_impl.begin() + pos, c);
-            return storage_at<true>(pos);
+            return storage_at<util::cursor_direction::forward>(pos);
         }
         
         template<class Char>
@@ -104,7 +104,7 @@ namespace sysstr
 
             auto pos = where.storage_pos();
             insert_many(m_impl, m_impl.begin() + pos, str, len);
-            return storage_at<true>(pos);
+            return storage_at<util::cursor_direction::forward>(pos);
         }
         
         iterator erase(iterator where) noexcept
@@ -114,7 +114,7 @@ namespace sysstr
             auto pos = where.storage_pos();
             auto where_it = m_impl.begin() + pos;
             m_impl.erase(where_it, where_it + where.storage_size());
-            return storage_at<true>(pos);
+            return storage_at<util::cursor_direction::forward>(pos);
         }
         iterator erase(iterator first, iterator last) noexcept
         {
@@ -123,7 +123,7 @@ namespace sysstr
             auto first_pos = first.storage_pos();
             auto last_pos = last.storage_pos();
             m_impl.erase(m_impl.begin() + first_pos, m_impl.begin() + last_pos);
-            return storage_at<true>(first_pos);
+            return storage_at<util::cursor_direction::forward>(first_pos);
         }
         
         sys_string_builder & append(char32_t c)
@@ -169,15 +169,15 @@ namespace sysstr
         template<class Access>
         void append_access(const Access & access);
         
-        template<bool Forward>
-        auto storage_begin() const -> const_storage_cursor<Forward>
-            { return util::cursor_begin<Forward>(m_impl); }
-        template<bool Forward>
-        auto storage_end() const -> const_storage_cursor<Forward>
-            { return util::cursor_end<Forward>(m_impl); }
-        template<bool Forward>
-        auto storage_at(size_type pos) const -> const_storage_cursor<Forward>
-            { return util::cursor_at<Forward>(m_impl, pos); }
+        template<util::cursor_direction Direction>
+        auto storage_begin() const -> const_storage_cursor<Direction>
+            { return util::cursor_begin<Direction>(m_impl); }
+        template<util::cursor_direction Direction>
+        auto storage_end() const -> const_storage_cursor<Direction>
+            { return util::cursor_end<Direction>(m_impl); }
+        template<util::cursor_direction Direction>
+        auto storage_at(size_type pos) const -> const_storage_cursor<Direction>
+            { return util::cursor_at<Direction>(m_impl, pos); }
     private:
         impl_type m_impl;
     };

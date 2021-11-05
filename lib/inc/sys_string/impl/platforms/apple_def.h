@@ -98,8 +98,8 @@ namespace sysstr::util
         using reference = value_type;
         using pointer = void;
         
-        using cursor = index_cursor<const char_access, true>;
-        using reverse_cursor = index_cursor<const char_access, false>;
+        using cursor = index_cursor<const char_access, cursor_direction::forward>;
+        using reverse_cursor = index_cursor<const char_access, cursor_direction::backward>;
         
         using iterator = cursor;
         using const_iterator = iterator;
@@ -136,26 +136,26 @@ namespace sysstr::util
         size_type size() const noexcept
             { return m_size; }
         
-        template<bool Forward>
-        auto cursor_begin() const noexcept -> index_cursor<const char_access, Forward>
-            { return index_cursor<const char_access, Forward>(*this, Forward ? 0 : m_size); }
+        template<cursor_direction Direction>
+        auto cursor_begin() const noexcept -> index_cursor<const char_access, Direction>
+            { return index_cursor<const char_access, Direction>(*this, bool(Direction) ? 0 : m_size); }
 
-        template<bool Forward>
-        auto cursor_end() const noexcept -> index_cursor<const char_access, Forward>
-            { return index_cursor<const char_access, Forward>(*this, Forward ? m_size : 0); }
+        template<cursor_direction Direction>
+        auto cursor_end() const noexcept -> index_cursor<const char_access, Direction>
+            { return index_cursor<const char_access, Direction>(*this, bool(Direction) ? m_size : 0); }
         
         iterator begin() const noexcept
-            { return cursor_begin<true>(); }
+            { return cursor_begin<cursor_direction::forward>(); }
         iterator end() const noexcept
-            { return cursor_end<true>(); }
+            { return cursor_end<cursor_direction::forward>(); }
         const_iterator cbegin() const noexcept
             { return begin(); }
         const_iterator cend() const noexcept
             { return end(); }
         reverse_iterator rbegin() const noexcept
-            { return cursor_begin<false>(); }
+            { return cursor_begin<cursor_direction::backward>(); }
         reverse_iterator rend() const noexcept
-            { return cursor_end<false>(); }
+            { return cursor_end<cursor_direction::backward>(); }
         const_reverse_iterator crbegin() const noexcept
             { return rbegin(); }
         const_reverse_iterator crend() const noexcept

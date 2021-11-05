@@ -174,8 +174,8 @@ namespace sysstr::util
         using reverse_iterator = std::reverse_iterator<const value_type *>;
         using const_reverse_iterator = reverse_iterator;
 
-        using cursor = iter_cursor<const char_access, true>;
-        using reverse_cursor = iter_cursor<const char_access, false>;
+        using cursor = iter_cursor<char_access::const_iterator, char_access::const_iterator, util::cursor_direction::forward, size_type>;
+        using reverse_cursor = iter_cursor<char_access::const_iterator, char_access::const_iterator, util::cursor_direction::backward, size_type>;
     public:
         char_access(const sys_string& src) noexcept;
         ~char_access() noexcept

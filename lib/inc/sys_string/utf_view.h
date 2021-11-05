@@ -36,6 +36,10 @@ namespace sysstr
         template<utf_encoding OutputEnc, class Cursor>
         class utf_cursor
         {
+            static_assert(std::is_convertible_v<typename Cursor::iterator_category, std::random_access_iterator_tag>,
+                          "Underlying cursor must be random access to be wrappable in utf_cursor");
+            
+            friend utf_cursor<OutputEnc, typename Cursor::reverse_type>;
         public:
             using size_type = typename Cursor::size_type;
             using difference_type = typename Cursor::difference_type;
@@ -50,13 +54,13 @@ namespace sysstr
             static constexpr bool is_reverse = Cursor::is_reverse;
             static constexpr bool is_forward = Cursor::is_forward;
         public:
-            constexpr utf_cursor() noexcept:
+            constexpr utf_cursor() noexcept(std::is_nothrow_constructible_v<Cursor>):
                 m_char_idx(0),
                 m_current_storage_size(0)
             {}
             
             SYS_STRING_FORCE_INLINE
-            constexpr utf_cursor(const Cursor & wrapped) noexcept:
+            constexpr utf_cursor(const Cursor & wrapped) noexcept(std::is_nothrow_copy_constructible_v<Cursor>):
                 m_next(wrapped)
             {
                 this->load_next();
@@ -69,11 +73,11 @@ namespace sysstr
                 { return this->m_char_idx != this->m_encoder.size(); }
 
             SYS_STRING_FORCE_INLINE
-            constexpr utf_cursor & operator++() noexcept
+            constexpr utf_cursor & operator++()
             {
                 if constexpr (is_forward)
                 {
-                    if (++this->m_char_idx != this->m_encoder.size())
+                    if (++this->m_char_idx < this->m_encoder.size())
                         return *this;
                 }
                 else
@@ -89,34 +93,40 @@ namespace sysstr
                 return *this;
             }
 
-            constexpr utf_cursor operator++(int) noexcept
+            constexpr utf_cursor operator++(int)
             {
                 utf_cursor ret = *this;
                 ++(*this);
                 return ret;
             }
             
-            friend constexpr bool operator==(const utf_cursor & lhs, const utf_cursor & rhs) noexcept
-                { return lhs.m_char_idx == rhs.m_char_idx && lhs.storage_pos() == rhs.storage_pos(); }
-            friend constexpr bool operator!=(const utf_cursor & lhs, const utf_cursor & rhs) noexcept
+            friend constexpr bool operator==(const utf_cursor & lhs, const utf_cursor & rhs)
+                { return lhs.m_next == rhs.m_next && lhs.m_char_idx == rhs.m_char_idx && lhs.m_current_storage_size == rhs.m_current_storage_size; }
+            friend constexpr bool operator!=(const utf_cursor & lhs, const utf_cursor & rhs)
                 { return !(lhs == rhs); }
             
-            friend constexpr bool operator==(const utf_cursor & lhs, std::nullptr_t) noexcept
+            friend constexpr bool operator==(const utf_cursor & lhs, std::nullptr_t)
                 { return !lhs; }
-            friend constexpr bool operator==(std::nullptr_t, const utf_cursor & rhs) noexcept
+            friend constexpr bool operator==(std::nullptr_t, const utf_cursor & rhs)
                 { return !rhs; }
-            friend constexpr bool operator!=(const utf_cursor & lhs, std::nullptr_t rhs) noexcept
+            friend constexpr bool operator!=(const utf_cursor & lhs, std::nullptr_t rhs)
                 { return !(lhs == rhs); }
-            friend constexpr bool operator!=(std::nullptr_t lhs, const utf_cursor & rhs) noexcept
+            friend constexpr bool operator!=(std::nullptr_t lhs, const utf_cursor & rhs)
                 { return !(lhs == rhs); }
             
-            reverse_type reverse() const noexcept
-                { return this->storage_cursor().reverse(); }
+            reverse_type reverse() const
+            {
+                auto reverse_next = this->m_next.reverse();
+                reverse_next += this->m_current_storage_size;
+                reverse_type ret(std::move(reverse_next), this->m_encoder, this->m_char_idx, this->m_current_storage_size);
+                ++ret;
+                return ret;
+            }
             
-            utf_cursor<utf32, Cursor> char_start() const noexcept
+            utf_cursor<utf32, Cursor> char_start() const
                 { return this->storage_cursor(); }
             
-            size_type storage_pos() const noexcept
+            size_type storage_pos() const
             {
                 if constexpr (is_forward)
                     return this->m_next.position() - this->m_current_storage_size;
@@ -127,7 +137,7 @@ namespace sysstr
             size_type storage_size() const noexcept
                 { return this->m_current_storage_size; }
             
-            const Cursor storage_cursor() const noexcept
+            const Cursor storage_cursor() const
                 { return this->m_next - this->m_current_storage_size; }
             
             friend auto operator<<(std::ostream & str, const utf_cursor & c) -> std::ostream &
@@ -143,8 +153,18 @@ namespace sysstr
                 return str;
             }
         private:
+            utf_cursor(Cursor && next,
+                       const utf_codepoint_encoder<OutputEnc, false> & encoder,
+                       uint8_t char_idx,
+                       uint8_t storage_size) noexcept(std::is_nothrow_move_constructible_v<Cursor>):
+                m_next(std::move(next)),
+                m_encoder(encoder),
+                m_char_idx(char_idx),
+                m_current_storage_size(storage_size)
+            {}
+            
             SYS_STRING_FORCE_INLINE
-            constexpr void load_next() noexcept
+            constexpr void load_next()
             {
                 if (this->m_next)
                 {
@@ -169,7 +189,7 @@ namespace sysstr
                     this->m_current_storage_size = 0;
                 }
             }
-
+            
         private:
             Cursor m_next;
             utf_codepoint_encoder<OutputEnc, false> m_encoder;
@@ -180,6 +200,8 @@ namespace sysstr
         template<class Cursor>
         class utf_cursor<utf32, Cursor>
         {
+            static_assert(std::is_convertible_v<typename Cursor::iterator_category, std::random_access_iterator_tag>,
+                          "Underlying cursor must be random access to be wrappable in utf_cursor");
         public:
             using size_type = typename Cursor::size_type;
             using difference_type = typename Cursor::difference_type;
@@ -194,10 +216,10 @@ namespace sysstr
             static constexpr bool is_reverse = Cursor::is_reverse;
             static constexpr bool is_forward = Cursor::is_forward;
         public:
-            constexpr utf_cursor() noexcept = default;
+            constexpr utf_cursor() = default;
 
             SYS_STRING_FORCE_INLINE
-            constexpr utf_cursor(const Cursor & wrapped) noexcept :
+            constexpr utf_cursor(const Cursor & wrapped) noexcept(std::is_nothrow_copy_constructible_v<Cursor>) :
                 m_current(wrapped)
             {
                 this->load_next();
@@ -206,11 +228,11 @@ namespace sysstr
             constexpr value_type operator*() const noexcept
                 { return this->m_value; }
 
-            explicit constexpr operator bool() const noexcept
+            explicit constexpr operator bool() const
                 { return bool(this->m_current); }
 
             SYS_STRING_FORCE_INLINE
-            constexpr utf_cursor & operator++() noexcept
+            constexpr utf_cursor & operator++()
             {
                 this->m_current += this->m_current_storage_size;
                 this->m_current_storage_size = 0;
@@ -219,40 +241,40 @@ namespace sysstr
             }
 
             SYS_STRING_FORCE_INLINE
-            constexpr utf_cursor operator++(int) noexcept
+            constexpr utf_cursor operator++(int)
             {
                 utf_cursor ret = *this;
                 ++(*this);
                 return ret;
             }
 
-            friend constexpr bool operator==(const utf_cursor & lhs, const utf_cursor & rhs) noexcept
+            friend constexpr bool operator==(const utf_cursor & lhs, const utf_cursor & rhs)
                 { return lhs.m_current == rhs.m_current; }
-            friend constexpr bool operator!=(const utf_cursor & lhs, const utf_cursor & rhs) noexcept
+            friend constexpr bool operator!=(const utf_cursor & lhs, const utf_cursor & rhs)
                 { return !(lhs == rhs); }
             
-            friend constexpr bool operator==(const utf_cursor & lhs, std::nullptr_t) noexcept
+            friend constexpr bool operator==(const utf_cursor & lhs, std::nullptr_t)
                 { return !lhs; }
-            friend constexpr bool operator==(std::nullptr_t, const utf_cursor & rhs) noexcept
+            friend constexpr bool operator==(std::nullptr_t, const utf_cursor & rhs)
                 { return !rhs; }
-            friend constexpr bool operator!=(const utf_cursor & lhs, std::nullptr_t rhs) noexcept
+            friend constexpr bool operator!=(const utf_cursor & lhs, std::nullptr_t rhs)
                 { return !(lhs == rhs); }
-            friend constexpr bool operator!=(std::nullptr_t lhs, const utf_cursor & rhs) noexcept
+            friend constexpr bool operator!=(std::nullptr_t lhs, const utf_cursor & rhs)
                 { return !(lhs == rhs); }
             
-            reverse_type reverse() const noexcept
+            reverse_type reverse() const
                 { return this->m_current.reverse(); }
             
             const utf_cursor & char_start() const noexcept
                 { return *this; }
             
-            size_type storage_pos() const noexcept
+            size_type storage_pos() const
                 { return this->m_current.position(); }
             
             size_type storage_size() const noexcept
                 { return this->m_current_storage_size; }
             
-            const Cursor storage_cursor() const noexcept
+            const Cursor storage_cursor() const
                 { return this->m_current; }
             
             friend auto operator<<(std::ostream & str, const utf_cursor & c) -> std::ostream &
@@ -262,7 +284,7 @@ namespace sysstr
             }
         private:
             SYS_STRING_FORCE_INLINE
-            void load_next() noexcept
+            void load_next()
             {
                 if (Cursor next = this->m_current)
                 {
@@ -306,14 +328,14 @@ namespace sysstr
     private:
         using char_access = typename Traits::char_access;
         
-        template<bool Forward>
+        template<util::cursor_direction Direction>
         static auto detect_cursor_type(std::add_pointer_t<const char_access> access = nullptr) noexcept
         {
             using util::cursor_begin;
-            return cursor_begin<Forward>(*access);
+            return cursor_begin<Direction>(*access);
         }
-        using access_cursor_type = decltype(detect_cursor_type<true>());
-        using access_reverse_cursor_type = decltype(detect_cursor_type<false>());
+        using access_cursor_type = decltype(detect_cursor_type<util::cursor_direction::forward>());
+        using access_reverse_cursor_type = decltype(detect_cursor_type<util::cursor_direction::backward>());
     public:
         using iterator = util::utf_cursor<Enc, access_cursor_type>;
         using const_iterator = iterator;
@@ -328,41 +350,55 @@ namespace sysstr
         
         using cursor_type = util::utf_cursor<Enc, access_cursor_type>;
         using reverse_cursor_type = util::utf_cursor<Enc, access_reverse_cursor_type>;
+        
+        using cursor_direction = util::cursor_direction;
+        
+        static constexpr auto forward = cursor_direction::forward;
+        static constexpr auto backward = cursor_direction::backward;
     public:
-        utf_view(const Container & src) noexcept : m_access(Traits::adapt(src))
+        utf_view(const Container & src) noexcept(noexcept(char_access(Traits::adapt(src)))) : m_access(Traits::adapt(src))
         {}
-        SYS_STRING_FORCE_INLINE iterator begin() const noexcept
-            { return this->cursor_begin<true>(); }
-        SYS_STRING_FORCE_INLINE iterator end() const noexcept
-            { return this->cursor_end<true>(); }
-        SYS_STRING_FORCE_INLINE const_iterator cbegin() const noexcept
+        SYS_STRING_FORCE_INLINE iterator begin() const
+            { return this->cursor_begin(); }
+        SYS_STRING_FORCE_INLINE iterator end() const
+            { return this->cursor_end(); }
+        SYS_STRING_FORCE_INLINE const_iterator cbegin() const
             { return begin(); }
-        SYS_STRING_FORCE_INLINE const_iterator cend() const noexcept
+        SYS_STRING_FORCE_INLINE const_iterator cend() const
             { return end(); }
-        SYS_STRING_FORCE_INLINE reverse_iterator rbegin() const noexcept
-            { return this->cursor_begin<false>(); }
-        SYS_STRING_FORCE_INLINE reverse_iterator rend() const noexcept
-            { return this->cursor_end<false>(); }
-        SYS_STRING_FORCE_INLINE const_reverse_iterator crbegin() const noexcept
+        SYS_STRING_FORCE_INLINE reverse_iterator rbegin() const
+            { return this->cursor_begin<backward>(); }
+        SYS_STRING_FORCE_INLINE reverse_iterator rend() const
+            { return this->cursor_end<backward>(); }
+        SYS_STRING_FORCE_INLINE const_reverse_iterator crbegin() const
             { return rbegin(); }
-        SYS_STRING_FORCE_INLINE const_reverse_iterator crend() const noexcept
+        SYS_STRING_FORCE_INLINE const_reverse_iterator crend() const
             { return rend(); }
         
-        template<bool Forward>
+        template<cursor_direction Direction = forward>
         SYS_STRING_FORCE_INLINE
-        decltype(auto) cursor_begin() const noexcept
+        decltype(auto) cursor_begin() const
         {
             using util::cursor_begin, util::utf_cursor;
-            return utf_cursor<Enc, decltype(detect_cursor_type<Forward>())>(cursor_begin<Forward>(this->m_access));
+            return utf_cursor<Enc, decltype(detect_cursor_type<Direction>())>(cursor_begin<Direction>(this->m_access));
         }
         
-        template<bool Forward>
+        template<cursor_direction Direction = forward>
         SYS_STRING_FORCE_INLINE
-        decltype(auto) cursor_end() const noexcept
+        decltype(auto) cursor_end() const
         {
             using util::cursor_end, util::utf_cursor;
-            return utf_cursor<Enc, decltype(detect_cursor_type<Forward>())>(cursor_end<Forward>(this->m_access));
+            return utf_cursor<Enc, decltype(detect_cursor_type<Direction>())>(cursor_end<Direction>(this->m_access));
         }
+        
+        template<class Func>
+        decltype(auto) each(Func func) const
+        {
+            using util::cursor_begin;
+            constexpr auto source_encoding = utf_encoding_of<typename char_access::value_type>;
+            return utf_converter<source_encoding, Enc>::for_each_converted(cursor_begin<util::cursor_direction::forward>(this->m_access), func);
+        }
+        
     private:
         char_access m_access;
     };

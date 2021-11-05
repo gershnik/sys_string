@@ -124,7 +124,7 @@ auto sysstr::sys_string::to_lower() const -> sys_string
 {
     sys_string::utf32_view view(*this);
     sys_string_builder builder;
-    tolower<utf_encoding_of<sys_string_builder::storage_type>>()(view.cursor_begin<true>(), std::back_inserter(builder.chars()));
+    tolower<utf_encoding_of<sys_string_builder::storage_type>>()(view.cursor_begin(), std::back_inserter(builder.chars()));
     return builder.build();
 }
 
@@ -133,7 +133,7 @@ auto sysstr::sys_string::to_upper() const -> sys_string
 {
     sys_string::utf32_view view(*this);
     sys_string_builder builder;
-    toupper<utf_encoding_of<sys_string_builder::storage_type>>()(view.cursor_begin<true>(), std::back_inserter(builder.chars()));
+    toupper<utf_encoding_of<sys_string_builder::storage_type>>()(view.cursor_begin(), std::back_inserter(builder.chars()));
     return builder.build();
 }
 
@@ -142,7 +142,7 @@ template<class Pred>
 auto sysstr::sys_string::trim(Pred pred) const -> sys_string
 {
     sys_string::utf32_view view(*this);
-    auto trimmed_start = view.cursor_begin<true>();
+    auto trimmed_start = view.cursor_begin();
     for( ; ; ++trimmed_start)
     {
         if (!trimmed_start)
@@ -153,7 +153,7 @@ auto sysstr::sys_string::trim(Pred pred) const -> sys_string
             break;
     }
 
-    auto trimmed_end = view.cursor_begin<false>();
+    auto trimmed_end = view.cursor_begin<view.backward>();
     for( ; ; ++trimmed_end)
     {
         char32_t c = *trimmed_end;
@@ -168,7 +168,7 @@ template<class Pred>
 auto sysstr::sys_string::ltrim(Pred pred) const -> sys_string
 {
     sys_string::utf32_view view(*this);
-    auto trimmed_start = view.cursor_begin<true>();
+    auto trimmed_start = view.cursor_begin();
     for( ; ; ++trimmed_start)
     {
         if (!trimmed_start)
@@ -187,7 +187,7 @@ inline
 auto sysstr::sys_string::rtrim(Pred pred) const -> sys_string
 {
     sys_string::utf32_view view(*this);
-    auto trimmed_end = view.cursor_begin<false>();
+    auto trimmed_end = view.cursor_begin<view.backward>();
     for( ; ; ++trimmed_end)
     {
         if (!trimmed_end)

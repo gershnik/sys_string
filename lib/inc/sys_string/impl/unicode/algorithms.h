@@ -85,10 +85,10 @@ namespace sysstr
                 else
                 {
                     char32_t lc = util::sigma_tolower()(cursor);
-                    using writer_type = typename utf32_output<OutEnc>::template write<OutIt>;
-                    writer_type writer{dest};
+                    auto writer = utf32_output<OutEnc>::make_writer([&](auto value) {
+                        *dest++ = value;
+                    });
                     writer(lc);
-                    dest = writer.dest;
                 }
             }
             return dest;

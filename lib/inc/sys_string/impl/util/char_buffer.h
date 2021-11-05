@@ -178,9 +178,8 @@ namespace sysstr::util
                 
         constexpr auto release() noexcept
         {
-            auto ret = this->m_storage.release();
             this->m_size = 0;
-            return ret;
+            return this->m_storage.release();
         }
     
     private:

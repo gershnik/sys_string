@@ -46,6 +46,6 @@ namespace sysstr
         constexpr ::size_t size = sizeof(u##x) / sizeof(char16_t); \
         using header_type = ::sysstr::util::hstring_header; \
         static struct bug_workaround { const header_type header{1, size - 1, 0, 0, u##x}; } b; \
-        return ::sysstr::sys_string(HSTRING(uintptr_t(&b.header) | ::sysstr::util::hstring_static_allocation_bit) , handle_retain::no); \
+        return ::sysstr::sys_string(HSTRING(uintptr_t(&b.header) | ::sysstr::util::hstring_static_allocation_bit) , ::sysstr::handle_retain::no); \
     }())
 

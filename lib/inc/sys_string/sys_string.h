@@ -95,9 +95,12 @@ namespace sysstr
         
         using char_access = util::char_access;
         
-        using utf8_view  = utf_view<utf8, sys_string, view_traits>;
-        using utf16_view = utf_view<utf16, sys_string, view_traits>;
-        using utf32_view = utf_view<utf32, sys_string, view_traits>;
+        template<utf_encoding Enc>
+        using utf_view = utf_view<Enc, sys_string, view_traits>;
+        
+        using utf8_view  = utf_view<utf8>;
+        using utf16_view = utf_view<utf16>;
+        using utf32_view = utf_view<utf32>;
         
     #if SYS_STRING_USE_SPACESHIP_OPERATOR
         using compare_result = std::strong_ordering;

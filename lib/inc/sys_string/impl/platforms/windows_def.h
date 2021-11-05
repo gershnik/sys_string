@@ -27,7 +27,7 @@ namespace sysstr
         using hash_type = size_t;
         using native_handle_type = HSTRING;
 
-        static constexpr size_type max_size = std::numeric_limits<UINT32>::max() / sizeof(char16_t);
+        static constexpr size_type max_size = std::numeric_limits<UINT32>::max() / sizeof(char16_t) - 1;
     };
 }
 
@@ -107,7 +107,7 @@ namespace sysstr::util
         {
             value_type * new_buffer;
             HSTRING_BUFFER new_handle;
-            auto res = WindowsPreallocateStringBuffer(size, (WCHAR**)&new_buffer, &new_handle);
+            auto res = WindowsPreallocateStringBuffer(size + 1, (WCHAR**)&new_buffer, &new_handle);
             if (FAILED(res))
             {
                 if (res == MEM_E_INVALID_SIZE || res == E_OUTOFMEMORY)
@@ -143,6 +143,8 @@ namespace sysstr::util
     {
         [[maybe_unused]] auto capacity = builder.capacity();
         auto size = builder.size();
+        if (auto buf = builder.begin())
+            buf[size] = 0;
         HSTRING_BUFFER handle = builder.release();
         HSTRING ret;
         auto res = WindowsPromoteStringBuffer(handle, &ret);
@@ -151,7 +153,7 @@ namespace sysstr::util
         if (ret)
         { 
             auto header = (hstring_header *)ret;
-            assert(header->length == capacity);
+            assert(header->length == capacity + 1);
             header->length = size;
         }
         return ret;
@@ -172,8 +174,8 @@ namespace sysstr::util
         using reverse_iterator = std::reverse_iterator<const value_type *>;
         using const_reverse_iterator = reverse_iterator;
 
-        using cursor = iter_cursor<const char_access, true>;
-        using reverse_cursor = iter_cursor<const char_access, false>;
+        using cursor = iter_cursor<char_access::const_iterator, char_access::const_iterator, util::cursor_direction::forward, size_type>;
+        using reverse_cursor = iter_cursor<char_access::const_iterator, char_access::const_iterator, util::cursor_direction::backward, size_type>;
     public:
         char_access(const sys_string& src) noexcept;
         ~char_access() noexcept
@@ -259,6 +261,10 @@ namespace sysstr::util
 
         storage(const char32_t * str, size_t len) :
             storage(buffer_from(str, len), handle_retain::no)
+        {}
+
+        storage(const wchar_t * str, size_t len) :
+            storage((char16_t*)str, len)
         {}
 
         ~storage() noexcept

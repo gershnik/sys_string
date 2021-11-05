@@ -24,16 +24,27 @@ namespace sysstr
         static void reading(InIt first, InIt last) noexcept(noexcept(*first++) && noexcept(first != last));
         template<class OutIt>
         static void writing(OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<To>()));
+        template<class Func>
+        static void applying(Func func) noexcept(noexcept(func(utf_char_of<To>())));
     public:
+        template<class InIt, class Func>
+        static Func for_each_converted(InIt first, InIt last, Func func) noexcept(noexcept(reading(first, last)) && noexcept(applying(func)));
+        
+        
         template<class InIt, class OutIt>
-        static OutIt convert(InIt first, InIt last, OutIt dest) noexcept(noexcept(reading(first, last)) && noexcept(writing(dest)));
+        SYS_STRING_FORCE_INLINE
+        static OutIt convert(InIt first, InIt last, OutIt dest) noexcept(noexcept(reading(first, last)) && noexcept(writing(dest)))
+        {
+            for_each_converted(first, last, [&](auto c) { *dest++ = c; });
+            return dest;
+        }
         
         template<class InIt>
         SYS_STRING_FORCE_INLINE
         static size_t converted_length(InIt first, InIt last) noexcept(noexcept(reading(first, last)))
         {
             size_t ret = 0;
-            convert(first, last, util::count_output_iterator(ret));
+            for_each_converted(first, last, [&](auto) { ++ret; });
             return ret;
         }
 
@@ -100,16 +111,11 @@ namespace sysstr
     };
 
     template<utf_encoding From, utf_encoding To>
-    template<class InIt, class OutIt>
+    template<class InIt, class Func>
     SYS_STRING_FORCE_INLINE
-    OutIt utf_converter<From, To>::convert(InIt first, InIt last, OutIt dest) noexcept(noexcept(reading(first, last)) && noexcept(writing(dest)))
+    Func utf_converter<From, To>::for_each_converted(InIt first, InIt last, Func func) noexcept(noexcept(reading(first, last)) && noexcept(applying(func)))
     {
-        OutIt ret = dest;
-        auto sink = typename utf32_output<To>::write([&ret](auto value) {
-            *ret++ = value;
-        });
-        utf32_input<From>::read(first, last, sink);
-        return ret;
+        return utf32_input<From>::read(first, last, typename utf32_output<To>::write(func)).sink;
     }
 
 
@@ -123,38 +129,35 @@ namespace sysstr
         utf_codepoint_decoder<utf16> decoder;
         while(first != last)
         {
-            uint16_t value = *first++;
-        resync:
-            decoder.put(value);
+            decoder.put(uint16_t(*first));
+            ++first;
             if (decoder.done())
             {
-                sink(char32_t(decoder.value()));
+                sink(char32_t{decoder.value()});
+                continue;
             }
-            else if (decoder.error())
+            
+            if (decoder.error())
             {
-                sink(U'\uFFFD');
+                sink(char32_t{U'\uFFFD'});
+                continue;
             }
-            else
+            
+            if (first == last)
             {
-                if (first == last)
-                {
-                    sink(U'\uFFFD');
-                    return sink;
-                }
-                
-                uint16_t trail = *first++;
-                decoder.put(trail);
-                if (decoder.done())
-                {
-                    sink(char32_t(decoder.value()));
-                }
-                else
-                {
-                    sink(U'\uFFFD');
-                    value = trail;
-                    goto resync;
-                }
+                sink(char32_t{U'\uFFFD'});
+                return sink;
             }
+            
+            decoder.put(uint16_t(*first));
+            if (!decoder.done())
+            {
+                sink(char32_t{U'\uFFFD'});
+                continue;
+            }
+            ++first;
+
+            sink(char32_t{decoder.value()});
         }
         return sink;
     }
@@ -214,59 +217,52 @@ namespace sysstr
     SYS_STRING_FORCE_INLINE
     Sink utf32_input<utf8>::read(InIt first, InIt last, Sink sink) noexcept(noexcept(reading(first, last)) && noexcept(sink(char32_t())))
     {
-        if (first == last)
-            return sink;
+        utf_codepoint_decoder<utf8> decoder;
         
-        uint8_t byte = *first++;
-        
-        for(utf_codepoint_decoder<utf8> decoder; ; )
+        while(first != last)
         {
-            uint32_t value;
-            
-            bool repeat_prev = false;
+            uint8_t byte = uint8_t(*first);
+            ++first;
             if (byte <= 0x7f)
             {
-                value = byte;
-            }
-            else
-            {
-                uint32_t first_byte = true;
-                for ( ; ; )
-                {
-                    decoder.put(byte);
-                    
-                    if (decoder.done())
-                    {
-                        value = decoder.value();
-                        break;
-                    }
-                    
-                    if (decoder.error())
-                    {
-                        value = U'\uFFFD';
-                        repeat_prev = !first_byte;
-                        break;
-                    }
-                    if (first == last)
-                    {
-                        value = u'\uFFFD';
-                        break;
-                    }
-                    
-                    byte = *first++;
-                    first_byte = false;
-                }
-            }
-                
-            sink(char32_t(value));
-            
-            if (repeat_prev)
+                sink(char32_t{byte});
                 continue;
+            }
+            
+            decoder.put(byte);
+            if (decoder.error())
+            {
+                sink(char32_t{U'\uFFFD'});
+                continue;
+            }
             
             if (first == last)
-                break;
-                
-            byte = *first++;
+            {
+                sink(char32_t{U'\uFFFD'});
+                return sink;
+            }
+            
+            for ( ; ; )
+            {
+                byte = uint8_t(*first);
+                decoder.put(byte);
+                if (decoder.error())
+                {
+                    sink(char32_t{U'\uFFFD'});
+                    break;
+                }
+                ++first;
+                if (decoder.done())
+                {
+                    sink(char32_t{decoder.value()});
+                    break;
+                }
+                if (first == last)
+                {
+                    sink(char32_t{U'\uFFFD'});
+                    return sink;
+                }
+            }
         }
         
         return sink;
@@ -291,18 +287,12 @@ namespace sysstr
         for ( ; ; )
         {
             byte = uint8_t(*cursor);
-            ++cursor;
             decoder.put(byte);
-            
+            if (decoder.error())
+                return char32_t{U'\uFFFD'};
+            ++cursor;
             if (decoder.done())
                 return char32_t{decoder.value()};
-            
-            if (decoder.error())
-            { 
-                --cursor;
-                return char32_t{U'\uFFFD'};
-            }
-            
             if (!cursor)
                 return char32_t{U'\uFFFD'};
         }

@@ -89,6 +89,8 @@ namespace sysstr::util
             {
                 if (this != &rhs)
                 {
+                    if (m_ptr)
+                        CFAllocatorDeallocate(nullptr, m_ptr);
                     m_ptr = rhs.m_ptr;
                     rhs.m_ptr = nullptr;
                 }

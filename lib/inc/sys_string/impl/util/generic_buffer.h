@@ -136,7 +136,7 @@ namespace sysstr::util::generic
         template<class Char>
         buffer(const Char * str, size_t length)
         {
-            if constexpr (std::is_same_v<Char, CharT>)
+            if constexpr (utf_encoding_of<Char> == utf_encoding_of<CharT>)
             {
                 SizeT our_size = buffer::ensure_valid_size(length);
                 CharT * data;

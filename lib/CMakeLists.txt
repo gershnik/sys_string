@@ -78,6 +78,8 @@ source_group("Platforms/Android" FILES ${ANDROID_FILES})
 set(WINDOWS_FILES
      ${SRCDIR}/inc/sys_string/impl/platforms/windows_def.h
      ${SRCDIR}/inc/sys_string/impl/platforms/windows_impl.h
+     ${SRCDIR}/inc/sys_string/impl/platforms/windows_bstr_def.h
+     ${SRCDIR}/inc/sys_string/impl/platforms/windows_bstr_impl.h
 )
 source_group("Platforms/Windows" FILES ${WINDOWS_FILES})
 

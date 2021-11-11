@@ -36,6 +36,12 @@ namespace sysstr
         no,
         yes
     };
+
+    enum handle_transfer
+    {
+        copy_content,
+        attach_pointer
+    };
 }
 
 namespace sysstr::util
@@ -64,7 +70,11 @@ namespace sysstr::util
 #elif defined(__ANDROID__)
     #include <sys_string/impl/platforms/android_def.h>
 #elif defined(_WIN32)
-    #include <sys_string/impl/platforms/windows_def.h>
+    #if SYS_STRING_WIN_BSTR
+        #include <sys_string/impl/platforms/windows_bstr_def.h>
+    #else
+        #include <sys_string/impl/platforms/windows_def.h>
+    #endif
 #elif defined(__linux__)
     #include <sys_string/impl/platforms/linux_def.h>
 #else
@@ -152,16 +162,33 @@ namespace sysstr
             { return m_storage.make_jstring(env); }
 
     #elif defined(_WIN32)
-        sys_string(HSTRING str, handle_retain retain_handle = handle_retain::yes) noexcept :
-            m_storage(str, retain_handle)
-        {}
+        #if SYS_STRING_WIN_BSTR
+            sys_string(BSTR str, handle_transfer transfer_type) noexcept :
+                m_storage(str, transfer_type)
+            {}
 
-        auto h_str() const noexcept -> HSTRING
-            { return m_storage.native_handle(); }
+            BSTR release() noexcept
+                { return m_storage.release(); }
 
-        auto w_str() const noexcept -> const wchar_t *
-            { return WindowsGetStringRawBuffer(m_storage.native_handle(), nullptr); }
-        
+            sys_string(util::bstr_buffer && buffer) noexcept : m_storage(std::move(buffer))
+            {}
+
+            auto b_str() const noexcept -> BSTR
+                { return (BSTR)m_storage.data(); }
+
+            auto w_str() const noexcept -> const wchar_t *
+                { return (const wchar_t * )m_storage.data(); }
+        #else
+            sys_string(HSTRING str, handle_retain retain_handle = handle_retain::yes) noexcept :
+                m_storage(str, retain_handle)
+            {}
+
+            auto h_str() const noexcept -> HSTRING
+                { return m_storage.native_handle(); }
+
+            auto w_str() const noexcept -> const wchar_t *
+                { return WindowsGetStringRawBuffer(m_storage.native_handle(), nullptr); }
+        #endif
     #elif defined(__linux__)
         
         sys_string(util::buffer && buffer) noexcept:  m_storage(std::move(buffer))
@@ -364,7 +391,11 @@ namespace std
 #elif defined(__ANDROID__)
     #include <sys_string/impl/platforms/android_impl.h>
 #elif defined(_WIN32)
-    #include <sys_string/impl/platforms/windows_impl.h>
+    #if SYS_STRING_WIN_BSTR
+        #include <sys_string/impl/platforms/windows_bstr_impl.h>
+    #else
+        #include <sys_string/impl/platforms/windows_impl.h>
+    #endif
 #elif defined(__linux__)
     #include <sys_string/impl/platforms/linux_impl.h>
 #else

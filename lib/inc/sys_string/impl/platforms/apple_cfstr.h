@@ -324,15 +324,24 @@ namespace sysstr
         using native_handle_type = util::cf_traits::native_handle_type;
         using hash_type = util::cf_traits::hash_type;
         using char_access = util::cf_char_access;
+        
         using builder_impl = util::cf_builder_impl;
-
-        static constexpr auto max_size = util::cf_traits::max_size;
+        
+        static constexpr size_type max_size = util::cf_traits::max_size;
     public:
         cf_storage() noexcept = default;
         
         cf_storage(native_handle_type str, handle_retain retain_handle = handle_retain::yes) noexcept :
             m_str(retain_handle == handle_retain::yes ? retain(str) : str)
         {}
+        
+#ifdef __OBJC__
+        cf_storage(NSString * str) noexcept :
+            cf_storage((__bridge CFStringRef)str, handle_retain::yes)
+        {}
+#endif
+        
+    protected:
         
         cf_storage(native_handle_type src, size_type first, size_type last) :
             m_str(src ? util::check_create(CFStringCreateWithSubstring(nullptr, src, {first, last - first})) : nullptr)
@@ -342,16 +351,29 @@ namespace sysstr
             cf_storage(src.m_str, first, last)
         {}
         
-        cf_storage(const char * str, size_type len):
+        template<class Char>
+        cf_storage(const Char * str, size_t len);
+        
+        template<>
+        cf_storage(const char * str, size_t len):
             cf_storage(buffer_from(str, len), handle_retain::no)
         {}
+        
+        #if SYS_STRING_USE_CHAR8
+            template<>
+            cf_storage(const char8_t * str, size_t len):
+                cf_storage(buffer_from((const char *)str, len), handle_retain::no)
+            {}
+        #endif
 
-        cf_storage(const char16_t * str, size_type len) :
+        template<>
+        cf_storage(const char16_t * str, size_t len) :
             m_str(util::check_create(
                 CFStringCreateWithCharacters(nullptr, (const UniChar *)str, len)))
         {}
 
-        cf_storage(const char32_t * str, size_type len):
+        template<>
+        cf_storage(const char32_t * str, size_t len):
             cf_storage(buffer_from(str, len), handle_retain::no)
         {}
         
@@ -392,8 +414,15 @@ namespace sysstr
             swap(m_str, other.m_str);
         }
         
-        auto native_handle() const noexcept -> native_handle_type
+    public:
+        
+        auto cf_str() const noexcept -> native_handle_type
             { return m_str; }
+        
+        #ifdef __OBJC__
+            auto ns_str() const noexcept -> NSString *
+            { return (__bridge NSString *)m_str; }
+        #endif
         
         auto data() const noexcept -> const storage_type *
             { return m_str ? (const storage_type *)CFStringGetCharactersPtr(m_str): nullptr; }
@@ -408,6 +437,8 @@ namespace sysstr
             }
             return 0;
         }
+        
+    protected:
 
         auto size() const noexcept -> size_type
             { return m_str ? CFStringGetLength(m_str):  0; }
@@ -429,11 +460,13 @@ namespace sysstr
         }
         
         template<class Char>
-        static CFStringRef buffer_from(const Char * str, size_type len)
+        static CFStringRef buffer_from(const Char * str, size_t len)
         {
             using converter = utf_converter<utf_encoding_of<Char>, utf16>;
             builder_impl buf;
             size_t utf16_count = converter::converted_length(str, str + len);
+            if (utf16_count > size_t(max_size))
+                throw std::bad_alloc();
             buf.resize(utf16_count);
             converter::convert(str, str + len, buf.begin());
 //            converter::convert(str, str + len, std::back_inserter(buf));

@@ -246,6 +246,8 @@ namespace sysstr
             m_str(retain_handle == handle_retain::yes ? retain(str) : str)
         {}
 
+    protected:
+
         hstring_storage(native_handle_type src, size_type first, size_type last) :
             m_str(create(src, first, last))
         {}
@@ -254,18 +256,32 @@ namespace sysstr
             hstring_storage(src.m_str, first, last)
         {}
 
+        template<class Char>
+        hstring_storage(const Char * str, size_t len);
+
+        template<>
         hstring_storage(const char * str, size_t len) :
             hstring_storage(buffer_from(str, len), handle_retain::no)
         {}
 
+#if SYS_STRING_USE_CHAR8
+        template<>
+        hstring_storage(const char8_t * str, size_t len):
+            hstring_storage(buffer_from((const char *)str, len), handle_retain::no)
+        {}
+#endif
+
+        template<>
         hstring_storage(const char16_t * str, size_t len) :
             m_str(create(str, len))
         {}
 
+        template<>
         hstring_storage(const char32_t * str, size_t len) :
             hstring_storage(buffer_from(str, len), handle_retain::no)
         {}
 
+        template<>
         hstring_storage(const wchar_t * str, size_t len) :
             hstring_storage((char16_t*)str, len)
         {}
@@ -305,7 +321,9 @@ namespace sysstr
             swap(m_str, other.m_str);
         }
 
-        auto native_handle() const noexcept -> native_handle_type
+    public:
+
+        auto h_str() const noexcept -> native_handle_type
             { return real_handle(m_str); }
 
         auto data() const noexcept -> const storage_type *
@@ -326,6 +344,13 @@ namespace sysstr
             return ret;
         }
 
+        auto w_str() const noexcept -> const wchar_t *
+        { 
+            auto ret = (const wchar_t *)data();
+            return ret ? ret : L""; 
+        }
+
+    protected:
         auto size() const noexcept -> size_type
         {
             return m_str ? WindowsGetStringLen(real_handle(m_str)) : 0;
@@ -422,7 +447,7 @@ namespace sysstr
     template<>
     inline sys_string_t<hstring_storage>::sys_string_t(const char_access::iterator & first, 
                                                        const char_access::iterator & last):
-        sys_string_t(first, last - first)
+        sys_string_t(first, size_type(last - first))
     {}
 
     using sys_string_hstring = sys_string_t<hstring_storage>; 

@@ -526,24 +526,18 @@ namespace sysstr::util
     public:
         bstr_storage() noexcept = default;
 
-        bstr_storage(const char * str, size_t len):
-            m_buffer(str, len)
-        {}
-        bstr_storage(const char16_t * str, size_t len):
-            m_buffer(str, len)
-        {}
-        bstr_storage(const char32_t * str, size_t len):
-            m_buffer(str, len)
-        {}
-        bstr_storage(const wchar_t * str, size_t len):
-            bstr_storage((char16_t*)str, len)
-        {}
-
         bstr_storage(BSTR str, handle_transfer transfer_type) :
             m_buffer(str, transfer_type)
         {}
 
         bstr_storage(util::bstr_buffer && buffer) noexcept:  m_buffer(std::move(buffer))
+        {}
+
+    protected:
+
+        template<class Char>
+        bstr_storage(const Char * str, size_t len, std::enable_if_t<has_utf_encoding<Char>> * = nullptr):
+            m_buffer(str, len)
         {}
 
         bstr_storage(const bstr_storage & src, UINT first, UINT last) :
@@ -556,7 +550,9 @@ namespace sysstr::util
         bstr_storage & operator=(const bstr_storage & rhs) noexcept = default;
         bstr_storage & operator=(bstr_storage && rhs) noexcept = default;
 
-        auto native_handle() const noexcept -> native_handle_type
+    public:
+
+        auto b_str() const noexcept -> native_handle_type
             { return BSTR(m_buffer.chars()); }
 
         auto release() noexcept -> native_handle_type
@@ -572,6 +568,13 @@ namespace sysstr::util
             return ret;
         }
 
+        auto w_str() const noexcept -> const wchar_t *
+        { 
+            auto ret = (const wchar_t *)data();
+            return ret ? ret : L""; 
+        }
+
+    protected:
         auto size() const noexcept -> size_type
             { return m_buffer.size(); }
 
@@ -593,7 +596,7 @@ namespace sysstr::util
 namespace sysstr::util
 {
     inline bstr_char_access::bstr_char_access(const sys_string_t<bstr_storage> & src) noexcept:
-        bstr_char_access(src.m_storage.get_buffer())
+        bstr_char_access(src.get_buffer())
     {}
 
     template<>
@@ -602,7 +605,7 @@ namespace sysstr::util
         auto size = builder.size();
         auto buf = builder.release();
         buf.truncate_size(size);
-        return sys_string_t<bstr_storage>(bstr_storage(std::move(buf))); 
+        return sys_string_t<bstr_storage>(std::move(buf)); 
     }
 }
 
@@ -620,7 +623,7 @@ namespace sysstr
 
     template<>
     inline sys_string_t<bstr_storage>::sys_string_t(const char_access::iterator & first, const char_access::iterator & last) :
-        sys_string_t(first, last - first)
+        sys_string_t(first, size_type(last - first))
     {}
 
     using sys_string_bstr = sys_string_t<bstr_storage>; 

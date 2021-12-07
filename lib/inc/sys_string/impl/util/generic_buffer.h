@@ -526,30 +526,28 @@ namespace sysstr::util::generic
 
     public:
         storage() noexcept = default;
-
-        storage(const char * str, size_t len) :
-            m_buffer(str, len)
-        {}
-        storage(const char16_t * str, size_t len) :
-            m_buffer(str, len)
-        {}
-        storage(const char32_t * str, size_t len) :
-            m_buffer(str, len)
-        {}
-
+        
         storage(buffer && buffer) noexcept:  m_buffer(std::move(buffer))
         {}
-
-        storage(const storage & src, SizeT first, SizeT last) :
-            m_buffer(char_access(src.m_buffer.get()).data() + first, last - first)
-        {}
-
+        
+    protected:
         ~storage() noexcept = default;
         storage(const storage & src) noexcept = default;
         storage(storage && src) noexcept = default;
         storage & operator=(const storage & rhs) noexcept = default;
         storage & operator=(storage && rhs) noexcept = default;
 
+        template<class Char>
+        storage(const Char * str, size_t len, std::enable_if_t<has_utf_encoding<Char>> * = nullptr) :
+            m_buffer(str, len)
+        {}
+        
+        storage(const storage & src, SizeT first, SizeT last) :
+            m_buffer(char_access(src.m_buffer.get()).data() + first, last - first)
+        {}
+
+
+    public:
         auto data() const noexcept -> const CharT *
             { return m_buffer.data(); }
 
@@ -560,6 +558,8 @@ namespace sysstr::util::generic
             return ret;
         }
 
+    protected:
+        
         auto size() const noexcept -> size_type
             { return m_buffer.size(); }
 
@@ -569,7 +569,6 @@ namespace sysstr::util::generic
         auto swap(storage & other) noexcept -> void
             { m_buffer.swap(other.m_buffer); }
 
-    protected:
         const buffer & get_buffer() const noexcept
             { return m_buffer; }
     private:

@@ -67,7 +67,7 @@ namespace sysstr::util
 namespace sysstr
 {
     template<class Storage>
-    class sys_string_t
+    class sys_string_t : public Storage
     {
     friend std::hash<sys_string_t>;
     friend typename Storage::char_access;
@@ -92,7 +92,7 @@ namespace sysstr
         
         static constexpr size_type max_size = storage::max_size;
         
-        using char_access = typename Storage::char_access;
+        using char_access = typename storage::char_access;
         
         template<utf_encoding Enc>
         using utf_view = utf_view<Enc, sys_string_t, view_traits>;
@@ -121,96 +121,12 @@ namespace sysstr
         sys_string_t & operator=(sys_string_t &&) noexcept = default;
         ~sys_string_t() noexcept = default;
         
-    #if (defined(__APPLE__) && defined(__MACH__))
-        template<class X=storage>
-        sys_string_t(std::enable_if_t<std::is_same_v<typename X::native_handle_type, CFStringRef>,
-                     CFStringRef> str, handle_retain retain_handle = handle_retain::yes) noexcept :
-            m_storage(str, retain_handle)
-        {}
-        
-        #ifdef __OBJC__
-            template<class X=storage>
-            sys_string_t(std::enable_if_t<std::is_same_v<typename X::native_handle_type, CFStringRef>,
-                         NSString *> str) noexcept :
-                m_storage((__bridge CFStringRef)str, handle_retain::yes)
-            {}
-        #endif
-
-        template<class X=storage>
-        auto cf_str() const noexcept -> 
-            std::enable_if_t<std::is_same_v<typename X::native_handle_type, CFStringRef>, CFStringRef>
-        { return m_storage.native_handle(); }
-        
-        #ifdef __OBJC__
-            template<class X=storage>
-            auto ns_str() const noexcept -> 
-                std::enable_if_t<std::is_same_v<typename X::native_handle_type, CFStringRef>, NSString *>
-            { return (__bridge NSString *)m_storage.native_handle(); }
-        #endif
-
-        template<class X=storage>
-        auto c_str() const noexcept -> 
-            std::enable_if_t<std::is_same_v<typename X::storage_type, char>, const char *>
-        { 
-            auto ret = m_storage.data(); 
-            return ret ? ret : "";
-        }
-        
-    #elif defined(__ANDROID__)
-        sys_string_t(JNIEnv * env, jstring str) : m_storage(env, str)
-        {}
-        
-        auto make_jstring(JNIEnv * env) const -> jstring
-            { return m_storage.make_jstring(env); }
-
-    #elif defined(_WIN32)
-        
-        template<class X=storage>
-        sys_string_t(std::enable_if_t<std::is_same_v<typename X::native_handle_type, HSTRING>, 
-                     HSTRING> str, handle_retain retain_handle = handle_retain::yes) noexcept :
-            m_storage(str, retain_handle)
-        {}
-
-        template<class X=storage>
-        sys_string_t(std::enable_if_t<std::is_same_v<typename X::native_handle_type, BSTR>,
-                     BSTR> str, handle_transfer transfer_type) noexcept :
-            m_storage(str, transfer_type)
-        {}
-
-        template<class X=storage>
-        auto release() noexcept -> 
-            std::enable_if_t<std::is_same_v<typename X::native_handle_type, BSTR>, BSTR>
-        { return m_storage.release(); }
-
-        template<class X=storage>
-        auto h_str() const noexcept -> 
-            std::enable_if_t<std::is_same_v<typename X::native_handle_type, HSTRING>, HSTRING>
-        { return m_storage.native_handle(); }
-
-        template<class X=storage>
-        auto b_str() const noexcept -> 
-            std::enable_if_t<std::is_same_v<typename X::native_handle_type, BSTR>, BSTR>
-        { return (BSTR)m_storage.data(); }
-
-        auto w_str() const noexcept -> const wchar_t *
-        { 
-            auto ret = (const wchar_t *)m_storage.data();
-            return ret ? ret : L""; 
-        }
-        
-    #elif defined(__linux__)
-        
-        auto c_str() const noexcept -> const char *
-        { 
-            auto ret = m_storage.data(); 
-            return ret ? ret : "";
-        }
-        
-    #endif
+        using storage::storage;
+     
 
         template<class Char>
         sys_string_t(const Char * str, size_t len, std::enable_if_t<has_utf_encoding<Char>> * = nullptr) :
-            m_storage(str, len)
+            storage(str, len)
         {}
         
         template<class Char>
@@ -256,20 +172,17 @@ namespace sysstr
         
         sys_string_t(const typename char_access::reverse_cursor & src, size_type length);
 
-        explicit sys_string_t(storage && storage) noexcept : m_storage(std::move(storage))
+        explicit sys_string_t(storage && st) noexcept : storage(std::move(st))
         {}
         
         auto storage_size() const noexcept -> size_type
-            { return m_storage.size(); }
+            { return storage::size(); }
         
-        auto data() const noexcept -> const storage_type *
-            { return m_storage.data(); }
-
-        auto copy_data(size_type idx, storage_type * buf, size_type buf_size) const noexcept -> size_type
-            { return m_storage.copy_data(idx, buf, buf_size); }
+        using storage::data;
+        using storage::copy_data;
         
         auto empty() const noexcept -> bool
-            { return m_storage.size() == 0; }
+            { return storage::size() == 0; }
         
         static auto format(const char * spec, ...) -> sys_string_t;
         static auto formatv(const char * spec, va_list vl) -> sys_string_t;
@@ -282,7 +195,7 @@ namespace sysstr
     #endif
 
         auto swap(sys_string_t & other) noexcept -> void
-            { m_storage.swap(other.m_storage); }
+            { storage::swap(other.m_storage); }
         
         friend auto swap(sys_string_t & lhs, sys_string_t & rhs) noexcept -> void
             { lhs.swap(rhs); }
@@ -368,18 +281,9 @@ namespace sysstr
             std::enable_if_t<is_string_or_char<StringOrChar1> && is_string_or_char<StringOrChar2>, sys_string_t>;
 
     private:
-        
-    #if (defined(__APPLE__) && defined(__MACH__))
-        sys_string_t(CFStringRef src, size_type first, size_type last):
-            m_storage(src, first, last)
-        {}
-    #endif
-        
         static auto compare(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> compare_result;
         static auto compare_no_case(const sys_string_t lhs, const sys_string_t & rhs) noexcept -> compare_result;
         
-    private:
-        storage m_storage;
     };
 
 }

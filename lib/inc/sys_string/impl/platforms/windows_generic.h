@@ -56,12 +56,29 @@ namespace sysstr
     public:
         using super::super;
 
-        generic_storage(const wchar_t * str, size_t len):
-            generic_storage((char16_t*)str, len)
+        template<class Char>
+        generic_storage(const Char * str, size_t len, std::enable_if_t<has_utf_encoding<Char>> * = nullptr):
+            super(str, len)
         {}
 
+    protected:
+        ~generic_storage() noexcept = default;
+        generic_storage(const generic_storage & src) noexcept = default;
+        generic_storage(generic_storage && src) noexcept = default;
+        generic_storage & operator=(const generic_storage & rhs) noexcept = default;
+        generic_storage & operator=(generic_storage && rhs) noexcept = default;
+
+    public:
         using super::data;
         using super::copy_data;
+
+        auto w_str() const noexcept -> const wchar_t *
+        { 
+            auto ret = (const wchar_t *)data();
+            return ret ? ret : L""; 
+        }
+
+    protected:
         using super::size;
         using super::operator[];
 
@@ -76,7 +93,7 @@ namespace sysstr::util
     template<>
     inline 
     generic_char_access::char_access(const sys_string_t<generic_storage> & src) noexcept:
-        char_access(src.m_storage.m_buffer)
+        char_access(src.m_buffer)
     {}
 
     template<>

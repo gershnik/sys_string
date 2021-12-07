@@ -60,11 +60,18 @@ namespace sysstr
         android_storage(JNIEnv * env, native_handle_type str) : 
             super(create_buffer(env, str))
         {}
+        
+    protected:
+        ~android_storage() noexcept = default;
+        android_storage(const android_storage & src) noexcept = default;
+        android_storage(android_storage && src) noexcept = default;
+        android_storage & operator=(const android_storage & rhs) noexcept = default;
+        android_storage & operator=(android_storage && rhs) noexcept = default;
+
+    public:
 
         using super::data;
         using super::copy_data;
-        using super::size;
-        using super::operator[];
         
 
         auto make_jstring(JNIEnv * env) const -> native_handle_type
@@ -78,6 +85,11 @@ namespace sysstr
             return ret;
         }
         
+    protected:
+
+        using super::size;
+        using super::operator[];
+
         auto swap(storage & other) noexcept -> void
             { super::swap(other); }
 
@@ -113,7 +125,7 @@ namespace sysstr::util
     template<>
     template<>
     inline char_access::char_access(const sys_string_t<android_storage> & src) noexcept:
-        char_access(src.m_storage.get_buffer())
+        char_access(src.get_buffer())
     {}
 
     template<>

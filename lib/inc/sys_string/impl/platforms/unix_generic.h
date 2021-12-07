@@ -56,8 +56,25 @@ namespace sysstr
     public:
         using super::super;
 
+    protected:
+        ~generic_storage() noexcept = default;
+        generic_storage(const generic_storage & src) noexcept = default;
+        generic_storage(generic_storage && src) noexcept = default;
+        generic_storage & operator=(const generic_storage & rhs) noexcept = default;
+        generic_storage & operator=(generic_storage && rhs) noexcept = default;
+
+    public:
+
         using super::data;
         using super::copy_data;
+        
+        auto c_str() const noexcept -> const char *
+        {
+            auto ret = data();
+            return ret ? ret : "";
+        }
+        
+    protected:
         using super::size;
         using super::operator[];
 
@@ -72,7 +89,7 @@ namespace sysstr::util
     template<>
     inline 
     generic_char_access::char_access(const sys_string_t<generic_storage> & src) noexcept:
-        char_access(src.m_storage.m_buffer)
+        char_access(src.m_buffer)
     {}
 
     template<>

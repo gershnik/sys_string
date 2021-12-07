@@ -393,7 +393,8 @@ namespace sysstr::util::generic
             m_size(buffer.size())
         {
         }
-        char_access(const class sys_string & str) noexcept;
+        template<class Storage>
+        char_access(const sys_string_t<Storage> & str) noexcept;
         ~char_access() noexcept = default;
 
         char_access(const char_access & src) noexcept = delete;

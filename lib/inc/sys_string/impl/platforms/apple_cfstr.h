@@ -14,12 +14,14 @@
 
 #include <variant>
 
-#include <CoreFoundation/CoreFoundation.h>
-
 namespace sysstr
 {
+    class cf_storage;
+}
 
-    struct sys_string_traits
+namespace sysstr::util
+{
+    struct cf_traits
     {
         using storage_type = char16_t;
         using size_type = CFIndex;
@@ -28,10 +30,7 @@ namespace sysstr
         
         static constexpr size_type max_size = std::numeric_limits<CFIndex>::max() / sizeof(UniChar);
     };
-}
-
-namespace sysstr::util
-{
+    
     inline CFStringRef check_create(CFStringRef src)
     {
         if (!src)
@@ -59,11 +58,11 @@ namespace sysstr::util
         }
     };
     
-    class builder_storage
+    class cf_builder_storage
     {
     public:
-        using value_type = sys_string_traits::storage_type;
-        using size_type = sys_string_traits::size_type;
+        using value_type = cf_traits::storage_type;
+        using size_type = cf_traits::size_type;
         
         class dynamic_t
         {
@@ -134,7 +133,7 @@ namespace sysstr::util
             }, m_buffer);
         }
         static constexpr size_type max_size() noexcept
-            { return sys_string_traits::max_size; }
+            { return cf_traits::max_size; }
         
         void reallocate(size_type size, size_type used_size)
         {
@@ -174,15 +173,15 @@ namespace sysstr::util
         size_type m_capacity = minimum_capacity;
     };
 
-    using builder_impl = char_buffer<builder_storage>;
+    using cf_builder_impl = char_buffer<cf_builder_storage>;
 
-    inline CFStringRef convert_to_string(builder_impl & builder) noexcept
+    inline CFStringRef convert_to_string(cf_builder_impl & builder) noexcept
     {
         struct converter
         {
-            sys_string_traits::size_type size;
+            cf_traits::size_type size;
             
-            CFStringRef operator()(builder_storage::dynamic_t && buf) const
+            CFStringRef operator()(cf_builder_storage::dynamic_t && buf) const
             {
                 CFStringRef str = size ? check_create(CFStringCreateWithCharactersNoCopy(nullptr, (const UniChar *)buf.data(), size, nullptr)) :
                                         nullptr;
@@ -190,7 +189,7 @@ namespace sysstr::util
                 return str;
             }
             
-            CFStringRef operator()(builder_storage::static_t && buf) const
+            CFStringRef operator()(cf_builder_storage::static_t && buf) const
             {
                 return size ? check_create(CFStringCreateWithCharacters(nullptr, (const UniChar *)buf.data(), size)) :
                                         nullptr;
@@ -199,9 +198,7 @@ namespace sysstr::util
         return std::visit(converter{builder.size()}, builder.release());
     }
 
-    sys_string build(builder_impl & builder) noexcept;
-
-    class char_access
+    class cf_char_access
     {
     private:
         enum buffer_type
@@ -211,27 +208,27 @@ namespace sysstr::util
             indirect
         };
     public:
-        using value_type = sys_string_traits::storage_type;
-        using size_type = sys_string_traits::size_type;
+        using value_type = cf_traits::storage_type;
+        using size_type = cf_traits::size_type;
         using reference = value_type;
         using pointer = void;
         
-        using cursor = index_cursor<const char_access, cursor_direction::forward>;
-        using reverse_cursor = index_cursor<const char_access, cursor_direction::backward>;
+        using cursor = index_cursor<const cf_char_access, cursor_direction::forward>;
+        using reverse_cursor = index_cursor<const cf_char_access, cursor_direction::backward>;
         
         using iterator = cursor;
         using const_iterator = iterator;
         using reverse_iterator = reverse_cursor;
         using const_reverse_iterator = reverse_iterator;
     public:
-        char_access(const sys_string & src) noexcept;
-        ~char_access() noexcept
+        cf_char_access(const sys_string_t<cf_storage> & src) noexcept;
+        ~cf_char_access() noexcept
             { if (m_c_str) delete [] m_c_str; }
         
-        char_access(const char_access & src) noexcept = delete;
-        char_access(char_access && src) noexcept = delete;
-        char_access & operator=(const char_access & src) = delete;
-        char_access & operator=(char_access && src) = delete;
+        cf_char_access(const cf_char_access & src) noexcept = delete;
+        cf_char_access(cf_char_access && src) noexcept = delete;
+        cf_char_access & operator=(const cf_char_access & src) = delete;
+        cf_char_access & operator=(cf_char_access && src) = delete;
 
         CFStringRef get_string() const noexcept
             { return m_string ? m_string : CFSTR(""); }
@@ -255,12 +252,12 @@ namespace sysstr::util
             { return m_size; }
         
         template<cursor_direction Direction>
-        auto cursor_begin() const noexcept -> index_cursor<const char_access, Direction>
-            { return index_cursor<const char_access, Direction>(*this, bool(Direction) ? 0 : m_size); }
+        auto cursor_begin() const noexcept -> index_cursor<const cf_char_access, Direction>
+            { return index_cursor<const cf_char_access, Direction>(*this, bool(Direction) ? 0 : m_size); }
 
         template<cursor_direction Direction>
-        auto cursor_end() const noexcept -> index_cursor<const char_access, Direction>
-            { return index_cursor<const char_access, Direction>(*this, bool(Direction) ? m_size : 0); }
+        auto cursor_end() const noexcept -> index_cursor<const cf_char_access, Direction>
+            { return index_cursor<const cf_char_access, Direction>(*this, bool(Direction) ? m_size : 0); }
         
         iterator begin() const noexcept
             { return cursor_begin<cursor_direction::forward>(); }
@@ -291,9 +288,9 @@ namespace sysstr::util
             return ret;
         }
         
-        friend bool operator==(const char_access & lhs, const char_access & rhs) noexcept
+        friend bool operator==(const cf_char_access & lhs, const cf_char_access & rhs) noexcept
             { return lhs.m_string == rhs.m_string; }
-        friend bool operator!=(const char_access & lhs, const char_access & rhs) noexcept
+        friend bool operator!=(const cf_char_access & lhs, const cf_char_access & rhs) noexcept
             { return !(lhs == rhs); }
     private:
         void fill(CFIndex idx) const
@@ -315,53 +312,61 @@ namespace sysstr::util
         mutable CFIndex m_end = 0;
         CFIndex m_size = 0;
     };
+}
 
-    class storage
+namespace sysstr
+{
+    class cf_storage
     {
     public:
-        using size_type = sys_string_traits::size_type;
-        using storage_type = sys_string_traits::storage_type;
-        using native_handle_type = sys_string_traits::native_handle_type;
+        using size_type = util::cf_traits::size_type;
+        using storage_type = util::cf_traits::storage_type;
+        using native_handle_type = util::cf_traits::native_handle_type;
+        using hash_type = util::cf_traits::hash_type;
+        using char_access = util::cf_char_access;
+        using builder_impl = util::cf_builder_impl;
+
+        static constexpr auto max_size = util::cf_traits::max_size;
     public:
-        storage() noexcept = default;
+        cf_storage() noexcept = default;
         
-        storage(native_handle_type str, handle_retain retain_handle = handle_retain::yes) noexcept :
+        cf_storage(native_handle_type str, handle_retain retain_handle = handle_retain::yes) noexcept :
             m_str(retain_handle == handle_retain::yes ? retain(str) : str)
         {}
         
-        storage(native_handle_type src, size_type first, size_type last) :
-            m_str(src ? check_create(CFStringCreateWithSubstring(nullptr, src, {first, last - first})) : nullptr)
+        cf_storage(native_handle_type src, size_type first, size_type last) :
+            m_str(src ? util::check_create(CFStringCreateWithSubstring(nullptr, src, {first, last - first})) : nullptr)
         {}
         
-        storage(const storage & src, size_type first, size_type last) :
-            storage(src.m_str, first, last)
+        cf_storage(const cf_storage & src, size_type first, size_type last) :
+            cf_storage(src.m_str, first, last)
         {}
         
-        storage(const char * str, size_type len):
-            storage(buffer_from(str, len), handle_retain::no)
+        cf_storage(const char * str, size_type len):
+            cf_storage(buffer_from(str, len), handle_retain::no)
         {}
 
-        storage(const char16_t * str, size_type len) :
-            m_str(check_create(
+        cf_storage(const char16_t * str, size_type len) :
+            m_str(util::check_create(
                 CFStringCreateWithCharacters(nullptr, (const UniChar *)str, len)))
         {}
 
-        storage(const char32_t * str, size_type len):
-            storage(buffer_from(str, len), handle_retain::no)
+        cf_storage(const char32_t * str, size_type len):
+            cf_storage(buffer_from(str, len), handle_retain::no)
         {}
         
-        ~storage() noexcept
+        ~cf_storage() noexcept
             { release(m_str); }
 
-        storage(const storage & src) noexcept : m_str(retain(src.m_str))
+        cf_storage(const cf_storage & src) noexcept : m_str(retain(src.m_str))
         {}
 
-        storage(storage && src) noexcept : m_str(src.m_str)
+        cf_storage(cf_storage && src) noexcept : m_str(src.m_str)
         {
             src.m_str = nullptr;
         }
 
-        auto operator=(const storage & rhs) noexcept -> storage &
+        auto operator=(const cf_storage & rhs) noexcept -> cf_storage &
         {
             CFStringRef temp = m_str;
             m_str = rhs.m_str;
@@ -370,7 +375,7 @@ namespace sysstr::util
             return *this;
         }
 
-        inline auto operator=(storage && rhs) noexcept -> storage &
+        inline auto operator=(cf_storage && rhs) noexcept -> cf_storage &
         {
             if (this != &rhs)
             {
@@ -381,7 +386,7 @@ namespace sysstr::util
             return *this;
         }
         
-        auto swap(storage & other) noexcept -> void
+        auto swap(cf_storage & other) noexcept -> void
         {
             using std::swap;
             swap(m_str, other.m_str);
@@ -439,6 +444,52 @@ namespace sysstr::util
     };
 
 }
+
+namespace sysstr::util
+{
+    inline cf_char_access::cf_char_access(const sys_string_t<cf_storage> & src) noexcept:
+        m_string(src.cf_str())
+    {
+        if (m_string)
+        {
+            m_size = CFStringGetLength(m_string);
+            if ( (m_direct_unichar_buffer = CFStringGetCharactersPtr(m_string)) )
+                return;
+            m_direct_cstring_buffer = CFStringGetCStringPtr(m_string, kCFStringEncodingASCII);
+        }
+    }
+    
+    template<>
+    inline sys_string_t<cf_storage> build(cf_builder_impl & builder) noexcept
+    {
+        auto str = convert_to_string(builder);
+        return sys_string_t<cf_storage>(str, handle_retain::no);
+    }
+}
+
+namespace sysstr
+{
+    template<>
+    inline sys_string_t<cf_storage>::sys_string_t(const char_access::cursor & src, size_type length):
+        sys_string_t(src.container() ? src.container()->get_string() : nullptr, src.position(), src.position() + length)
+    {}
+
+    template<>
+    inline sys_string_t<cf_storage>::sys_string_t(const char_access::reverse_cursor & src, size_type length):
+        sys_string_t(src.container() ? src.container()->get_string() : nullptr, src.position() - length, src.position())
+    {}
+
+    template<>
+    inline sys_string_t<cf_storage>::sys_string_t(const char_access::iterator & first, const char_access::iterator & last):
+        sys_string_t(first, last.position() - first.position())
+    {}
+    
+    using sys_string_cfstr = sys_string_t<cf_storage>;
+    using sys_string_cfstr_builder = sys_string_builder_t<cf_storage>;
+}
+
+#define SYS_STRING_STATIC_CFSTR(x) ::sysstr::sys_string_cfstr(CFSTR(x), ::sysstr::handle_retain::no)
+
 
 
 

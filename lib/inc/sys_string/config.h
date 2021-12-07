@@ -19,8 +19,25 @@
     #define SYS_STRING_CONSTEXPR_ALGO
 #endif
 
-#if defined(_WIN32)
+
+#if (defined(__APPLE__) && defined(__MACH__))
+
+    #include <CoreFoundation/CoreFoundation.h>
+
+#elif defined(__ANDROID__)
+    
+    #include <jni.h>
+
+#elif defined(_WIN32)
     #define SYS_STRING_WCHAR_T_IS_UTF16 1
+
+    #ifndef NOMINMAX
+    #define NOMINMAX
+    #endif
+
+    #include <wtypes.h>
+    #include <winstring.h>
+    #include <oleauto.h>
 #endif
 
 #if __SIZEOF_POINTER__ == 8 || (defined(_MSC_VER) && _WIN64)

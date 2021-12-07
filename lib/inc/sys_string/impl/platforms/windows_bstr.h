@@ -12,16 +12,14 @@
 #include <sys_string/impl/util/char_buffer.h>
 #include <sys_string/impl/util/generic_buffer.h>
 
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-
-#include <wtypes.h>
-#include <oleauto.h>
-
 namespace sysstr
 {
-    struct sys_string_traits
+    class bstr_storage;
+}
+
+namespace sysstr::util
+{
+    struct bstr_traits
     {
         using storage_type = char16_t;
         using size_type = UINT;
@@ -30,10 +28,7 @@ namespace sysstr
 
         static constexpr size_type max_size = std::numeric_limits<UINT>::max() / sizeof(char16_t) - 1;
     };
-}
 
-namespace sysstr::util
-{
     class dynamic_bstr
     {
     public:
@@ -383,7 +378,7 @@ namespace sysstr::util
     private:
         static UINT ensure_valid_size(size_t len)
         {
-            if (len > sys_string_traits::max_size)
+            if (len > bstr_traits::max_size)
                 throw std::bad_alloc();
             return UINT(len);
         }
@@ -392,11 +387,11 @@ namespace sysstr::util
     };
 
     
-    class char_access : private generic::c_str_holder<char16_t>
+    class bstr_char_access : private generic::c_str_holder<char16_t>
     {
     public:
-        using value_type = sys_string_traits::storage_type;
-        using size_type = sys_string_traits::size_type;
+        using value_type = bstr_traits::storage_type;
+        using size_type = bstr_traits::size_type;
         using reference = const value_type &;
         using pointer = const value_type *;
 
@@ -405,20 +400,20 @@ namespace sysstr::util
         using reverse_iterator = std::reverse_iterator<const value_type *>;
         using const_reverse_iterator = reverse_iterator;
 
-        using cursor = iter_cursor<char_access::const_iterator, char_access::const_iterator, cursor_direction::forward, size_type>;
-        using reverse_cursor = iter_cursor<char_access::const_iterator, char_access::const_iterator, cursor_direction::backward, size_type>;
+        using cursor = iter_cursor<const_iterator, const_iterator, cursor_direction::forward, size_type>;
+        using reverse_cursor = iter_cursor<const_iterator, const_iterator, cursor_direction::backward, size_type>;
     public:
-        char_access(const bstr_buffer & buffer) noexcept :
+        bstr_char_access(const bstr_buffer & buffer) noexcept :
             m_chars(buffer.chars()),
             m_size(buffer.size())
         {}
-        char_access(const class sys_string & str) noexcept;
-        ~char_access() noexcept = default;
+        bstr_char_access(const sys_string_t<bstr_storage> & str) noexcept;
+        ~bstr_char_access() noexcept = default;
 
-        char_access(const char_access & src) noexcept = delete;
-        char_access(char_access && src) noexcept = delete;
-        char_access & operator=(const char_access & src) = delete;
-        char_access & operator=(char_access && src) = delete;
+        bstr_char_access(const bstr_char_access & src) noexcept = delete;
+        bstr_char_access(bstr_char_access && src) noexcept = delete;
+        bstr_char_access & operator=(const bstr_char_access & src) = delete;
+        bstr_char_access & operator=(bstr_char_access && src) = delete;
 
         const char16_t * data() const noexcept
             { return this->m_chars; }
@@ -461,23 +456,23 @@ namespace sysstr::util
         size_type m_size = 0;
     };
 
-    class builder_storage
+    class bstr_builder_storage
     {
     public:
-        using value_type = sys_string_traits::storage_type;
-        using size_type = sys_string_traits::size_type;
+        using value_type = bstr_traits::storage_type;
+        using size_type = bstr_traits::size_type;
 
     public:
-        builder_storage() noexcept = default;
-        ~builder_storage() noexcept = default;
+        bstr_builder_storage() noexcept = default;
+        ~bstr_builder_storage() noexcept = default;
         
-        builder_storage(const builder_storage & src) = delete;
-        builder_storage(builder_storage && src) noexcept :
+        bstr_builder_storage(const bstr_builder_storage & src) = delete;
+        bstr_builder_storage(bstr_builder_storage && src) noexcept :
             m_buf(std::move(src.m_buf)),
             m_capacity(src.m_capacity)
         { src.m_capacity = bstr_buffer::minimum_capacity(); }
-        builder_storage & operator=(const builder_storage & src) = delete;
-        builder_storage & operator=(builder_storage && src) noexcept
+        bstr_builder_storage & operator=(const bstr_builder_storage & src) = delete;
+        bstr_builder_storage & operator=(bstr_builder_storage && src) noexcept
         {
             m_buf = std::move(src.m_buf);
             m_capacity = src.m_capacity;
@@ -490,7 +485,7 @@ namespace sysstr::util
         value_type * buffer() const noexcept
             { return m_buf.chars(); }
         static constexpr size_type max_size() noexcept
-            { return sys_string_traits::max_size; }
+            { return bstr_traits::max_size; }
     
         void reallocate(size_type size, size_type used_size)
         { 
@@ -509,58 +504,57 @@ namespace sysstr::util
         UINT m_capacity{bstr_buffer::minimum_capacity()};
     };
 
-    using builder_impl = char_buffer<builder_storage>;
+    using bstr_builder_impl = char_buffer<bstr_builder_storage>;
 
-    inline bstr_buffer convert_to_string(builder_impl & builder) noexcept
+ }
+
+ namespace sysstr
+ {
+    class bstr_storage 
     {
-        auto size = builder.size();
-        auto buf = builder.release();
-        buf.truncate_size(size);
-        return buf;
-    }
-
-    sys_string build(builder_impl & builder) noexcept;
-
-    class storage 
-    {
-    friend char_access;
+    friend util::bstr_char_access;
     public:
-        using size_type = sys_string_traits::size_type;
-        using storage_type = sys_string_traits::storage_type;
-        using native_handle_type = sys_string_traits::native_handle_type;
+        using size_type = util::bstr_traits::size_type;
+        using storage_type = util::bstr_traits::storage_type;
+        using native_handle_type = util::bstr_traits::native_handle_type;
+        using hash_type = util::bstr_traits::hash_type;
+        using char_access = util::bstr_char_access;
+        using builder_impl = util::bstr_builder_impl;
+
+        static constexpr auto max_size = util::bstr_traits::max_size;
 
     public:
-        storage() noexcept = default;
+        bstr_storage() noexcept = default;
 
-        storage(const char * str, size_t len) :
+        bstr_storage(const char * str, size_t len):
             m_buffer(str, len)
         {}
-        storage(const char16_t * str, size_t len) :
+        bstr_storage(const char16_t * str, size_t len):
             m_buffer(str, len)
         {}
-        storage(const char32_t * str, size_t len) :
+        bstr_storage(const char32_t * str, size_t len):
             m_buffer(str, len)
         {}
-        storage(const wchar_t * str, size_t len) :
-            storage((char16_t*)str, len)
+        bstr_storage(const wchar_t * str, size_t len):
+            bstr_storage((char16_t*)str, len)
         {}
 
-        storage(BSTR str, handle_transfer transfer_type) :
+        bstr_storage(BSTR str, handle_transfer transfer_type) :
             m_buffer(str, transfer_type)
         {}
 
-        storage(bstr_buffer && buffer) noexcept:  m_buffer(std::move(buffer))
+        bstr_storage(util::bstr_buffer && buffer) noexcept:  m_buffer(std::move(buffer))
         {}
 
-        storage(const storage & src, UINT first, UINT last) :
+        bstr_storage(const bstr_storage & src, UINT first, UINT last) :
             m_buffer(src.m_buffer.chars() + first, last - first)
         {}
 
-        ~storage() noexcept = default;
-        storage(const storage & src) noexcept = default;
-        storage(storage && src) noexcept = default;
-        storage & operator=(const storage & rhs) noexcept = default;
-        storage & operator=(storage && rhs) noexcept = default;
+        ~bstr_storage() noexcept = default;
+        bstr_storage(const bstr_storage & src) noexcept = default;
+        bstr_storage(bstr_storage && src) noexcept = default;
+        bstr_storage & operator=(const bstr_storage & rhs) noexcept = default;
+        bstr_storage & operator=(bstr_storage && rhs) noexcept = default;
 
         auto native_handle() const noexcept -> native_handle_type
             { return BSTR(m_buffer.chars()); }
@@ -584,14 +578,59 @@ namespace sysstr::util
         auto operator[](UINT idx) const noexcept -> char16_t
             { return m_buffer.chars()[idx]; }
 
-        auto swap(storage & other) noexcept -> void
+        auto swap(bstr_storage & other) noexcept -> void
             { m_buffer.swap(other.m_buffer); }
 
     private:
-        const bstr_buffer & get_buffer() const noexcept
+        const util::bstr_buffer & get_buffer() const noexcept
             { return m_buffer; }
     private:
-        bstr_buffer m_buffer{nullptr};
+        util::bstr_buffer m_buffer{nullptr};
     };
 
 }
+
+namespace sysstr::util
+{
+    inline bstr_char_access::bstr_char_access(const sys_string_t<bstr_storage> & src) noexcept:
+        bstr_char_access(src.m_storage.get_buffer())
+    {}
+
+    template<>
+    inline sys_string_t<bstr_storage> build(bstr_builder_impl & builder) noexcept
+    { 
+        auto size = builder.size();
+        auto buf = builder.release();
+        buf.truncate_size(size);
+        return sys_string_t<bstr_storage>(bstr_storage(std::move(buf))); 
+    }
+}
+
+namespace sysstr
+{
+    template<>
+    inline sys_string_t<bstr_storage>::sys_string_t(const char_access::cursor & src, size_type length) :
+        sys_string_t(src.iterator(), length)
+    {}
+
+    template<>
+    inline sys_string_t<bstr_storage>::sys_string_t(const char_access::reverse_cursor & src, size_type length) :
+        sys_string_t(src.iterator() - length, length)
+    {}
+
+    template<>
+    inline sys_string_t<bstr_storage>::sys_string_t(const char_access::iterator & first, const char_access::iterator & last) :
+        sys_string_t(first, last - first)
+    {}
+
+    using sys_string_bstr = sys_string_t<bstr_storage>; 
+    using sys_string_bstr_builder = sys_string_builder_t<bstr_storage>; 
+}
+
+#define SYS_STRING_STATIC_BSTR(x) ([] () noexcept -> ::sysstr::sys_string_bstr { \
+        constexpr ::UINT size = sizeof(u##x); \
+        static const ::sysstr::util::static_bstr<size> sbuf{size - sizeof(char16_t), u##x}; \
+        ::sysstr::util::bstr_buffer buf((::sysstr::util::dynamic_bstr *)&sbuf, 0); \
+        return *reinterpret_cast<::sysstr::sys_string_bstr *>(&buf); \
+    }())
+

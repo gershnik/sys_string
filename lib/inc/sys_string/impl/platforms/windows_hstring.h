@@ -11,16 +11,14 @@
 
 #include <sys_string/impl/util/char_buffer.h>
 
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
+    namespace sysstr
+    {
+        class hstring_storage;
+    }
 
-#include <winstring.h>
-
-namespace sysstr
+namespace sysstr::util
 {
-
-    struct sys_string_traits
+    struct hstring_traits
     {
         using storage_type = char16_t;
         using size_type = UINT32;
@@ -29,10 +27,7 @@ namespace sysstr
 
         static constexpr size_type max_size = std::numeric_limits<UINT32>::max() / sizeof(char16_t) - 1;
     };
-}
 
-namespace sysstr::util
-{
     //Taken from: https://github.com/microsoft/cppwinrt/blob/master/strings/base_string.h
     struct hstring_header
     {
@@ -52,18 +47,18 @@ namespace sysstr::util
     //HSTRING needs to be 4 byte aligned. We can use the bottom bit to indicate static allocation by us.
     static constexpr uintptr_t hstring_static_allocation_bit = 0b1;
 
-    class builder_storage
+    class hstring_builder_storage
     {
     public:
-        using value_type = sys_string_traits::storage_type;
-        using size_type = sys_string_traits::size_type;
+        using value_type = hstring_traits::storage_type;
+        using size_type = hstring_traits::size_type;
 
-        constexpr builder_storage() noexcept = default;
+        constexpr hstring_builder_storage() noexcept = default;
 
-        builder_storage(const builder_storage & src) = delete;
-        builder_storage & operator=(const builder_storage & src) = delete;
+        hstring_builder_storage(const hstring_builder_storage & src) = delete;
+        hstring_builder_storage & operator=(const hstring_builder_storage & src) = delete;
 
-        constexpr builder_storage(builder_storage && src) noexcept:
+        constexpr hstring_builder_storage(hstring_builder_storage && src) noexcept:
             m_handle(src.m_handle),
             m_buffer(src.m_buffer),
             m_capacity(src.m_capacity)
@@ -72,7 +67,7 @@ namespace sysstr::util
             src.m_buffer = nullptr;
             src.m_capacity = 0;
         }
-        constexpr builder_storage & operator=(builder_storage && src) noexcept
+        constexpr hstring_builder_storage & operator=(hstring_builder_storage && src) noexcept
         {
             if (this != &src)
             {
@@ -90,7 +85,7 @@ namespace sysstr::util
 
         }
 
-        ~builder_storage() noexcept
+        ~hstring_builder_storage() noexcept
         {
             if (m_handle) 
                 WindowsDeleteStringBuffer(m_handle); 
@@ -101,7 +96,7 @@ namespace sysstr::util
         constexpr value_type * buffer() const noexcept
             { return m_buffer; }
         static constexpr size_type max_size() noexcept
-            { return sys_string_traits::max_size; }
+            { return hstring_traits::max_size; }
 
         void reallocate(size_type size, size_type used_size)
         {
@@ -137,9 +132,9 @@ namespace sysstr::util
         size_type m_capacity = 0;
     };
 
-    using builder_impl = char_buffer<builder_storage>;
+    using hstring_builder_impl = char_buffer<hstring_builder_storage>;
 
-    inline HSTRING convert_to_string(builder_impl & builder) noexcept
+    inline HSTRING convert_to_string(hstring_builder_impl & builder) noexcept
     {
         [[maybe_unused]] auto capacity = builder.capacity();
         auto size = builder.size();
@@ -159,13 +154,11 @@ namespace sysstr::util
         return ret;
     }
 
-    sys_string build(builder_impl & builder) noexcept;
-
-    class char_access
+    class hstring_char_access
     {
     public:
-        using value_type = sys_string_traits::storage_type;
-        using size_type = sys_string_traits::size_type;
+        using value_type = hstring_traits::storage_type;
+        using size_type = hstring_traits::size_type;
         using reference = const value_type &;
         using pointer = const value_type *;
         
@@ -174,18 +167,18 @@ namespace sysstr::util
         using reverse_iterator = std::reverse_iterator<const value_type *>;
         using const_reverse_iterator = reverse_iterator;
 
-        using cursor = iter_cursor<char_access::const_iterator, char_access::const_iterator, util::cursor_direction::forward, size_type>;
-        using reverse_cursor = iter_cursor<char_access::const_iterator, char_access::const_iterator, util::cursor_direction::backward, size_type>;
+        using cursor = iter_cursor<const_iterator, const_iterator, util::cursor_direction::forward, size_type>;
+        using reverse_cursor = iter_cursor<const_iterator, const_iterator, util::cursor_direction::backward, size_type>;
     public:
-        char_access(const sys_string& src) noexcept;
-        ~char_access() noexcept
+        hstring_char_access(const sys_string_t<hstring_storage> & src) noexcept;
+        ~hstring_char_access() noexcept
             { if (m_c_str) delete [] m_c_str; }
 
         pointer data() const noexcept
             { return m_buffer; }
         size_type size() const noexcept
             { return m_size; }
-        reference operator[](sys_string_traits::size_type idx) const noexcept
+        reference operator[](hstring_traits::size_type idx) const noexcept
             { return m_buffer[idx]; }
         
         iterator begin() const noexcept
@@ -220,63 +213,73 @@ namespace sysstr::util
             return ret;
         }
         
-        friend bool operator==(const char_access & lhs, const char_access & rhs) noexcept
+        friend bool operator==(const hstring_char_access & lhs, const hstring_char_access & rhs) noexcept
             { return lhs.m_buffer == rhs.m_buffer; }
-        friend bool operator!=(const char_access & lhs, const char_access & rhs) noexcept
+        friend bool operator!=(const hstring_char_access & lhs, const hstring_char_access & rhs) noexcept
             { return !(lhs == rhs); }
     private:
         mutable const char * m_c_str = nullptr;
         pointer m_buffer;
         size_type m_size;
     };
+}
 
-    class storage
+namespace sysstr
+{
+
+    class hstring_storage
     {
     public:
-        using size_type = sys_string_traits::size_type;
-        using storage_type = sys_string_traits::storage_type;
-        using native_handle_type = sys_string_traits::native_handle_type;
-    public:
-        storage() noexcept = default;
+        using size_type = util::hstring_traits::size_type;
+        using storage_type = util::hstring_traits::storage_type;
+        using native_handle_type = util::hstring_traits::native_handle_type;
+        using hash_type = util::hstring_traits::hash_type;
+        using char_access = util::hstring_char_access;
+        using builder_impl = util::hstring_builder_impl;
+        
 
-        storage(native_handle_type str, handle_retain retain_handle = handle_retain::yes) noexcept : 
+        static constexpr auto max_size = util::hstring_traits::max_size;
+    public:
+        hstring_storage() noexcept = default;
+
+        hstring_storage(native_handle_type str, handle_retain retain_handle = handle_retain::yes) noexcept : 
             m_str(retain_handle == handle_retain::yes ? retain(str) : str)
         {}
 
-        storage(native_handle_type src, size_type first, size_type last) :
+        hstring_storage(native_handle_type src, size_type first, size_type last) :
             m_str(create(src, first, last))
         {}
 
-        storage(const storage & src, size_type first, size_type last) :
-            storage(src.m_str, first, last)
+        hstring_storage(const hstring_storage & src, size_type first, size_type last) :
+            hstring_storage(src.m_str, first, last)
         {}
 
-        storage(const char * str, size_t len) :
-            storage(buffer_from(str, len), handle_retain::no)
+        hstring_storage(const char * str, size_t len) :
+            hstring_storage(buffer_from(str, len), handle_retain::no)
         {}
 
-        storage(const char16_t * str, size_t len) :
+        hstring_storage(const char16_t * str, size_t len) :
             m_str(create(str, len))
         {}
 
-        storage(const char32_t * str, size_t len) :
-            storage(buffer_from(str, len), handle_retain::no)
+        hstring_storage(const char32_t * str, size_t len) :
+            hstring_storage(buffer_from(str, len), handle_retain::no)
         {}
 
-        storage(const wchar_t * str, size_t len) :
-            storage((char16_t*)str, len)
+        hstring_storage(const wchar_t * str, size_t len) :
+            hstring_storage((char16_t*)str, len)
         {}
 
-        ~storage() noexcept
+        ~hstring_storage() noexcept
             { release(m_str); }
 
-        storage(const storage & src) noexcept : m_str(retain(src.m_str))
+        hstring_storage(const hstring_storage & src) noexcept : m_str(retain(src.m_str))
         {}
 
-        storage(storage && src) noexcept : m_str(src.m_str)
+        hstring_storage(hstring_storage && src) noexcept : m_str(src.m_str)
             { src.m_str = nullptr; }
 
-        auto operator=(const storage & rhs) noexcept -> storage &
+        auto operator=(const hstring_storage & rhs) noexcept -> hstring_storage &
         {
             HSTRING temp = m_str;
             m_str = retain(rhs.m_str);
@@ -284,7 +287,7 @@ namespace sysstr::util
             return *this;
         }
 
-        auto operator=(storage && rhs) noexcept -> storage &
+        auto operator=(hstring_storage && rhs) noexcept -> hstring_storage &
         {
             if (this != &rhs)
             {
@@ -295,7 +298,7 @@ namespace sysstr::util
             return *this;
         }
 
-        auto swap(storage & other) noexcept -> void
+        auto swap(hstring_storage & other) noexcept -> void
         {
             using std::swap;
 
@@ -307,8 +310,7 @@ namespace sysstr::util
 
         auto data() const noexcept -> const storage_type *
         {
-            size_type unused;
-            return m_str ? (const storage_type*)WindowsGetStringRawBuffer(real_handle(m_str), &unused) : nullptr;
+            return m_str ? (const storage_type*)WindowsGetStringRawBuffer(real_handle(m_str), nullptr) : nullptr;
         }
 
         auto copy_data(size_type idx, storage_type* buf, size_type buf_size) const noexcept -> size_type
@@ -330,9 +332,9 @@ namespace sysstr::util
         }
     private:
         static bool is_static(HSTRING str) noexcept
-            { return uintptr_t(str) & hstring_static_allocation_bit; }
+            { return uintptr_t(str) & util::hstring_static_allocation_bit; }
         static HSTRING real_handle(HSTRING str) noexcept
-            { return HSTRING(uintptr_t(str) & ~hstring_static_allocation_bit); }
+            { return HSTRING(uintptr_t(str) & ~util::hstring_static_allocation_bit); }
         static HSTRING retain(HSTRING str) noexcept
         {
             if (!str || is_static(str))
@@ -351,7 +353,7 @@ namespace sysstr::util
 
         static HSTRING create(const char16_t * str, size_t length)
         {
-            if (length > sys_string_traits::max_size)
+            if (length > max_size)
                 throw std::bad_alloc();
             HSTRING ret;
             auto res = WindowsCreateString((PCNZWCH)str, size_type(length), &ret);
@@ -388,6 +390,56 @@ namespace sysstr::util
     private:
         HSTRING m_str = nullptr;
     };
+ }
 
+ namespace sysstr::util
+ {
+    
+    inline hstring_char_access::hstring_char_access(const sys_string_t<hstring_storage> & src) noexcept
+    {
+        m_buffer = (pointer)WindowsGetStringRawBuffer(src.h_str(), &m_size);
+    }
+
+    template<>
+    inline sys_string_t<hstring_storage> build(hstring_builder_impl & builder) noexcept
+    {
+        return sys_string_t<hstring_storage>(convert_to_string(builder), handle_retain::no);
+    }
 }
+
+namespace sysstr
+{
+    template<>
+    inline sys_string_t<hstring_storage>::sys_string_t(const char_access::cursor & src, size_type length):
+        sys_string_t(src.iterator(), length)
+    {}
+
+    template<>
+    inline sys_string_t<hstring_storage>::sys_string_t(const char_access::reverse_cursor & src, size_type length):
+        sys_string_t(src.iterator() - length, length)
+    {}
+
+    template<>
+    inline sys_string_t<hstring_storage>::sys_string_t(const char_access::iterator & first, 
+                                                       const char_access::iterator & last):
+        sys_string_t(first, last - first)
+    {}
+
+    using sys_string_hstring = sys_string_t<hstring_storage>; 
+    using sys_string_hstring_builder = sys_string_builder_t<hstring_storage>; 
+}
+
+//#define SYS_STRING_STATIC_HSTRING(x) ([] () noexcept -> ::systr::sys_string_hstring { \
+//        constexpr ::size_t size = sizeof(u##x) / sizeof(char16_t); \
+//        using header_type = ::sysstr::util::hstring_header; \
+//        static const header_type header{1, size - 1, 0, 0, u##x}; \
+//        return ::sysstr::sys_string_hstring(HSTRING(uintptr_t(&header) | ::sysstr::util::hstring_static_allocation_bit) , handle_retain::no); \
+//    }())
+
+#define SYS_STRING_STATIC_HSTRING(x) ([] () noexcept -> ::sysstr::sys_string_hstring { \
+        constexpr ::size_t size = sizeof(u##x) / sizeof(char16_t); \
+        using header_type = ::sysstr::util::hstring_header; \
+        static struct bug_workaround { const header_type header{1, size - 1, 0, 0, u##x}; } b; \
+        return ::sysstr::sys_string_hstring(HSTRING(uintptr_t(&b.header) | ::sysstr::util::hstring_static_allocation_bit) , ::sysstr::handle_retain::no); \
+    }())
 

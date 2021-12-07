@@ -13,17 +13,14 @@
 
 namespace sysstr::util
 {
-    template<class StringOrChar32>
+    template<class Storage, class StringOrChar32>
     class string_or_char32_char_access;
 
-    template<class StringOrChar32>
-    string_or_char32_char_access(const StringOrChar32 &) -> string_or_char32_char_access<StringOrChar32>;
-
-    template<>
-    class string_or_char32_char_access<sys_string>
+    template<class Storage>
+    class string_or_char32_char_access<Storage, sys_string_t<Storage>>
     {
     public:
-        string_or_char32_char_access(const sys_string & str) noexcept:
+        string_or_char32_char_access(const sys_string_t<Storage> & str) noexcept:
             m_access(str)
         {}
         auto begin() const noexcept
@@ -36,11 +33,11 @@ namespace sysstr::util
         constexpr auto is_valid() const noexcept -> bool
             { return true; }
     private:
-        sys_string::char_access m_access;
+        typename sys_string_t<Storage>::char_access m_access;
     };
 
-    template<>
-    class string_or_char32_char_access<char32_t>
+    template<class Storage>
+    class string_or_char32_char_access<Storage, char32_t>
     {
     public:
         string_or_char32_char_access(char32_t c) noexcept:
@@ -52,17 +49,17 @@ namespace sysstr::util
         auto end() const noexcept
             { return m_encoded.end(); }
         auto size() const noexcept
-            { return sys_string::size_type(m_encoded.end() - m_encoded.begin()); }
+            { return typename sys_string_t<Storage>::size_type(m_encoded.end() - m_encoded.begin()); }
         
         auto is_valid() const noexcept -> bool
             { return m_valid; }
     private:
-        utf_codepoint_encoder<utf_encoding_of<sys_string::storage_type>, true> m_encoded;
+        utf_codepoint_encoder<utf_encoding_of<typename sys_string_t<Storage>::storage_type>, true> m_encoded;
         bool m_valid;
     };
 
-    template<class Cont>
-    inline auto has_prefix(const sys_string::char_access & access, const Cont & test) noexcept -> bool
+    template<class CharAccess, class Cont>
+    inline auto has_prefix(const CharAccess & access, const Cont & test) noexcept -> bool
     {
         if (!test.is_valid())
             return false;
@@ -78,30 +75,33 @@ namespace sysstr::util
 namespace sysstr
 {
 
+    template<class Storage>
     inline
-    auto operator<<(std::ostream & str, const sys_string & val) -> std::ostream &
+    auto operator<<(std::ostream & str, const sys_string_t<Storage> & val) -> std::ostream &
     {
-        for(char c: sys_string::utf8_view(val))
+        for(char c: typename sys_string_t<Storage>::utf8_view(val))
             str << c;
         return str;
     }
 
 #if defined(_WIN32) 
         
+    template<class Storage>
     inline
-    auto operator<<(std::wostream & str, const sys_string & val) -> std::wostream &
+    auto operator<<(std::wostream & str, const sys_string_t<Storage> & val) -> std::wostream &
     {
-        for(char16_t c: sys_string::utf16_view(val))
+        for(char16_t c: typename sys_string_t<Storage>::utf16_view(val))
             str << wchar_t(c);
         return str;
     }
 
 #elif defined(__STDC_ISO_10646__)
 
+    template<class Storage>
     inline
-    auto operator<<(std::wostream & str, const sys_string & val) -> std::wostream &
+    auto operator<<(std::wostream & str, const sys_string_t<Storage> & val) -> std::wostream &
     {
-        for(char32_t c: sys_string::utf32_view(val))
+        for(char32_t c: typename sys_string_t<Storage>::utf32_view(val))
             str << wchar_t(c);
         return str;
     }
@@ -110,50 +110,46 @@ namespace sysstr
 
 }
 
-inline
-auto sysstr::sys_string::format(const char * format, ...) -> sys_string
-{
-    va_list vl;
-    va_start(vl, format);
-    return formatv(format, vl);
-}
 
 
+template<class Storage>
 inline
-auto sysstr::sys_string::to_lower() const -> sys_string
+auto sysstr::sys_string_t<Storage>::to_lower() const -> sys_string_t<Storage>
 {
-    sys_string::utf32_view view(*this);
-    sys_string_builder builder;
-    tolower<utf_encoding_of<sys_string_builder::storage_type>>()(view.cursor_begin(), std::back_inserter(builder.chars()));
+    sys_string_t<Storage>::utf32_view view(*this);
+    sys_string_builder_t<Storage> builder;
+    tolower<utf_encoding_of<storage_type>>()(view.cursor_begin(), std::back_inserter(builder.chars()));
     return builder.build();
 }
 
+template<class Storage>
 inline
-auto sysstr::sys_string::to_upper() const -> sys_string
+auto sysstr::sys_string_t<Storage>::to_upper() const -> sys_string_t<Storage>
 {
-    sys_string::utf32_view view(*this);
-    sys_string_builder builder;
-    toupper<utf_encoding_of<sys_string_builder::storage_type>>()(view.cursor_begin(), std::back_inserter(builder.chars()));
+    sys_string_t<Storage>::utf32_view view(*this);
+    sys_string_builder_t<Storage> builder;
+    toupper<utf_encoding_of<storage_type>>()(view.cursor_begin(), std::back_inserter(builder.chars()));
     return builder.build();
 }
 
 
+template<class Storage>
 template<class Pred>
-auto sysstr::sys_string::trim(Pred pred) const -> sys_string
+auto sysstr::sys_string_t<Storage>::trim(Pred pred) const -> sys_string_t<Storage>
 {
-    sys_string::utf32_view view(*this);
+    sys_string_t<Storage>::utf32_view view(*this);
     auto trimmed_start = view.cursor_begin();
     for( ; ; ++trimmed_start)
     {
         if (!trimmed_start)
-            return sys_string();
+            return sys_string_t<Storage>();
 
         char32_t c = *trimmed_start;
         if (!pred(c))
             break;
     }
 
-    auto trimmed_end = view.cursor_begin<view.backward>();
+    auto trimmed_end = view.template cursor_begin<view.backward>();
     for( ; ; ++trimmed_end)
     {
         char32_t c = *trimmed_end;
@@ -161,72 +157,78 @@ auto sysstr::sys_string::trim(Pred pred) const -> sys_string
             break;
     }
     
-    return sys_string(trimmed_start.storage_cursor(), trimmed_end.storage_pos() - trimmed_start.storage_pos());
+    return sys_string_t<Storage>(trimmed_start.storage_cursor(), trimmed_end.storage_pos() - trimmed_start.storage_pos());
 }
 
+template<class Storage>
 template<class Pred>
-auto sysstr::sys_string::ltrim(Pred pred) const -> sys_string
+auto sysstr::sys_string_t<Storage>::ltrim(Pred pred) const -> sys_string_t<Storage>
 {
-    sys_string::utf32_view view(*this);
+    sys_string_t<Storage>::utf32_view view(*this);
     auto trimmed_start = view.cursor_begin();
     for( ; ; ++trimmed_start)
     {
         if (!trimmed_start)
-            return sys_string();
+            return sys_string_t<Storage>();
 
         char32_t c = *trimmed_start;
         if (!pred(c))
             break;
     }
 
-    return sys_string(trimmed_start.storage_cursor(), this->storage_size() - trimmed_start.storage_pos());
+    return sys_string_t<Storage>(trimmed_start.storage_cursor(), this->storage_size() - trimmed_start.storage_pos());
 }
 
+template<class Storage>
 template<class Pred>
 inline
-auto sysstr::sys_string::rtrim(Pred pred) const -> sys_string
+auto sysstr::sys_string_t<Storage>::rtrim(Pred pred) const -> sys_string_t<Storage>
 {
-    sys_string::utf32_view view(*this);
-    auto trimmed_end = view.cursor_begin<view.backward>();
+    sys_string_t<Storage>::utf32_view view(*this);
+    auto trimmed_end = view.template cursor_begin<view.backward>();
     for( ; ; ++trimmed_end)
     {
         if (!trimmed_end)
-            return sys_string();
+            return sys_string_t<Storage>();
         
         char32_t c = *trimmed_end;
         if (!pred(c))
             break;
     }
     
-    return sys_string(trimmed_end.storage_cursor(), trimmed_end.storage_pos());
+    return sys_string_t<Storage>(trimmed_end.storage_cursor(), trimmed_end.storage_pos());
 }
 
+template<class Storage>
 template<class Search, class OutIt>
-auto sysstr::sys_string::split(OutIt dest, Search search) const ->
-    std::enable_if_t<std::is_invocable_v<Search, sys_string::utf32_view::iterator, sys_string::utf32_view::iterator>, OutIt>
+auto sysstr::sys_string_t<Storage>::split(OutIt dest, Search search) const ->
+    std::enable_if_t<std::is_invocable_v<Search, 
+                                         typename utf32_view::iterator, 
+                                         typename utf32_view::iterator>, OutIt>
 {
-    sys_string::utf32_view view(*this);
-    return util::split<sys_string>(view.begin(), view.end(), dest, search);
+    utf32_view view(*this);
+    return util::split<sys_string_t<Storage>>(view.begin(), view.end(), dest, search);
 }
 
+template<class Storage>
 template<class StringOrChar, class OutIt>
-auto sysstr::sys_string::split(OutIt dest, const StringOrChar & sep, size_t max_split) const ->
-    std::enable_if_t<util::is_string_or_char<StringOrChar>, OutIt>
+auto sysstr::sys_string_t<Storage>::split(OutIt dest, const StringOrChar & sep, size_t max_split) const ->
+    std::enable_if_t<is_string_or_char<StringOrChar>, OutIt>
 {
-    util::string_or_char32_char_access sep_access(sep);
+    util::string_or_char32_char_access<Storage, StringOrChar> sep_access(sep);
     if (!sep_access.is_valid() || sep_access.size() == 0)
     {
         *dest++ = *this;
         return dest;
     }
     
-    sys_string::char_access access(*this);
+    sys_string_t<Storage>::char_access access(*this);
     
     auto sep_begin = sep_access.begin();
     auto sep_end = sep_access.end();
     auto sep_size = sep_access.size();
     
-    return util::split<sys_string>(access.begin(), access.end(), dest,
+    return util::split<sys_string_t<Storage>>(access.begin(), access.end(), dest,
                        [sep_begin, sep_end, sep_size, max_split] (auto str_start, auto str_end) mutable noexcept {
         
         if (max_split == 0)
@@ -240,10 +242,11 @@ auto sysstr::sys_string::split(OutIt dest, const StringOrChar & sep, size_t max_
     });
 }
 
+template<class Storage>
 template<class FwdIt>
-auto sysstr::sys_string::join(FwdIt first, FwdIt last) const -> sys_string
+auto sysstr::sys_string_t<Storage>::join(FwdIt first, FwdIt last) const -> sys_string_t<Storage>
 {
-    sys_string_builder builder;
+    sys_string_builder_t<Storage> builder;
     bool has_one = false;
     for( ; first != last; ++first)
     {
@@ -258,8 +261,8 @@ auto sysstr::sys_string::join(FwdIt first, FwdIt last) const -> sys_string
 
 namespace sysstr::util
 {
-    template<class Cont>
-    inline auto has_suffix(const sys_string::char_access & access, const Cont & test) noexcept -> bool
+    template<class CharAccess, class Cont>
+    inline auto has_suffix(const CharAccess & access, const Cont & test) noexcept -> bool
     {
         if (!test.is_valid())
             return false;
@@ -271,8 +274,8 @@ namespace sysstr::util
         return std::equal(test.begin(), test.end(), access.end() - test_size);
     }
 
-    template<class Cont>
-    inline auto has_infix(const sys_string::char_access & access, const Cont & test) noexcept -> bool
+    template<class CharAccess, class Cont>
+    inline auto has_infix(const CharAccess & access, const Cont & test) noexcept -> bool
     {
         if (!test.is_valid())
             return false;
@@ -290,95 +293,107 @@ namespace sysstr::util
     }
 }
 
+template<class Storage>
 template<class StringOrChar>
-auto sysstr::sys_string::starts_with(const StringOrChar & prefix) const -> std::enable_if_t<util::is_string_or_char<StringOrChar>, bool>
+auto sysstr::sys_string_t<Storage>::starts_with(const StringOrChar & prefix) const -> std::enable_if_t<is_string_or_char<StringOrChar>, bool>
 {
-    return util::has_prefix(sys_string::char_access(*this), util::string_or_char32_char_access(prefix));
+    return util::has_prefix(sys_string_t<Storage>::char_access(*this), util::string_or_char32_char_access<Storage, StringOrChar>(prefix));
 }
 
 
+template<class Storage>
 template<class InIt>
-auto sysstr::sys_string::find_prefix(InIt first, InIt last) const -> InIt
+auto sysstr::sys_string_t<Storage>::find_prefix(InIt first, InIt last) const -> InIt
 {
     using item_type = typename std::iterator_traits<InIt>::value_type;
     
-    sys_string::char_access str_access(*this);
+    sys_string_t<Storage>::char_access str_access(*this);
     return std::find_if(first, last, [&str_access] (auto & item) {
-        return util::has_prefix(str_access, util::string_or_char32_char_access<item_type>(item));
+        return util::has_prefix(str_access, util::string_or_char32_char_access<Storage, item_type>(item));
     });
 }
 
+template<class Storage>
 template<class StringOrChar>
-auto sysstr::sys_string::remove_prefix(const StringOrChar & prefix) const -> std::enable_if_t<util::is_string_or_char<StringOrChar>, sys_string>
+auto sysstr::sys_string_t<Storage>::remove_prefix(const StringOrChar & prefix) const 
+    -> std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t<Storage>>
 {
-    sys_string::char_access access(*this);
-    util::string_or_char32_char_access prefix_access(prefix);
+    sys_string_t<Storage>::char_access access(*this);
+    util::string_or_char32_char_access<Storage, StringOrChar> prefix_access(prefix);
     if (!has_prefix(access, prefix_access))
         return *this;
-    return sys_string(access.begin() + prefix_access.size(), access.end());
+    return sys_string_t<Storage>(access.begin() + prefix_access.size(), access.end());
 }
 
 
+template<class Storage>
 template<class StringOrChar>
-auto sysstr::sys_string::ends_with(const StringOrChar & suffix) const -> std::enable_if_t<util::is_string_or_char<StringOrChar>, bool>
+auto sysstr::sys_string_t<Storage>::ends_with(const StringOrChar & suffix) const 
+    -> std::enable_if_t<is_string_or_char<StringOrChar>, bool>
 {
-    return util::has_suffix(sys_string::char_access(*this), util::string_or_char32_char_access(suffix));
+    return util::has_suffix(sys_string_t<Storage>::char_access(*this), util::string_or_char32_char_access<Storage, StringOrChar>(suffix));
 }
 
+template<class Storage>
 template<class StringOrChar>
-auto sysstr::sys_string::remove_suffix(const StringOrChar & suffix) const -> std::enable_if_t<util::is_string_or_char<StringOrChar>, sys_string>
+auto sysstr::sys_string_t<Storage>::remove_suffix(const StringOrChar & suffix) const 
+    -> std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t<Storage>>
 {
-    sys_string::char_access access(*this);
-    util::string_or_char32_char_access suffix_access(suffix);
+    sys_string_t<Storage>::char_access access(*this);
+    util::string_or_char32_char_access<Storage, StringOrChar> suffix_access(suffix);
     if (!has_suffix(access, suffix_access))
         return *this;
-    return sys_string(access.begin(), access.end() - suffix_access.size());
+    return sys_string_t<Storage>(access.begin(), access.end() - suffix_access.size());
 }
 
+template<class Storage>
 template<class InIt>
-auto sysstr::sys_string::find_suffix(InIt first, InIt last) const -> InIt
+auto sysstr::sys_string_t<Storage>::find_suffix(InIt first, InIt last) const -> InIt
 {
     using item_type = typename std::iterator_traits<InIt>::value_type;
     
-    sys_string::char_access str_access(*this);
+    sys_string_t<Storage>::char_access str_access(*this);
     return std::find_if(first, last, [&str_access] (auto & item) {
-        return util::has_suffix(str_access, util::string_or_char32_char_access<item_type>(item));
+        return util::has_suffix(str_access, util::string_or_char32_char_access<Storage, item_type>(item));
     });
 }
 
+template<class Storage>
 template<class StringOrChar>
-auto sysstr::sys_string::contains(const StringOrChar & inner) const -> std::enable_if_t<util::is_string_or_char<StringOrChar>, bool>
+auto sysstr::sys_string_t<Storage>::contains(const StringOrChar & inner) const -> std::enable_if_t<is_string_or_char<StringOrChar>, bool>
 {
-    return util::has_infix(sys_string::char_access(*this), util::string_or_char32_char_access(inner));
+    return util::has_infix(sys_string_t<Storage>::char_access(*this), util::string_or_char32_char_access<Storage, StringOrChar>(inner));
 }
 
+template<class Storage>
 template<class InIt>
-auto sysstr::sys_string::find_contained(InIt first, InIt last) const -> InIt
+auto sysstr::sys_string_t<Storage>::find_contained(InIt first, InIt last) const -> InIt
 {
     using item_type = typename std::iterator_traits<InIt>::value_type;
     
-    sys_string::char_access str_access(*this);
+    sys_string_t<Storage>::char_access str_access(*this);
     return std::find_if(first, last, [&str_access] (auto & item) {
-        return util::has_infix(str_access, util::string_or_char32_char_access<item_type>(item));
+        return util::has_infix(str_access, util::string_or_char32_char_access<Storage, item_type>(item));
     });
 }
 
+template<class Storage>
 template<class StringOrChar1, class StringOrChar2>
-auto sysstr::sys_string::replace(const StringOrChar1 & old, const StringOrChar2 & new_, size_t max_count) const ->
-    std::enable_if_t<util::is_string_or_char<StringOrChar1> && util::is_string_or_char<StringOrChar2>, sys_string>
+auto sysstr::sys_string_t<Storage>::replace(const StringOrChar1 & old, const StringOrChar2 & new_, size_t max_count) const ->
+    std::enable_if_t<is_string_or_char<StringOrChar1> && is_string_or_char<StringOrChar2>, sys_string_t<Storage>>
 {
     if (max_count == 0)
         return *this;
     
-    util::string_or_char32_char_access old_access(old);
+    util::string_or_char32_char_access<Storage, StringOrChar1> old_access(old);
     if (!old_access.is_valid() || old_access.size() == 0)
         return *this;
     
-    sys_string::char_access str_access(*this);
+    sys_string_t<Storage>::char_access str_access(*this);
     auto first = str_access.begin();
     const auto last = str_access.end();
     
-    sys_string_builder builder;
+    sys_string_builder_t<Storage> builder;
     
     for( ; ; )
     {

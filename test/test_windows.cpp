@@ -16,7 +16,7 @@ using namespace sysstr;
     TEST_CASE("Windows Empty String", "[windows]")
     {
         CHECK(sys_string().b_str() == nullptr);
-        CHECK(sys_string().w_str() == nullptr);
+        CHECK(wcscmp(sys_string().w_str(), L"") == 0);
         CHECK(sys_string(BSTR(nullptr), copy_content) == sys_string());
         CHECK(sys_string(BSTR(nullptr), copy_content) == S(""));
         CHECK(sys_string(BSTR(nullptr), attach_pointer) == sys_string());
@@ -86,7 +86,7 @@ using namespace sysstr;
         CHECK(s == S(""));
         SysFreeString(bstr4); 
     }
-#else
+#elif SYS_STRING_WIN_HSTRING
 
     TEST_CASE( "Windows Conversions", "[windows]") {
 
@@ -109,6 +109,25 @@ using namespace sysstr;
         CHECK(res == 0);
 
         WindowsDeleteString(hstr);
+    }
+
+#else
+
+    TEST_CASE( "Windows Conversions", "[windows]") {
+
+        REQUIRE(sys_string().w_str());
+        CHECK(wcscmp(sys_string().w_str(), L"") == 0);
+
+        REQUIRE(S("").w_str());
+        CHECK(wcscmp(S("").w_str(), L"") == 0);
+
+        REQUIRE(sys_string("").w_str());
+        CHECK(wcscmp(sys_string("").w_str(), L"") == 0);
+
+        REQUIRE(sys_string((const wchar_t *)nullptr).w_str());
+        CHECK(wcscmp(sys_string((const wchar_t *)nullptr).w_str(), L"") == 0);
+
+        CHECK(wcscmp(sys_string(L"a水𐀀𝄞bcå🤢").w_str(), L"a水𐀀𝄞bcå🤢") == 0);
     }
 
 #endif

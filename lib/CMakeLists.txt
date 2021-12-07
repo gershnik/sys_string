@@ -58,34 +58,21 @@ set(MAIN_CODE
     ${SRCDIR}/inc/sys_string/impl/addition.h
     ${SRCDIR}/inc/sys_string/impl/builder.h
     ${SRCDIR}/inc/sys_string/impl/misc.h
-    
-    ${SRCDIR}/src/sys_string.cpp
+    ${SRCDIR}/inc/sys_string/impl/format.h
+    ${SRCDIR}/inc/sys_string/impl/platform.h
 )
 source_group("Main Code" FILES ${MAIN_CODE})
 
-set(APPLE_FILES
-    ${SRCDIR}/inc/sys_string/impl/platforms/apple_def.h
-    ${SRCDIR}/inc/sys_string/impl/platforms/apple_impl.h
+set(PLATFORM_FILES
+    ${SRCDIR}/inc/sys_string/impl/platforms/apple_cfstr.h
+    ${SRCDIR}/inc/sys_string/impl/platforms/android_java.h
+    ${SRCDIR}/inc/sys_string/impl/platforms/windows_hstring.h
+    ${SRCDIR}/inc/sys_string/impl/platforms/windows_bstr.h
+    ${SRCDIR}/inc/sys_string/impl/platforms/windows_generic.h
+    ${SRCDIR}/inc/sys_string/impl/platforms/unix_generic.h
 )
-source_group("Platforms/Apple" FILES ${APPLE_FILES})
+source_group("Platforms" FILES ${PLATFORM_FILES})
 
-set(ANDROID_FILES
-    ${SRCDIR}/inc/sys_string/impl/platforms/android_def.h
-    ${SRCDIR}/inc/sys_string/impl/platforms/android_impl.h
-)
-source_group("Platforms/Android" FILES ${ANDROID_FILES})
-
-set(WINDOWS_FILES
-     ${SRCDIR}/inc/sys_string/impl/platforms/windows_def.h
-     ${SRCDIR}/inc/sys_string/impl/platforms/windows_impl.h
-)
-source_group("Platforms/Windows" FILES ${WINDOWS_FILES})
-
-set(LINUX_FILES
-     ${SRCDIR}/inc/sys_string/impl/platforms/linux_def.h
-     ${SRCDIR}/inc/sys_string/impl/platforms/linux_impl.h
-)
-source_group("Platforms/Linux" FILES ${LINUX_FILES})
 
 set(UNICODE_FILES
 
@@ -110,13 +97,7 @@ source_group("Utils" FILES ${UTIL_FILES})
 target_sources(${LIBNAME} PRIVATE 
     ${MAIN_CODE}
 
-    ${APPLE_FILES}
-
-    ${ANDROID_FILES}
-
-    ${WINDOWS_FILES}
-
-    ${LINUX_FILES}
+    ${PLATFORM_FILES}
 
     ${UNICODE_FILES}
 

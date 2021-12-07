@@ -17,13 +17,43 @@ endif()
 project(test)
 
 
-set (TEST_SUFFIXES
+set (CXX_STANDARDS
     17
     20
 )
 
 set(CXX_STANDARD_17 17)
 set(CXX_STANDARD_20 20)
+
+if (WIN32)
+
+    set (STORAGE_TYPES
+        bstr
+        hstring
+        win_gen
+    )
+
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+
+    set (STORAGE_TYPES
+        cfstr
+        unix_gen
+    )
+
+else()
+
+    set (STORAGE_TYPES
+        def
+    )
+
+endif()
+
+set(STORAGE_FLAG_def "")
+set(STORAGE_FLAG_bstr SYS_STRING_WIN_BSTR=1)
+set(STORAGE_FLAG_hstring SYS_STRING_WIN_HSTRING=1)
+set(STORAGE_FLAG_win_gen "")
+set(STORAGE_FLAG_cfstr "")
+set(STORAGE_FLAG_unix_gen SYS_STRING_USE_GENERIC=1)
 
 set(TEST_COMMAND "")
 set(TEST_DEPS "")
@@ -42,13 +72,18 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL Android)
     list(APPEND TEST_COMMAND COMMAND ${ADB} shell mkdir -p ${ANDROID_TEST_DIR})
 endif()
     
+foreach(STANDARD_SUFFIX ${CXX_STANDARDS})
 
-foreach(TEST_SUFFIX ${TEST_SUFFIXES})
-
-    set(CMAKE_CXX_STANDARD ${CXX_STANDARD_${TEST_SUFFIX}})
-    set(SYS_STRING_LIBRARY_SUFFIX ${TEST_SUFFIX})
-    add_subdirectory(../lib  lib${TEST_SUFFIX})
+    set(CMAKE_CXX_STANDARD ${CXX_STANDARD_${STANDARD_SUFFIX}})
+    set(SYS_STRING_LIBRARY_SUFFIX ${STANDARD_SUFFIX})
+    add_subdirectory(../lib  lib${STANDARD_SUFFIX})
     unset(CMAKE_CXX_STANDARD)
+endforeach()
+
+foreach(STANDARD_SUFFIX ${CXX_STANDARDS})
+foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
+
+    set(TEST_SUFFIX ${STANDARD_SUFFIX}${STORAGE_SUFFIX})
 
     if (SYS_STRING_TEST_SHARED)
         add_library(test-${TEST_SUFFIX} SHARED)
@@ -57,7 +92,7 @@ foreach(TEST_SUFFIX ${TEST_SUFFIXES})
     endif()
 
     set_target_properties(test-${TEST_SUFFIX} PROPERTIES
-        CXX_STANDARD ${CXX_STANDARD_${TEST_SUFFIX}}
+        CXX_STANDARD ${CXX_STANDARD_${STANDARD_SUFFIX}}
         CXX_STANDARD_REQUIRED OFF
         CXX_EXTENSIONS OFF
         CXX_VISIBILITY_PRESET hidden
@@ -71,6 +106,10 @@ foreach(TEST_SUFFIX ${TEST_SUFFIXES})
         $<$<CXX_COMPILER_ID:GNU>:-Wall;-Wextra;-pedantic>
     )
 
+    target_compile_definitions(test-${TEST_SUFFIX} PRIVATE
+        ${STORAGE_FLAG_${STORAGE_SUFFIX}}
+    )
+
     target_link_options(test-${TEST_SUFFIX} PRIVATE
     
         "$<$<PLATFORM_ID:Android>:-Wl,--export-dynamic>"
@@ -78,7 +117,7 @@ foreach(TEST_SUFFIX ${TEST_SUFFIXES})
 
     target_link_libraries(test-${TEST_SUFFIX} PRIVATE
         
-        sys_string${TEST_SUFFIX}
+        sys_string${STANDARD_SUFFIX}
                 
         "$<$<PLATFORM_ID:Android>:log>"
     )
@@ -116,6 +155,7 @@ foreach(TEST_SUFFIX ${TEST_SUFFIXES})
 
     list(APPEND TEST_DEPS test-${TEST_SUFFIX})
 
+endforeach()
 endforeach()
 
 add_custom_target(run-test 

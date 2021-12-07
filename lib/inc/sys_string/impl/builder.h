@@ -12,31 +12,34 @@
 
 namespace sysstr
 {
-
-    class sys_string_builder
+    template<class Storage>
+    class sys_string_builder_t
     {
     private:
-        using impl_type = util::builder_impl;
+        using impl_type = typename Storage::builder_impl;
         
         struct view_traits
         {
             using char_access = const impl_type &;
             
-            static constexpr const impl_type & adapt(const sys_string_builder & builder) noexcept
+            static constexpr const impl_type & adapt(const sys_string_builder_t & builder) noexcept
                 { return builder.m_impl; }
         };
     public:
-        using size_type = sys_string::size_type;
-        using storage_type = sys_string::storage_type;
+        using size_type = typename impl_type::size_type;
+        using storage_type = typename  impl_type::value_type;
         
-        using utf8_view  = utf_view<utf8, sys_string_builder, view_traits>;
-        using utf16_view = utf_view<utf16, sys_string_builder, view_traits>;
-        using utf32_view = utf_view<utf32, sys_string_builder, view_traits>;
+        template<utf_encoding Enc>
+        using utf_view = utf_view<Enc, sys_string_builder_t, view_traits>;
+
+        using utf8_view  = utf_view<utf8>;
+        using utf16_view = utf_view<utf16>;
+        using utf32_view = utf_view<utf32>;
         
-        using iterator = utf32_view::iterator;
-        using const_iterator = utf32_view::const_iterator;
-        using reverse_iterator = utf32_view::reverse_iterator;
-        using const_reverse_iterator = utf32_view::const_reverse_iterator;
+        using iterator = typename utf32_view::iterator;
+        using const_iterator = typename utf32_view::const_iterator;
+        using reverse_iterator = typename utf32_view::reverse_iterator;
+        using const_reverse_iterator = typename utf32_view::const_reverse_iterator;
         
     private:
         template<util::cursor_direction Direction>
@@ -126,21 +129,21 @@ namespace sysstr
             return storage_at<util::cursor_direction::forward>(first_pos);
         }
         
-        sys_string_builder & append(char32_t c)
+        sys_string_builder_t & append(char32_t c)
             { append_one(m_impl, c); return *this; }
 
         template<class Char>
-        sys_string_builder & append(const Char * str, size_t len)
+        sys_string_builder_t & append(const Char * str, size_t len)
             { append_many(m_impl, str, len); return *this; }
         template<class Char>
-        sys_string_builder & append(const Char * str)
+        sys_string_builder_t & append(const Char * str)
             { append_many(m_impl, str, std::char_traits<Char>::length(str)); return *this; }
 
-        sys_string_builder & append(const sys_string & str)
-            { append_access(sys_string::char_access(str)); return *this; }
+        sys_string_builder_t & append(const sys_string_t<Storage> & str)
+            { append_access(typename sys_string_t<Storage>::char_access(str)); return *this; }
 
-        sys_string build() noexcept
-            { return util::build(m_impl); }
+        sys_string_t<Storage> build() noexcept
+            { return util::build<Storage>(m_impl); }
         
         const impl_type & chars() const
             { return m_impl; }
@@ -150,21 +153,19 @@ namespace sysstr
     private:
         static size_type limit_size(size_t len)
         {
-            if (len > sys_string_traits::max_size)
+            if (len > Storage::max_size)
                 throw std::bad_alloc();
             return size_type(len);
         }
-        template<class Impl>
-        static void append_one(Impl & impl, char32_t c);
+        static void append_one(impl_type & impl, char32_t c);
         
-        template<class Impl>
-        static void insert_one(Impl & impl, typename Impl::iterator where, char32_t c);
+        static void insert_one(impl_type & impl, typename impl_type::iterator where, char32_t c);
         
-        template<class Impl, class Char>
-        static void append_many(Impl & impl, const Char * str, size_t len);
+        template<class Char>
+        static void append_many(impl_type & impl, const Char * str, size_t len);
         
-        template<class Impl, class Char>
-        static void insert_many(Impl & impl, typename Impl::iterator pos, const Char * str, size_t len);
+        template<class Char>
+        static void insert_many(impl_type & impl, typename impl_type::iterator pos, const Char * str, size_t len);
         
         template<class Access>
         void append_access(const Access & access);
@@ -182,74 +183,69 @@ namespace sysstr
         impl_type m_impl;
     };
 
-    template<class Impl>
-    void sys_string_builder::append_one(Impl & impl, char32_t c)
+    template<class Storage>
+    void sys_string_builder_t<Storage>::append_one(impl_type & impl, char32_t c)
     {
-        using impl_value_type = typename Impl::value_type;
-        
-        if constexpr (std::is_same_v<impl_value_type, char32_t>)
+        if constexpr (std::is_same_v<storage_type, char32_t>)
         {
             impl.push_back(c);
         }
         else
         {
-            using converter = utf_converter<utf32, utf_encoding_of<impl_value_type>>;
+            using converter = utf_converter<utf32, utf_encoding_of<storage_type>>;
             converter::convert(&c, &c + 1, std::back_inserter(impl));
         }
     }
 
-    template<class Impl>
-    void sys_string_builder::insert_one(Impl & impl, typename Impl::iterator where, char32_t c)
+    template<class Storage>
+    void sys_string_builder_t<Storage>::insert_one(impl_type & impl, typename impl_type::iterator where, char32_t c)
     {
-        using impl_value_type = typename Impl::value_type;
-        
-        if constexpr (std::is_same_v<impl_value_type, char32_t>)
+        if constexpr (std::is_same_v<storage_type, char32_t>)
         {
             impl.insert(where, c);
         }
         else
         {
-            using converter = utf_converter<utf32, utf_encoding_of<impl_value_type>>;
+            using converter = utf_converter<utf32, utf_encoding_of<storage_type>>;
             converter::convert(&c, &c + 1, std::inserter(impl, where));
         }
     }
 
-    template<class Impl, class Char>
-    void sys_string_builder::append_many(Impl & impl, const Char * str, size_t len)
+    template<class Storage>
+    template<class Char>
+    void sys_string_builder_t<Storage>::append_many(impl_type & impl, const Char * str, size_t len)
     {
-        using impl_value_type = typename Impl::value_type;
-        
-        if constexpr (std::is_same_v<impl_value_type, Char>)
+        if constexpr (std::is_same_v<storage_type, Char>)
         {
             impl.append(str, limit_size(len));
         }
         else
         {
-            using converter = utf_converter<utf_encoding_of<Char>, utf_encoding_of<impl_value_type>>;
+            using converter = utf_converter<utf_encoding_of<Char>, utf_encoding_of<storage_type>>;
             converter::convert(str, str + len, std::back_inserter(impl));
         }
     }
 
 
-    template<class Impl, class Char>
-    void sys_string_builder::insert_many(Impl & impl, typename Impl::iterator where, const Char * str, size_t len)
+    template<class Storage>
+    template<class Char>
+    void sys_string_builder_t<Storage>::insert_many(impl_type & impl, typename impl_type::iterator where, const Char * str, size_t len)
     {
-        using impl_value_type = typename Impl::value_type;
-        
-        if constexpr (std::is_same_v<impl_value_type, Char>)
+        if constexpr (std::is_same_v<storage_type, Char>)
         {
             impl.insert(where, str, limit_size(len));
         }
         else
         {
             auto inserter = std::inserter(impl, where);
-            using converter = utf_converter<utf_encoding_of<Char>, utf_encoding_of<impl_value_type>>;
+            using converter = utf_converter<utf_encoding_of<Char>, utf_encoding_of<storage_type>>;
             converter::convert(str, str + len, inserter);
         }
     }
 
+    template<class Storage>
     template<class Access>
-    inline void sys_string_builder::append_access(const Access & access)
+    inline void sys_string_builder_t<Storage>::append_access(const Access & access)
     {
         if constexpr (util::has_contiguous_data<Access>)
         {

@@ -6,7 +6,10 @@ of characters.
 
 ## What does it mean?
 
-* Interoperability with platform-native string type means that `sys_string` makes conversions to and from native string types (`NSString *` or `CFStringRef` on macOS/iOS, Java `String` on Android, `HSTRING` or `const wchar_t *` on Windows and `const char *` on Linux) as efficient as possible and ideally 0 cost operations. For example on Apple's platforms it stores `NSString *` internally allowing zero cost conversion. On Android where no-op conversions to Java strings are impossible for technical reasons, the internal storage is such that it makes conversions as cheap as possible.
+* Interoperability with platform-native string type means that `sys_string` makes conversions to and from native string types as efficient as possible and ideally 0 cost operations. Native string types are things like `NSString *` or `CFStringRef` on macOS/iOS, Java `String` on Android, `const wchar_t *`, `HSTRING` or `BSTR` on Windows and `const char *` on Linux.  For example on Apple's platforms it stores `NSString *` internally allowing zero cost conversion. On Android where no-op conversions to Java strings are impossible for technical reasons, the internal storage is such that it makes conversions as cheap as possible.
+
+    Some platforms, like Windows, support multiple kinds of native string types. Internally, `sys_string` is a specialization of template `sys_string_t<Storage>` where the `Storage` parameter defines what kind of native string type to use. The default storage for `sys_string` is picked for you based on your platform (you can change it via compilation options) but you can also directly use other specializations in your code if necessary. 
+
 * Immutable. String instances cannot be modified. To do modifications you use a separate "builder" class. This is similar to how many other languages do it and results in improved performance and elimination of whole class of errors. 
 * Unicode-first. Instances of `sys_string` always store Unicode characters in either UTF-8, UTF-16 or UTF-32, depending on platform. Iteration can be done in all of these encodings and all operations (case conversion, case insensitive comparisons, trimming) are specified as actions on sequence of Unicode codepoints using Unicode algorithms. 
 * Operations similar to Python or ECMAScript strings means that you can do things like `rtrim`, `split`, `join`, `starts_with` etc. in a way proven to be natural and productive in those languages.
@@ -29,45 +32,28 @@ Finally, and unrelatedly to the above, `std::string` lacks some simple things th
 The following requirements which other string classes often have are specifically non-goals of this library. 
 
 * Support C++ allocators. Since `sys_string` is meant to interoperate with system string class/types, it necessarily has to use the same allocation mechanisms as those. 
-* Have an efficient `const char * c_str()` method on all platforms. The goal of the library is to provide an efficient conversion to the native string types rather than specifically `char *`. While ability to get `char *` *is* provided everywhere it might involve additional memory allocations and other overhead. Note that on Linux `char *` is the system type so it can be obtained with 0 cost.
+* Have an efficient `const char * c_str()` method on all platforms. The goal of the library is to provide an efficient conversion to the native string types rather than specifically `const char *`. While ability to obtain `const char *` *is* provided everywhere, it might involve additional memory allocations and other overhead. Note that on Linux `char *` is the system type so it can be obtained with 0 cost.
 * Make `sys_string` an STL container. Conceptually a string is not a container. You can **view** contents of a string as a sequence of UTF-8 or UTF-16 or UTF-32 codepoints and the library provides such views which function as STL ranges. 
 * Support non-Unicode "narrow" and "wide" character encodings. `sys_string` only understands Unicode. Conversions to/from non-Unicode encodings are a job for a different library. Specifically `char *` in any of the library's methods is required to be in UTF-8.
 * Provide locale-dependent functionality. Properly supporting locales with Unicode is an important area but it belongs to another library, not this one. This library is focused on locale-independent behavior that works the same everywhere. For example `to_lower` methods implements locale-independent part of Unicode specification. (Final uppercase Σ transforms to ς but I always transforms to i)
 
 ## Performance
 
-In general `sys_string` aims to have the same performance as hand-crafted code that uses corresponding native string types on every platforms. For example on macOS code using `sys_string` should be as fast as code manually using `NSString *`/`CFStringRef`. 
-This needs to be kept in mind when evaluating whether `sys_string` is a better choice for your application that `std::string`. Continuing Apple's example an `std::string` is generally faster for direct character access than `NSString *` and thus `sys_string`. If your code rarely transfers data from `NSString *` to `std::string` and spends most of the time iterating over `std::string` characters then using `std::string` might be the right choice.
+In general `sys_string` aims to have the same performance of its operations as best hand-crafted code that uses corresponding native string types on every platforms. For example on macOS code using `sys_string` should be as fast as code manually using `NSString *`/`CFStringRef`. 
+This needs to be kept in mind when evaluating whether `sys_string` is a better choice for your application that `std::string`. Continuing Apple's example, an `std::string` is generally faster for direct character access than `NSString *` and thus faster than `sys_string` too. If your code rarely transfers data from `NSString *` to `std::string` and spends most of the time iterating over `std::string` characters then using `std::string` might be the right choice.
+
+Another way to look at it is that `sys_string` sometimes trades micro-benchmarking performance of individual string operations for reduced copying, allocations and memory pressure overall. Whether this is a right tradeoff for you depends on specifics of your codebase.
 
 ## Compatibility
 
 This library has been tested with
-* Xcode 12 on x86_64 and arm64
-* MSVC 16.9 on x86_64
-* Clang 11.0.5 under Android NDK on x86, x86_64, armeabi-v7a and arm64-v8a architectures
+* Xcode 13 on x86_64 and arm64
+* MSVC 16.9 and 17.1 on x86_64
+* Clang 12.0.5 under Android NDK on x86, x86_64, armeabi-v7a and arm64-v8a architectures
 * GCC 9.3 on x86_64 Ubuntu 20.04
-
-
-## Building
-
-If you use CMake clone this repository and add the `lib` directory as subdirectory. Something like
-
-```cmake
-add_subdirectory(PATH_TO_SYS_STRING/lib, sys_string)
-```
-
-You need to have your compiler to default to at least C++17 or set `CMAKE_CXX_STANDARD` to at least 17 in order for build to succeed.
-
-If you use a different build system all you need is to set your include path to `lib/inc` and compile the sources under `lib/cpp`. 
-
-No special compilation flags are required except on Windows where `_CRT_SECURE_NO_WARNINGS` must be defined to avoid MSVC bogus warnings.
-On Mac you need to link with `CoreFoundation` framework and on Windows with `runtimeobject.lib`.
-
-### Configuration options
-
-* `SYS_STRING_NO_S_MACRO` - set to 1 to disable short `S()` macro. See [Usage](doc/Usage.md#basics) for details
 
 ## Usage
 
-See [Usage](doc/usage.md)
+* [Building](doc/Building.md)
+* [Usage](doc/Usage.md)
 

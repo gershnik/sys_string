@@ -1,4 +1,4 @@
-## Windows platform conversions
+## Linux platform conversions
 
 The only storage type available on Linux is "generic Unix". It is meant to interoperate with Posix-style APIs that deal with `char *`.
 `sys_string` logically stores its content as a sequence of `char`s in UTF-8 encoding. Conversions **from** `const char *` always incur copying and sometimes memory allocation (`sys_string` does small string optimization similar to `std::string`).

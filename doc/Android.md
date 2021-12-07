@@ -1,4 +1,4 @@
-## Windows platform conversions
+## Android platform conversions
 
 Currently there is only one storage type available on Android.
 

@@ -101,7 +101,7 @@ namespace sysstr
             }
             
             friend constexpr bool operator==(const utf_cursor & lhs, const utf_cursor & rhs)
-                { return lhs.m_next == rhs.m_next && lhs.m_char_idx == rhs.m_char_idx && lhs.m_current_storage_size == rhs.m_current_storage_size; }
+                { return lhs.m_current_storage_size == rhs.m_current_storage_size && lhs.m_char_idx == rhs.m_char_idx && lhs.m_next == rhs.m_next; }
             friend constexpr bool operator!=(const utf_cursor & lhs, const utf_cursor & rhs)
                 { return !(lhs == rhs); }
             

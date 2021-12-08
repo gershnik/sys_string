@@ -40,6 +40,13 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
         unix_gen
     )
 
+elseif (${CMAKE_SYSTEM_NAME} STREQUAL Android)
+
+    set (STORAGE_TYPES
+        andr
+        unix_gen
+    )
+
 else()
 
     set (STORAGE_TYPES
@@ -53,6 +60,7 @@ set(STORAGE_FLAG_bstr SYS_STRING_WIN_BSTR=1)
 set(STORAGE_FLAG_hstring SYS_STRING_WIN_HSTRING=1)
 set(STORAGE_FLAG_win_gen "")
 set(STORAGE_FLAG_cfstr "")
+set(STORAGE_FLAG_andr "")
 set(STORAGE_FLAG_unix_gen SYS_STRING_USE_GENERIC=1)
 
 set(TEST_COMMAND "")

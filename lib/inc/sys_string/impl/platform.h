@@ -35,15 +35,32 @@
     #endif
 
 #elif defined(__ANDROID__)
+
     #include <sys_string/impl/platforms/android_java.h>
+    #include <sys_string/impl/platforms/unix_generic.h>
 
-    namespace sysstr
-    {
-        using sys_string = sys_string_android;
-        using sys_string_builder = sys_string_android_builder;
-    }
+    #if defined(SYS_STRING_USE_GENERIC)
 
-    #define SYS_STRING_STATIC SYS_STRING_STATIC_ANDROID
+        namespace sysstr
+        {
+            using sys_string = sys_string_generic;
+            using sys_string_builder = sys_string_generic_builder;
+        }
+
+        #define SYS_STRING_STATIC SYS_STRING_STATIC_GENERIC
+
+    #else
+        
+
+        namespace sysstr
+        {
+            using sys_string = sys_string_android;
+            using sys_string_builder = sys_string_android_builder;
+        }
+
+        #define SYS_STRING_STATIC SYS_STRING_STATIC_ANDROID
+
+    #endif
 
 #elif defined(_WIN32)
     #include <sys_string/impl/platforms/windows_bstr.h>

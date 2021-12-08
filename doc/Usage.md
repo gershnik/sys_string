@@ -27,7 +27,6 @@
     - [Joining](#joining)
     - [Prefix, suffix and infix handling](#prefix-suffix-and-infix-handling)
     - [Replacing content](#replacing-content)
-- [Odds and ends](#odds-and-ends)
 
 <!-- /TOC -->
 

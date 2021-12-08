@@ -50,10 +50,6 @@
 
 #if __has_include(<version>)
     #include <version>
-#elif __has_include(<ciso646>)
-    #include <ciso646>
-#elif __has_include(<iso646.h>)
-    #include <iso646.h>
 #endif
 
 #define SYS_STRING_USE_SPAN               (__cpp_lib_span >= 202002)

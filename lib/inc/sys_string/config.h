@@ -10,14 +10,6 @@
 
 #define SYS_STRING_USE_SPACESHIP_OPERATOR (__cpp_impl_three_way_comparison >= 201907)
 #define SYS_STRING_USE_CHAR8              (__cpp_char8_t >= 201811)
-#define SYS_STRING_USE_SPAN               (__cpp_lib_span >= 202002)
-#define SYS_STRING_USE_STD_ENDIAN         (__cpp_lib_endian >= 201907)
-
-#if __cpp_lib_constexpr_algorithms >= 201806
-    #define SYS_STRING_CONSTEXPR_ALGO  constexpr
-#else
-    #define SYS_STRING_CONSTEXPR_ALGO
-#endif
 
 
 #if (defined(__APPLE__) && defined(__MACH__))
@@ -54,6 +46,24 @@
     #define SYS_STRING_FORCE_INLINE [[gnu::always_inline]] inline
 #else
     #error Please define how to force inline for your compiler
+#endif
+
+#if __has_include(<version>)
+    #include <version>
+#elif __has_include(<ciso646>)
+    #include <ciso646>
+#elif __has_include(<iso646.h>)
+    #include <iso646.h>
+#endif
+
+#define SYS_STRING_USE_SPAN               (__cpp_lib_span >= 202002)
+#define SYS_STRING_USE_STD_ENDIAN         (__cpp_lib_endian >= 201907)
+#define SYS_STRING_USE_RANGES             (__cpp_lib_ranges >= 201911)
+
+#if __cpp_lib_constexpr_algorithms >= 201806
+    #define SYS_STRING_CONSTEXPR_ALGO  constexpr
+#else
+    #define SYS_STRING_CONSTEXPR_ALGO
 #endif
 
 #if SYS_STRING_USE_STD_ENDIAN

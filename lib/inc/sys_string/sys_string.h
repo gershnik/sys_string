@@ -17,6 +17,7 @@
 #include <string>
 #include <string_view>
 #include <ostream>
+#include <limits>
 
 #if SYS_STRING_USE_SPACESHIP_OPERATOR
     #include <compare>

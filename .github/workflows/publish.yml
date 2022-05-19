@@ -20,13 +20,20 @@ jobs:
         working-directory: ${{github.workspace}}
         run: tar -czf sys_string.tar.gz --transform s/lib/sys_string/ lib
 
+      - id: get-release-name
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const tagName = context.ref.substring(1)
+            core.setOutput('name', tagName)
+      
       - name: Release
         uses: actions/create-release@v1
         id: create_release
         with:
           draft: true
           prerelease: false
-          release_name: ${{ github.ref }}
+          release_name: ${{ steps.get-release-name.outputs.name }}
           tag_name: ${{ github.ref }}
           body: ...edit me...
         env:
@@ -39,6 +46,6 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{github.workspace}}/sys_string.tar.gz
-          asset_name: sys_string-${{ github.ref_name }}.tar.gz
+          asset_name: sys_string-${{ steps.get-release-name.outputs.name }}.tar.gz
           asset_content_type: application/gzip
       

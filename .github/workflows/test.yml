@@ -1,4 +1,4 @@
-name: CMake
+name: Test
 
 on: 
   push:
@@ -8,6 +8,8 @@ on:
       - 'LICENSE'
       - 'doc/**'
       - 'pkg/**'
+    tags-ignore:
+      - 'v*'
 
 env:
   BUILD_TYPE: Release

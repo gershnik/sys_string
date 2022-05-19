@@ -1,4 +1,9 @@
-## Intro 
+## SysString
+
+[![Language](https://img.shields.io/badge/language-C++-blue.svg)](https://isocpp.org/)
+[![Standard](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
+[![License](https://img.shields.io/badge/license-BSD-brightgreen.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![Tests](https://github.com/gershnik/sys_string/actions/workflows/test.yml/badge.svg)](https://github.com/gershnik/sys_string/actions/workflows/test.yml)
 
 This library provides a C++ string class `sys_string` that is optimized for **interoperability with platform-native string type**. It is **immutable**, **Unicode-first** and exposes convenient **operations similar to Python or ECMAScript strings**. It uses a separate `sys_string_builder` class to construct strings. It provides fast concatenation via `+` operator that **does not allocate temporary strings**. 
 The library exposes bidirectional UTF-8/UTF-16/UTF-32 views of `sys_string` as well as of any random access containers 

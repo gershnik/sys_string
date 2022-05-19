@@ -12,6 +12,8 @@
 
 #include <sys_string/impl/util/generic_buffer.h>
 
+#include <limits>
+
 namespace sysstr::util
 {
 

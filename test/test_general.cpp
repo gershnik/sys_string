@@ -25,10 +25,10 @@ static_assert(std::is_standard_layout_v<sys_string>);
 #if SYS_STRING_USE_SPACESHIP_OPERATOR
     template<class T>
     bool is_eq(T val)
-        { return std::is_eq(val); }
+        { return std::partial_ordering(val) == 0; }
     template<class T>
     bool is_lt(T val)
-        { return std::is_lt(val); }
+        { return std::partial_ordering(val) != 0; }
 #else
     template<class T>
     bool is_eq(T val)

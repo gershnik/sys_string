@@ -450,6 +450,37 @@ TEST_CASE( "Replace", "[general]" ) {
     CHECK(S("🥳😏🥸😏").replace(U'😏', U'😫') == S("🥳😫🥸😫"));
 }
 
+TEST_CASE( "HeadTail", "[general]" ) {
+
+    CHECK(S("").tailAfterFirst(S("")) == S(""));
+    CHECK(S("").tailAfterFirst(U'a') == S(""));
+    CHECK(S("").headBeforeFirst(S("")) == S(""));
+    CHECK(S("").headBeforeFirst(U'a') == S(""));
+    CHECK(S("").tailAfterLast(S("")) == S(""));
+    CHECK(S("").tailAfterLast(U'a') == S(""));
+    CHECK(S("").headBeforeLast(S("")) == S(""));
+    CHECK(S("").headBeforeLast(U'a') == S(""));
+
+    CHECK(S("ab").tailAfterFirst(S("c")) == S(""));
+    CHECK(S("ab").headBeforeFirst(S("c")) == S("ab"));
+    CHECK(S("ab").tailAfterLast(S("c")) == S("ab"));
+    CHECK(S("ab").headBeforeLast(S("c")) == S(""));
+
+    CHECK(S("ab").tailAfterFirst(S("a")) == S("b"));
+    CHECK(S("ab").headBeforeFirst(S("a")) == S(""));
+    CHECK(S("ab").tailAfterLast(S("b")) == S(""));
+    CHECK(S("ab").headBeforeLast(S("b")) == S("a"));
+
+    CHECK(S("a🥸b").tailAfterFirst(S("🥸")) == S("b"));
+    CHECK(S("a🥸b").headBeforeFirst(S("🥸")) == S("a"));
+    CHECK(S("a🥸b").tailAfterLast(S("🥸")) == S("b"));
+    CHECK(S("a🥸b").headBeforeLast(S("🥸")) == S("a"));
+
+    CHECK(S("a🥸b🥸c").tailAfterFirst(S("🥸")) == S("b🥸c"));
+    CHECK(S("a🥸b🥸c").headBeforeFirst(S("🥸")) == S("a"));
+    CHECK(S("a🥸b🥸c").tailAfterLast(S("🥸")) == S("c"));
+    CHECK(S("a🥸b🥸c").headBeforeLast(S("🥸")) == S("a🥸b"));
+}
 
 TEST_CASE( "Addition", "[general]" ) {
     

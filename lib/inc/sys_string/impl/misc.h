@@ -27,6 +27,10 @@ namespace sysstr::util
             { return m_access.begin(); }
         auto end() const noexcept
             { return m_access.end(); }
+        auto rbegin() const noexcept
+            { return m_access.rbegin(); }
+        auto rend() const noexcept
+            { return m_access.rend(); }
         auto size() const noexcept
             { return m_access.size(); }
         
@@ -48,6 +52,10 @@ namespace sysstr::util
             { return m_encoded.begin(); }
         auto end() const noexcept
             { return m_encoded.end(); }
+        auto rbegin() const noexcept
+            { return std::reverse_iterator(m_encoded.end()); }
+        auto rend() const noexcept
+            { return std::reverse_iterator(m_encoded.begin()); }
         auto size() const noexcept
             { return typename sys_string_t<Storage>::size_type(m_encoded.end() - m_encoded.begin()); }
         
@@ -411,4 +419,52 @@ auto sysstr::sys_string_t<Storage>::replace(const StringOrChar1 & old, const Str
     }
     
     return builder.build();
+}
+
+template<class Storage>
+template<class StringOrChar>
+auto sysstr::sys_string_t<Storage>::tailAfterFirst(const StringOrChar & divider) const -> 
+    std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>
+{
+    sys_string_t<Storage>::char_access my_access(*this);
+    util::string_or_char32_char_access<Storage, StringOrChar> divider_access(divider);
+    auto it = std::search(my_access.begin(), my_access.end(), divider_access.begin(), divider_access.end());
+    if (it != my_access.end())
+        it += divider_access.size();
+    return sys_string_t(it, my_access.end());
+}
+
+template<class Storage>
+template<class StringOrChar>
+auto sysstr::sys_string_t<Storage>::headBeforeFirst(const StringOrChar & divider) const -> 
+    std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>
+{
+    sys_string_t<Storage>::char_access my_access(*this);
+    util::string_or_char32_char_access<Storage, StringOrChar> divider_access(divider);
+    auto it = std::search(my_access.begin(), my_access.end(), divider_access.begin(), divider_access.end());
+    return sys_string_t(my_access.begin(), it);
+}
+
+template<class Storage>
+template<class StringOrChar>
+auto sysstr::sys_string_t<Storage>::tailAfterLast(const StringOrChar & divider) const -> 
+    std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>
+{
+    sys_string_t<Storage>::char_access my_access(*this);
+    util::string_or_char32_char_access<Storage, StringOrChar> divider_access(divider);
+    auto it = std::search(my_access.rbegin(), my_access.rend(), divider_access.rbegin(), divider_access.rend());
+    return sys_string_t(my_access.begin() + (my_access.rend() - it), my_access.end());
+}
+
+template<class Storage>
+template<class StringOrChar>
+auto sysstr::sys_string_t<Storage>::headBeforeLast(const StringOrChar & divider) const -> 
+    std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>
+{
+    sys_string_t<Storage>::char_access my_access(*this);
+    util::string_or_char32_char_access<Storage, StringOrChar> divider_access(divider);
+    auto it = std::search(my_access.rbegin(), my_access.rend(), divider_access.rbegin(), divider_access.rend());
+    if (it != my_access.rend())
+        it += divider_access.size();
+    return sys_string_t(my_access.begin(), my_access.begin() + (my_access.rend() - it));
 }

@@ -281,6 +281,15 @@ namespace sysstr
                      size_t max_count = std::numeric_limits<size_t>::max()) const ->
             std::enable_if_t<is_string_or_char<StringOrChar1> && is_string_or_char<StringOrChar2>, sys_string_t>;
 
+        template<class StringOrChar>
+        auto tailAfterFirst(const StringOrChar & divider) const -> std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>;
+        template<class StringOrChar>
+        auto headBeforeFirst(const StringOrChar & divider) const -> std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>;
+        template<class StringOrChar>
+        auto tailAfterLast(const StringOrChar & divider) const -> std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>;
+        template<class StringOrChar>
+        auto headBeforeLast(const StringOrChar & divider) const -> std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>;
+
     private:
         static auto compare(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> compare_result;
         static auto compare_no_case(const sys_string_t lhs, const sys_string_t & rhs) noexcept -> compare_result;

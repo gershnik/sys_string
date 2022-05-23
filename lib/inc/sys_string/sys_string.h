@@ -16,6 +16,7 @@
 #include <vector>
 #include <string>
 #include <string_view>
+#include <optional>
 #include <ostream>
 #include <limits>
 
@@ -282,13 +283,24 @@ namespace sysstr
             std::enable_if_t<is_string_or_char<StringOrChar1> && is_string_or_char<StringOrChar2>, sys_string_t>;
 
         template<class StringOrChar>
-        auto tailAfterFirst(const StringOrChar & divider) const -> std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>;
+        auto suffix_after_first(const StringOrChar & divider) const -> 
+            std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<sys_string_t>>;
         template<class StringOrChar>
-        auto headBeforeFirst(const StringOrChar & divider) const -> std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>;
+        auto prefix_before_first(const StringOrChar & divider) const -> 
+            std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<sys_string_t>>;
         template<class StringOrChar>
-        auto tailAfterLast(const StringOrChar & divider) const -> std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>;
+        auto suffix_after_last(const StringOrChar & divider) const -> 
+            std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<sys_string_t>>;
         template<class StringOrChar>
-        auto headBeforeLast(const StringOrChar & divider) const -> std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>;
+        auto prefix_before_last(const StringOrChar & divider) const -> 
+            std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<sys_string_t>>;
+
+        template<class StringOrChar>
+        auto partition_at_first(const StringOrChar & divider) const -> 
+            std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<std::pair<sys_string_t, sys_string_t>>>;
+        template<class StringOrChar>
+        auto partition_at_last(const StringOrChar & divider) const -> 
+            std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<std::pair<sys_string_t, sys_string_t>>>;
 
     private:
         static auto compare(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> compare_result;

@@ -452,34 +452,51 @@ TEST_CASE( "Replace", "[general]" ) {
 
 TEST_CASE( "HeadTail", "[general]" ) {
 
-    CHECK(S("").tailAfterFirst(S("")) == S(""));
-    CHECK(S("").tailAfterFirst(U'a') == S(""));
-    CHECK(S("").headBeforeFirst(S("")) == S(""));
-    CHECK(S("").headBeforeFirst(U'a') == S(""));
-    CHECK(S("").tailAfterLast(S("")) == S(""));
-    CHECK(S("").tailAfterLast(U'a') == S(""));
-    CHECK(S("").headBeforeLast(S("")) == S(""));
-    CHECK(S("").headBeforeLast(U'a') == S(""));
+    CHECK(S("").suffix_after_first(S("")) == S(""));
+    CHECK(S("").suffix_after_first(U'a') == std::nullopt);
+    CHECK(S("").prefix_before_first(S("")) == S(""));
+    CHECK(S("").prefix_before_first(U'a') == std::nullopt);
+    CHECK(S("").suffix_after_last(S("")) == S(""));
+    CHECK(S("").suffix_after_last(U'a') == std::nullopt);
+    CHECK(S("").prefix_before_last(S("")) == S(""));
+    CHECK(S("").prefix_before_last(U'a') == std::nullopt);
 
-    CHECK(S("ab").tailAfterFirst(S("c")) == S(""));
-    CHECK(S("ab").headBeforeFirst(S("c")) == S("ab"));
-    CHECK(S("ab").tailAfterLast(S("c")) == S("ab"));
-    CHECK(S("ab").headBeforeLast(S("c")) == S(""));
+    CHECK(S("ab").suffix_after_first(S("c")) == std::nullopt);
+    CHECK(S("ab").prefix_before_first(S("c")) == std::nullopt);
+    CHECK(S("ab").suffix_after_last(S("c")) == std::nullopt);
+    CHECK(S("ab").prefix_before_last(S("c")) == std::nullopt);
 
-    CHECK(S("ab").tailAfterFirst(S("a")) == S("b"));
-    CHECK(S("ab").headBeforeFirst(S("a")) == S(""));
-    CHECK(S("ab").tailAfterLast(S("b")) == S(""));
-    CHECK(S("ab").headBeforeLast(S("b")) == S("a"));
+    CHECK(S("ab").suffix_after_first(S("a")) == S("b"));
+    CHECK(S("ab").prefix_before_first(S("a")) == S(""));
+    CHECK(S("ab").suffix_after_last(S("b")) == S(""));
+    CHECK(S("ab").prefix_before_last(S("b")) == S("a"));
 
-    CHECK(S("a🥸b").tailAfterFirst(S("🥸")) == S("b"));
-    CHECK(S("a🥸b").headBeforeFirst(S("🥸")) == S("a"));
-    CHECK(S("a🥸b").tailAfterLast(S("🥸")) == S("b"));
-    CHECK(S("a🥸b").headBeforeLast(S("🥸")) == S("a"));
+    CHECK(S("a🥸b").suffix_after_first(S("🥸")) == S("b"));
+    CHECK(S("a🥸b").prefix_before_first(S("🥸")) == S("a"));
+    CHECK(S("a🥸b").suffix_after_last(S("🥸")) == S("b"));
+    CHECK(S("a🥸b").prefix_before_last(S("🥸")) == S("a"));
 
-    CHECK(S("a🥸b🥸c").tailAfterFirst(S("🥸")) == S("b🥸c"));
-    CHECK(S("a🥸b🥸c").headBeforeFirst(S("🥸")) == S("a"));
-    CHECK(S("a🥸b🥸c").tailAfterLast(S("🥸")) == S("c"));
-    CHECK(S("a🥸b🥸c").headBeforeLast(S("🥸")) == S("a🥸b"));
+    CHECK(S("a🥸b🥸c").suffix_after_first(S("🥸")) == S("b🥸c"));
+    CHECK(S("a🥸b🥸c").prefix_before_first(S("🥸")) == S("a"));
+    CHECK(S("a🥸b🥸c").suffix_after_last(S("🥸")) == S("c"));
+    CHECK(S("a🥸b🥸c").prefix_before_last(S("🥸")) == S("a🥸b"));
+}
+
+TEST_CASE( "Partition", "[general]" ) {
+    CHECK(S("").partition_at_first(S("")) == std::pair(S(""), S("")));
+    CHECK(S("").partition_at_first(U'a') == std::nullopt);
+    CHECK(S("").partition_at_last(S("")) == std::pair(S(""), S("")));
+    CHECK(S("").partition_at_last(U'a') == std::nullopt);
+
+    CHECK(S("ab").partition_at_first(S("c")) == std::nullopt);
+    CHECK(S("ab").partition_at_last(S("c")) == std::nullopt);
+    CHECK(S("ab").partition_at_first(S("a")) == std::pair(S(""), S("b")));
+    CHECK(S("ab").partition_at_last(S("b")) == std::pair(S("a"), S("")));
+
+    CHECK(S("a🥸b").partition_at_first(S("🥸")) == std::pair(S("a"), S("b")));
+    CHECK(S("a🥸b").partition_at_last(S("🥸")) == std::pair(S("a"), S("b")));
+    CHECK(S("a🥸b🥸c").partition_at_first(S("🥸")) == std::pair(S("a"), S("b🥸c")));
+    CHECK(S("a🥸b🥸c").partition_at_last(S("🥸")) == std::pair(S("a🥸b"), S("c")));
 }
 
 TEST_CASE( "Addition", "[general]" ) {

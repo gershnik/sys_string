@@ -423,48 +423,81 @@ auto sysstr::sys_string_t<Storage>::replace(const StringOrChar1 & old, const Str
 
 template<class Storage>
 template<class StringOrChar>
-auto sysstr::sys_string_t<Storage>::tailAfterFirst(const StringOrChar & divider) const -> 
-    std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>
+auto sysstr::sys_string_t<Storage>::suffix_after_first(const StringOrChar & divider) const -> 
+    std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<sys_string_t>>
 {
     sys_string_t<Storage>::char_access my_access(*this);
     util::string_or_char32_char_access<Storage, StringOrChar> divider_access(divider);
     auto it = std::search(my_access.begin(), my_access.end(), divider_access.begin(), divider_access.end());
-    if (it != my_access.end())
-        it += divider_access.size();
+    if (it == my_access.end() && divider_access.size() != 0)
+        return std::nullopt;
+    it += divider_access.size();
     return sys_string_t(it, my_access.end());
 }
 
 template<class Storage>
 template<class StringOrChar>
-auto sysstr::sys_string_t<Storage>::headBeforeFirst(const StringOrChar & divider) const -> 
-    std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>
+auto sysstr::sys_string_t<Storage>::prefix_before_first(const StringOrChar & divider) const -> 
+    std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<sys_string_t>>
 {
     sys_string_t<Storage>::char_access my_access(*this);
     util::string_or_char32_char_access<Storage, StringOrChar> divider_access(divider);
     auto it = std::search(my_access.begin(), my_access.end(), divider_access.begin(), divider_access.end());
+    if (it == my_access.end() && divider_access.size() != 0)
+        return std::nullopt;
     return sys_string_t(my_access.begin(), it);
 }
 
 template<class Storage>
 template<class StringOrChar>
-auto sysstr::sys_string_t<Storage>::tailAfterLast(const StringOrChar & divider) const -> 
-    std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>
+auto sysstr::sys_string_t<Storage>::suffix_after_last(const StringOrChar & divider) const -> 
+    std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<sys_string_t>>
 {
     sys_string_t<Storage>::char_access my_access(*this);
     util::string_or_char32_char_access<Storage, StringOrChar> divider_access(divider);
     auto it = std::search(my_access.rbegin(), my_access.rend(), divider_access.rbegin(), divider_access.rend());
+    if (it == my_access.rend() && divider_access.size() != 0)
+        return std::nullopt;
     return sys_string_t(my_access.begin() + (my_access.rend() - it), my_access.end());
 }
 
 template<class Storage>
 template<class StringOrChar>
-auto sysstr::sys_string_t<Storage>::headBeforeLast(const StringOrChar & divider) const -> 
-    std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>
+auto sysstr::sys_string_t<Storage>::prefix_before_last(const StringOrChar & divider) const -> 
+    std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<sys_string_t>>
 {
     sys_string_t<Storage>::char_access my_access(*this);
     util::string_or_char32_char_access<Storage, StringOrChar> divider_access(divider);
     auto it = std::search(my_access.rbegin(), my_access.rend(), divider_access.rbegin(), divider_access.rend());
-    if (it != my_access.rend())
-        it += divider_access.size();
+    if (it == my_access.rend() && divider_access.size() != 0)
+        return std::nullopt;
+    it += divider_access.size();
     return sys_string_t(my_access.begin(), my_access.begin() + (my_access.rend() - it));
+}
+
+template<class Storage>
+template<class StringOrChar>
+auto sysstr::sys_string_t<Storage>::partition_at_first(const StringOrChar & divider) const -> 
+    std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<std::pair<sys_string_t, sys_string_t>>>
+{
+    sys_string_t<Storage>::char_access my_access(*this);
+    util::string_or_char32_char_access<Storage, StringOrChar> divider_access(divider);
+    auto it = std::search(my_access.begin(), my_access.end(), divider_access.begin(), divider_access.end());
+    if (it == my_access.end() && divider_access.size() != 0)
+        return std::nullopt;
+    return std::pair(sys_string_t(my_access.begin(), it), sys_string_t(it + divider_access.size(), my_access.end()));
+}
+
+template<class Storage>
+template<class StringOrChar>
+auto sysstr::sys_string_t<Storage>::partition_at_last(const StringOrChar & divider) const -> 
+    std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<std::pair<sys_string_t, sys_string_t>>>
+{
+    sys_string_t<Storage>::char_access my_access(*this);
+    util::string_or_char32_char_access<Storage, StringOrChar> divider_access(divider);
+    auto it = std::search(my_access.rbegin(), my_access.rend(), divider_access.rbegin(), divider_access.rend());
+    if (it == my_access.rend() && divider_access.size() != 0)
+        return std::nullopt;
+    return std::pair(sys_string_t(my_access.begin(), my_access.begin() + (my_access.rend() - it - divider_access.size())),
+                     sys_string_t(my_access.begin() + (my_access.rend() - it), my_access.end()));
 }

@@ -15,7 +15,7 @@
 namespace sysstr::util
 {
 
-    struct generic_traits
+    struct win_generic_traits
     {
         using storage_type = char16_t;
         using size_type = size_t;
@@ -25,20 +25,20 @@ namespace sysstr::util
     };
 
     template<size_t N> 
-    using generic_static_buffer     = generic::static_buffer<generic_traits::storage_type, generic_traits::size_type, N>;
-    using generic_dynamic_buffer    = generic::dynamic_buffer<generic_traits::storage_type, generic_traits::size_type>;
+    using win_generic_static_buffer     = generic::static_buffer<generic_traits::storage_type, generic_traits::size_type, N>;
+    using win_generic_dynamic_buffer    = generic::dynamic_buffer<generic_traits::storage_type, generic_traits::size_type>;
 
-    using generic_buffer            = generic::buffer<generic_traits::storage_type, generic_traits::size_type>;
+    using win_generic_buffer            = generic::buffer<generic_traits::storage_type, generic_traits::size_type>;
 
-    using generic_builder_impl      = generic::buffer_builder<generic_traits::storage_type, generic_traits::size_type>;
+    using win_generic_builder_impl      = generic::buffer_builder<generic_traits::storage_type, generic_traits::size_type>;
 
-    using generic_char_access       = generic::char_access<generic_traits::storage_type, generic_traits::size_type>;
+    using win_generic_char_access       = generic::char_access<generic_traits::storage_type, generic_traits::size_type>;
     
 }
 
 namespace sysstr
 {
-    class generic_storage: private util::generic::storage<util::generic_traits::storage_type, util::generic_traits::size_type>
+    class win_generic_storage: private util::generic::storage<util::generic_traits::storage_type, util::generic_traits::size_type>
     {
     friend util::generic_char_access;
     private:
@@ -92,13 +92,13 @@ namespace sysstr::util
     template<>
     template<>
     inline 
-    generic_char_access::char_access(const sys_string_t<generic_storage> & src) noexcept:
+    win_generic_char_access::char_access(const sys_string_t<generic_storage> & src) noexcept:
         char_access(src.m_buffer)
     {}
 
     template<>
     inline 
-    sys_string_t<generic_storage> build(generic_builder_impl & builder) noexcept
+    sys_string_t<generic_storage> build(win_generic_builder_impl & builder) noexcept
     {
         return sys_string_t<generic_storage>(convert_to_string(builder));
     }
@@ -108,27 +108,27 @@ namespace sysstr
 {
     template<>
     inline 
-    sys_string_t<generic_storage>::sys_string_t(const char_access::cursor & src, size_type length):
+    sys_string_t<win_generic_storage>::sys_string_t(const char_access::cursor & src, size_type length):
         sys_string_t(src.iterator(), length)
     {}
 
     template<>
     inline 
-    sys_string_t<generic_storage>::sys_string_t(const char_access::reverse_cursor & src, size_type length):
+    sys_string_t<win_generic_storage>::sys_string_t(const char_access::reverse_cursor & src, size_type length):
         sys_string_t(src.iterator() - length, length)
     {}
 
     template<>
     inline 
-    sys_string_t<generic_storage>::sys_string_t(const char_access::iterator & first, const char_access::iterator & last):
+    sys_string_t<win_generic_storage>::sys_string_t(const char_access::iterator & first, const char_access::iterator & last):
         sys_string_t(first, last - first)
     {}
 
-    using sys_string_generic = sys_string_t<generic_storage>;
-    using sys_string_generic_builder = sys_string_builder_t<generic_storage>;
+    using sys_string_win_generic = sys_string_t<win_generic_storage>;
+    using sys_string_win_generic_builder = sys_string_builder_t<win_generic_storage>;
 }
 
-#define SYS_STRING_STATIC_GENERIC(x) ([] () noexcept -> ::sysstr::sys_string_generic { \
+#define SYS_STRING_STATIC_WIN_GENERIC(x) ([] () noexcept -> ::sysstr::sys_string_generic { \
         constexpr ::size_t size = sizeof(u##x) / sizeof(char16_t); \
         static const ::sysstr::util::generic_static_buffer<size> sbuf{0, true, u##x}; \
         ::sysstr::util::generic_buffer buf((::sysstr::util::generic_dynamic_buffer *)&sbuf, size - 1, 0); \

@@ -66,6 +66,7 @@
     #include <sys_string/impl/platforms/windows_bstr.h>
     #include <sys_string/impl/platforms/windows_hstring.h>
     #include <sys_string/impl/platforms/windows_generic.h>
+    #include <sys_string/impl/platforms/unix_generic.h>
 
     #if SYS_STRING_WIN_BSTR
 
@@ -87,7 +88,7 @@
 
         #define SYS_STRING_STATIC SYS_STRING_STATIC_HSTRING
 
-    #else
+    #elif SYS_STRING_USE_GENERIC
 
         namespace sysstr
         {
@@ -96,6 +97,16 @@
         }
 
         #define SYS_STRING_STATIC SYS_STRING_STATIC_GENERIC
+
+    #else
+
+        namespace sysstr
+        {
+            using sys_string = sys_string_win_generic;
+            using sys_string_builder = sys_string_win_generic_builder;
+        }
+
+        #define SYS_STRING_STATIC SYS_STRING_STATIC_WIN_GENERIC
 
     #endif
     

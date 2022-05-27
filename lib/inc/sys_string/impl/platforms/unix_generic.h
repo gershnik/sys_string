@@ -58,6 +58,13 @@ namespace sysstr
     public:
         using super::super;
 
+#ifdef _MSC_VER
+        template<class Char>
+        generic_storage(const Char * str, size_t len, std::enable_if_t<has_utf_encoding<Char>> * = nullptr):
+            super(str, len)
+        {}
+#endif
+
     protected:
         ~generic_storage() noexcept = default;
         generic_storage(const generic_storage & src) noexcept = default;

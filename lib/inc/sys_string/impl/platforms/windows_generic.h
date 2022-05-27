@@ -25,48 +25,48 @@ namespace sysstr::util
     };
 
     template<size_t N> 
-    using win_generic_static_buffer     = generic::static_buffer<generic_traits::storage_type, generic_traits::size_type, N>;
-    using win_generic_dynamic_buffer    = generic::dynamic_buffer<generic_traits::storage_type, generic_traits::size_type>;
+    using win_generic_static_buffer     = generic::static_buffer<win_generic_traits::storage_type, win_generic_traits::size_type, N>;
+    using win_generic_dynamic_buffer    = generic::dynamic_buffer<win_generic_traits::storage_type, win_generic_traits::size_type>;
 
-    using win_generic_buffer            = generic::buffer<generic_traits::storage_type, generic_traits::size_type>;
+    using win_generic_buffer            = generic::buffer<win_generic_traits::storage_type, win_generic_traits::size_type>;
 
-    using win_generic_builder_impl      = generic::buffer_builder<generic_traits::storage_type, generic_traits::size_type>;
+    using win_generic_builder_impl      = generic::buffer_builder<win_generic_traits::storage_type, win_generic_traits::size_type>;
 
-    using win_generic_char_access       = generic::char_access<generic_traits::storage_type, generic_traits::size_type>;
+    using win_generic_char_access       = generic::char_access<win_generic_traits::storage_type, win_generic_traits::size_type>;
     
 }
 
 namespace sysstr
 {
-    class win_generic_storage: private util::generic::storage<util::generic_traits::storage_type, util::generic_traits::size_type>
+    class win_generic_storage: private util::generic::storage<util::win_generic_traits::storage_type, util::win_generic_traits::size_type>
     {
-    friend util::generic_char_access;
+    friend util::win_generic_char_access;
     private:
-        using super = util::generic::storage<util::generic_traits::storage_type, util::generic_traits::size_type>;
+        using super = util::generic::storage<util::win_generic_traits::storage_type, util::win_generic_traits::size_type>;
     public:
         using super::size_type;
         using super::storage_type;
         
-        using hash_type = util::generic_traits::hash_type;
-        using char_access = util::generic_char_access;
-        using builder_impl = util::generic_builder_impl;
+        using hash_type = util::win_generic_traits::hash_type;
+        using char_access = util::win_generic_char_access;
+        using builder_impl = util::win_generic_builder_impl;
 
-        static constexpr auto max_size = util::generic_traits::max_size;
+        static constexpr auto max_size = util::win_generic_traits::max_size;
 
     public:
         using super::super;
 
         template<class Char>
-        generic_storage(const Char * str, size_t len, std::enable_if_t<has_utf_encoding<Char>> * = nullptr):
+        win_generic_storage(const Char * str, size_t len, std::enable_if_t<has_utf_encoding<Char>> * = nullptr):
             super(str, len)
         {}
 
     protected:
-        ~generic_storage() noexcept = default;
-        generic_storage(const generic_storage & src) noexcept = default;
-        generic_storage(generic_storage && src) noexcept = default;
-        generic_storage & operator=(const generic_storage & rhs) noexcept = default;
-        generic_storage & operator=(generic_storage && rhs) noexcept = default;
+        ~win_generic_storage() noexcept = default;
+        win_generic_storage(const win_generic_storage & src) noexcept = default;
+        win_generic_storage(win_generic_storage && src) noexcept = default;
+        win_generic_storage & operator=(const win_generic_storage & rhs) noexcept = default;
+        win_generic_storage & operator=(win_generic_storage && rhs) noexcept = default;
 
     public:
         using super::data;
@@ -92,15 +92,15 @@ namespace sysstr::util
     template<>
     template<>
     inline 
-    win_generic_char_access::char_access(const sys_string_t<generic_storage> & src) noexcept:
+    win_generic_char_access::char_access(const sys_string_t<win_generic_storage> & src) noexcept:
         char_access(src.m_buffer)
     {}
 
     template<>
     inline 
-    sys_string_t<generic_storage> build(win_generic_builder_impl & builder) noexcept
+    sys_string_t<win_generic_storage> build(win_generic_builder_impl & builder) noexcept
     {
-        return sys_string_t<generic_storage>(convert_to_string(builder));
+        return sys_string_t<win_generic_storage>(convert_to_string(builder));
     }
 }
 
@@ -128,11 +128,11 @@ namespace sysstr
     using sys_string_win_generic_builder = sys_string_builder_t<win_generic_storage>;
 }
 
-#define SYS_STRING_STATIC_WIN_GENERIC(x) ([] () noexcept -> ::sysstr::sys_string_generic { \
+#define SYS_STRING_STATIC_WIN_GENERIC(x) ([] () noexcept -> ::sysstr::sys_string_win_generic { \
         constexpr ::size_t size = sizeof(u##x) / sizeof(char16_t); \
-        static const ::sysstr::util::generic_static_buffer<size> sbuf{0, true, u##x}; \
-        ::sysstr::util::generic_buffer buf((::sysstr::util::generic_dynamic_buffer *)&sbuf, size - 1, 0); \
-        return *reinterpret_cast<::sysstr::sys_string_generic *>(&buf); \
+        static const ::sysstr::util::win_generic_static_buffer<size> sbuf{0, true, u##x}; \
+        ::sysstr::util::win_generic_buffer buf((::sysstr::util::win_generic_dynamic_buffer *)&sbuf, size - 1, 0); \
+        return *reinterpret_cast<::sysstr::sys_string_win_generic *>(&buf); \
     }())
 
 

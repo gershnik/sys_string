@@ -3,6 +3,9 @@
 On Windows there isn't a single, universally used system string type. Win32 API uses plain `wchar_t *`, traditional OLE/COM relies on `BSTR`, while newer C++/WinRT uses `HSTRING`. To target your specific scenario `sys_string` can be configured at compile time to use either of these types of storage.
 If no configuration flags are specified the default storage is plain `wchar_t *`. 
 
+Additionally, some programs rely on Unix compatibility APIs exclusively and, for those, Windows platform also supports "generic Unix" storage which stores `char *` and is meant to interoperate with plain Unix API. 
+It can be selected via `#define SYS_STRING_USE_GENERIC 1` and is described under [Linux](Linux.md).
+
 Being the lowest-common denominator, zero-cost conversions to `const wchar_t *` are available in all configurations.
 
 Conversions supported by each storage type are described below.

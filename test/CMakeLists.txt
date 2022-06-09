@@ -31,6 +31,7 @@ if (WIN32)
         bstr
         hstring
         win_gen
+        unix_gen
     )
 
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")

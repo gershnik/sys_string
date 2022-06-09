@@ -227,7 +227,7 @@ read_ucd_file(datadir/'PropList.txt', parse_properties)
 read_ucd_file(datadir/'DerivedCoreProperties.txt', parse_derived_properties)
 
 prop_builder.generate()
-print(f'{prop_builder.block_size}: {len(prop_builder.stage1)}, {len(prop_builder.blocks)}, {len(prop_builder.stage1) + len(prop_builder.blocks) * prop_builder.block_size // prop_builder.count_per_byte}')
+#print(f'{prop_builder.block_size}: {len(prop_builder.stage1)}, {len(prop_builder.blocks)}, {len(prop_builder.stage1) + len(prop_builder.blocks) * prop_builder.block_size // prop_builder.count_per_byte}')
 
 
 write_file(cppfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY

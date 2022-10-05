@@ -197,8 +197,8 @@ namespace sysstr
     #endif
 
         auto swap(sys_string_t & other) noexcept -> void
-            { storage::swap(other.m_storage); }
-        
+            { storage::swap(static_cast<storage &>(other)); }
+
         friend auto swap(sys_string_t & lhs, sys_string_t & rhs) noexcept -> void
             { lhs.swap(rhs); }
         

@@ -66,6 +66,12 @@ TEST_CASE( "Creation", "[general]") {
     sys_string temp = S("abc");
     sys_string new_temp(std::move(temp));
     CHECK(new_temp == S("abc"));
+
+    temp = S("abc");
+    new_temp = S("xyz");
+    swap(temp, new_temp);
+    CHECK(temp == S("xyz"));
+    CHECK(new_temp == S("abc"));
 }
 
 TEST_CASE( "Iteration", "[general]" ) {

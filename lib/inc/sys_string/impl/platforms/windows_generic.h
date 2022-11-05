@@ -82,7 +82,7 @@ namespace sysstr
         using super::size;
         using super::operator[];
 
-        auto swap(storage & other) noexcept -> void
+        auto swap(win_generic_storage & other) noexcept -> void
             { super::swap(other); }
     };
 }

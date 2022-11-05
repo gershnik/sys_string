@@ -110,7 +110,7 @@
 
     #endif
     
-#elif defined(__linux__) || defined(__FreeBSD__)
+#elif defined(__linux__) || defined(__FreeBSD__) || defined(__unix__)
     #include <sys_string/impl/platforms/unix_generic.h>
 
 

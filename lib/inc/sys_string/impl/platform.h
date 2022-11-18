@@ -109,6 +109,34 @@
         #define SYS_STRING_STATIC SYS_STRING_STATIC_WIN_GENERIC
 
     #endif
+
+#elif defined(__EMSCRIPTEN__)
+
+    #include <sys_string/impl/platforms/emscripten_javascript.h>
+    #include <sys_string/impl/platforms/unix_generic.h>
+
+    #if defined(SYS_STRING_USE_GENERIC)
+
+        namespace sysstr
+        {
+            using sys_string = sys_string_generic;
+            using sys_string_builder = sys_string_generic_builder;
+        }
+
+        #define SYS_STRING_STATIC SYS_STRING_STATIC_GENERIC
+
+    #else
+        
+
+        namespace sysstr
+        {
+            using sys_string = sys_string_emscripten;
+            using sys_string_builder = sys_string_emscripten_builder;
+        }
+
+        #define SYS_STRING_STATIC SYS_STRING_STATIC_EMSCRIPTEN
+
+    #endif
     
 #elif defined(__linux__) || defined(__FreeBSD__) || defined(__unix__)
     #include <sys_string/impl/platforms/unix_generic.h>

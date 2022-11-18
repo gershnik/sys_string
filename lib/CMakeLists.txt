@@ -69,6 +69,7 @@ set(PLATFORM_FILES
     ${SRCDIR}/inc/sys_string/impl/platforms/windows_hstring.h
     ${SRCDIR}/inc/sys_string/impl/platforms/windows_bstr.h
     ${SRCDIR}/inc/sys_string/impl/platforms/windows_generic.h
+    ${SRCDIR}/inc/sys_string/impl/platforms/emscripten_javascript.h
     ${SRCDIR}/inc/sys_string/impl/platforms/unix_generic.h
 )
 source_group("Platforms" FILES ${PLATFORM_FILES})

@@ -48,6 +48,13 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL Android)
         unix_gen
     )
 
+elseif (DEFINED EMSCRIPTEN)
+
+    set (STORAGE_TYPES
+        emscr
+        unix_gen
+    )
+
 else()
 
     set (STORAGE_TYPES
@@ -129,6 +136,7 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
         sys_string${STANDARD_SUFFIX}
                 
         "$<$<PLATFORM_ID:Android>:log>"
+        "$<$<PLATFORM_ID:Emscripten>:embind>" 
     )
 
     if (SYS_STRING_TEST_SHARED)
@@ -151,6 +159,7 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
         "$<$<PLATFORM_ID:Android>:test_android.cpp>" 
         "$<$<PLATFORM_ID:Windows>:test_windows.cpp>" 
         "$<$<PLATFORM_ID:Linux>:test_linux.cpp>" 
+        "$<$<PLATFORM_ID:Emscripten>:test_javascript.cpp>" 
 
         catch.hpp
     )
@@ -158,6 +167,8 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
     if (${CMAKE_SYSTEM_NAME} STREQUAL Android)
         list(APPEND TEST_COMMAND COMMAND ${ADB} push test-${TEST_SUFFIX} ${ANDROID_TEST_DIR})
         list(APPEND TEST_COMMAND COMMAND ${ADB} shell LD_LIBRARY_PATH=${ANDROID_LD_LIBRARY_PATH} ${ANDROID_TEST_DIR}/test-${TEST_SUFFIX})
+    elseif (DEFINED EMSCRIPTEN)
+        list(APPEND TEST_COMMAND COMMAND node test-${TEST_SUFFIX})
     else()
         list(APPEND TEST_COMMAND COMMAND test-${TEST_SUFFIX})
     endif()

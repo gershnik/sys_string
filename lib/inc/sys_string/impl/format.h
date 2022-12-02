@@ -31,7 +31,7 @@ namespace sysstr
         if (size == -1)
             return sys_string_t();
         buf.resize(size + 1);
-        const int ret = vsprintf(&buf[0], format, vl);
+        const int ret = vsnprintf(&buf[0], buf.size(), format, vl);
         va_end(vl);
         if (ret <= 0)
             return sys_string_t();

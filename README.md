@@ -11,7 +11,7 @@ of characters.
 
 ## What does it mean?
 
-* Interoperability with platform-native string type means that `sys_string` makes conversions to and from native string types as efficient as possible and ideally 0 cost operations. Native string types are things like `NSString *` or `CFStringRef` on macOS/iOS, Java `String` on Android, `const wchar_t *`, `HSTRING` or `BSTR` on Windows and `const char *` on Linux.  For example on Apple's platforms it stores `NSString *` internally allowing zero cost conversion. On Android where no-op conversions to Java strings are impossible for technical reasons, the internal storage is such that it makes conversions as cheap as possible.
+* Interoperability with platform-native string type means that `sys_string` makes conversions to and from native string types as efficient as possible and ideally 0 cost operations. Native string types are things like `NSString *` or `CFStringRef` on macOS/iOS, Java `String` on Android, JavaScript `String` on Emscripten/WebAssembly, `const wchar_t *`, `HSTRING` or `BSTR` on Windows and `const char *` on Linux.  For example on Apple's platforms it stores `NSString *` internally allowing zero cost conversion. On Android and Emscripten/WebAssembly where no-op conversions to Java/JavaScript strings are impossible for technical reasons, the internal storage is such that it makes conversions as cheap as possible.
 
     Some platforms, like Windows, support multiple kinds of native string types. Internally, `sys_string` is a specialization of template `sys_string_t<Storage>` where the `Storage` parameter defines what kind of native string type to use. The default storage for `sys_string` is picked for you based on your platform (you can change it via compilation options) but you can also directly use other specializations in your code if necessary. 
 
@@ -52,10 +52,11 @@ Another way to look at it is that `sys_string` sometimes trades micro-benchmarki
 ## Compatibility
 
 This library has been tested with
-* Xcode 13 on x86_64 and arm64
-* MSVC 16.9 and 17.1 on x86_64
-* Clang 12.0.5 under Android NDK on x86, x86_64, armeabi-v7a and arm64-v8a architectures
-* GCC 9.3 on x86_64 Ubuntu 20.04
+* Xcode 13 - 14 on x86_64 and arm64
+* MSVC 16.9 - 17.4 on x86_64
+* Clang 12.0.5 under Android NDK, ANDROID_PLATFORM=19 on x86, x86_64, armeabi-v7a and arm64-v8a architectures
+* GCC 9.3 - 11.3 on x86_64 Ubuntu 20.04 - 22.04
+* Emscripten 3.1.21 
 
 ## Usage
 

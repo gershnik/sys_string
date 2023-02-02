@@ -30,6 +30,12 @@
     #include <wtypes.h>
     #include <winstring.h>
     #include <oleauto.h>
+
+#elif defined(__EMSCRIPTEN__)
+
+    #include <emscripten/emscripten.h>
+    #include <emscripten/val.h>
+
 #endif
 
 #if __SIZEOF_POINTER__ == 8 || (defined(_MSC_VER) && _WIN64)

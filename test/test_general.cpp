@@ -72,6 +72,9 @@ TEST_CASE( "Creation", "[general]") {
     swap(temp, new_temp);
     CHECK(temp == S("xyz"));
     CHECK(new_temp == S("abc"));
+
+    sys_string from_long_char("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", 52);
+    CHECK(from_long_char == S("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"));
 }
 
 TEST_CASE( "Iteration", "[general]" ) {

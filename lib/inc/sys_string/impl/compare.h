@@ -28,7 +28,7 @@ namespace sysstr
             return CFStringGetLength(lhs_ptr) == 0 ? ordering_equal : ordering_greater;
 
         CFComparisonResult res = CFStringCompare(lhs_ptr, rhs_ptr, 0);
-        return util::make_compare_result(res);
+        return util::make_compare_result(int(res));
     }
 
     #endif

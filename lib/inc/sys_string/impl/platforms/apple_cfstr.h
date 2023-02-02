@@ -139,28 +139,31 @@ namespace sysstr::util
         {
             struct reallocator
             {
+                cf_builder_storage * me;
                 size_type size;
                 size_type used_size;
                 
-                size_t operator()(dynamic_t & buf) const
+                void operator()(dynamic_t & buf) const
                 {
                     buf.reallocate(size);
-                    return size;
+                    me->m_capacity = size;
                 }
                 
-                size_t operator()(static_t & buf) const
+                void operator()(static_t & buf) const
                 {
                     if (size > minimum_capacity)
                     {
                         dynamic_t new_buf(size);
                         memcpy(new_buf.data(), buf.data(), used_size * sizeof(value_type));
-                        return size;
+                        me->m_buffer = std::move(new_buf);
+                        me->m_capacity = size;
+                    } else {
+                        me->m_capacity = minimum_capacity;
                     }
-                    return minimum_capacity;
                 }
             };
             
-            m_capacity = std::visit(reallocator{size, used_size}, m_buffer);
+            std::visit(reallocator{this, size, used_size}, m_buffer);
         }
         
         buffer_t release() noexcept

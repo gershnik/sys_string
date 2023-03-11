@@ -12,7 +12,7 @@
 namespace sysstr
 {
 
-    #if (defined(__APPLE__) && defined(__MACH__))
+    #if (defined(__APPLE__) && defined(__MACH__))  
 
     template<>
     inline auto sys_string_cfstr::compare(const sys_string_t<cf_storage> & lhs, const sys_string_t<cf_storage> & rhs) noexcept -> compare_result
@@ -29,6 +29,27 @@ namespace sysstr
 
         CFComparisonResult res = CFStringCompare(lhs_ptr, rhs_ptr, 0);
         return util::make_compare_result(int(res));
+    }
+
+    #endif
+
+    #if defined (SYS_STRING_USE_PYTHON)
+
+    template<>
+    inline auto sys_string_pystr::compare(const sys_string_t<py_storage> & lhs, const sys_string_t<py_storage> & rhs) noexcept -> compare_result
+    {
+        auto lhs_ptr = lhs.py_str();
+        auto rhs_ptr = rhs.py_str();
+
+        if (lhs_ptr == rhs_ptr)
+            return ordering_equal;
+        if (!lhs_ptr)
+            return PyUnicode_GetLength(rhs_ptr) == 0 ? ordering_equal : ordering_less;
+        if (!rhs_ptr)
+            return PyUnicode_GetLength(lhs_ptr) == 0 ? ordering_equal : ordering_greater;
+
+        int res = PyUnicode_Compare(lhs_ptr, rhs_ptr);
+        return util::make_compare_result(res);
     }
 
     #endif

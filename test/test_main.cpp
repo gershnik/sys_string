@@ -8,6 +8,13 @@
 #define CATCH_CONFIG_RUNNER
 #include "catch.hpp"
 
+#if defined(SYS_STRING_USE_PYTHON)
+
+    #define PY_SSIZE_T_CLEAN
+    #include <Python.h>
+
+#endif
+
 
 #if defined(__ANDROID__)
 
@@ -73,6 +80,10 @@ int main(int argc, char** argv)
 
     #if defined (_WIN32)
         SetConsoleOutputCP(CP_UTF8);
+    #endif
+
+    #if defined(SYS_STRING_USE_PYTHON)
+        Py_Initialize();
     #endif
 
     return Catch::Session().run( argc, argv );

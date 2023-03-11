@@ -9,22 +9,35 @@
 #error This header must not be included directly. Please include sys_string.h
 #endif
 
-#if (defined(__APPLE__) && defined(__MACH__))
-    #include <sys_string/impl/platforms/apple_cfstr.h>
+#if defined(SYS_STRING_USE_PYTHON)
+    #include <sys_string/impl/platforms/python_any.h>
+
+    namespace sysstr
+    {
+        using sys_string = sys_string_pystr;
+        using sys_string_builder = sys_string_pystr_builder;
+    }
+
+    #define SYS_STRING_STATIC SYS_STRING_STATIC_PYSTR
+
+#elif defined(SYS_STRING_USE_GENERIC)
+
     #include <sys_string/impl/platforms/unix_generic.h>
 
-    #if defined(SYS_STRING_USE_GENERIC)
+    namespace sysstr
+    {
+        using sys_string = sys_string_generic;
+        using sys_string_builder = sys_string_generic_builder;
+    }
 
-        namespace sysstr
-        {
-            using sys_string = sys_string_generic;
-            using sys_string_builder = sys_string_generic_builder;
-        }
+    #define SYS_STRING_STATIC SYS_STRING_STATIC_GENERIC
 
-        #define SYS_STRING_STATIC SYS_STRING_STATIC_GENERIC
+#endif
+   
+#if (defined(__APPLE__) && defined(__MACH__))
+    #include <sys_string/impl/platforms/apple_cfstr.h>
 
-    #else
-
+    #if !defined(SYS_STRING_USE_PYTHON) && !defined(SYS_STRING_USE_GENERIC) 
         namespace sysstr
         {
             using sys_string = sys_string_cfstr;
@@ -37,20 +50,8 @@
 #elif defined(__ANDROID__)
 
     #include <sys_string/impl/platforms/android_java.h>
-    #include <sys_string/impl/platforms/unix_generic.h>
 
-    #if defined(SYS_STRING_USE_GENERIC)
-
-        namespace sysstr
-        {
-            using sys_string = sys_string_generic;
-            using sys_string_builder = sys_string_generic_builder;
-        }
-
-        #define SYS_STRING_STATIC SYS_STRING_STATIC_GENERIC
-
-    #else
-        
+    #if !defined(SYS_STRING_USE_PYTHON) && !defined(SYS_STRING_USE_GENERIC) 
 
         namespace sysstr
         {
@@ -66,67 +67,49 @@
     #include <sys_string/impl/platforms/windows_bstr.h>
     #include <sys_string/impl/platforms/windows_hstring.h>
     #include <sys_string/impl/platforms/windows_generic.h>
-    #include <sys_string/impl/platforms/unix_generic.h>
 
-    #if SYS_STRING_WIN_BSTR
+    #if !defined(SYS_STRING_USE_PYTHON) && !defined(SYS_STRING_USE_GENERIC) 
 
-        namespace sysstr 
-        { 
-            using sys_string = sys_string_bstr; 
-            using sys_string_builder = sys_string_bstr_builder; 
-        }
+        #if SYS_STRING_WIN_BSTR
 
-        #define SYS_STRING_STATIC SYS_STRING_STATIC_BSTR
-        
-    #elif SYS_STRING_WIN_HSTRING
+            namespace sysstr 
+            { 
+                using sys_string = sys_string_bstr; 
+                using sys_string_builder = sys_string_bstr_builder; 
+            }
 
-        namespace sysstr 
-        { 
-            using sys_string = sys_string_hstring; 
-            using sys_string_builder = sys_string_hstring_builder; 
-        }
+            #define SYS_STRING_STATIC SYS_STRING_STATIC_BSTR
+            
+        #elif SYS_STRING_WIN_HSTRING
 
-        #define SYS_STRING_STATIC SYS_STRING_STATIC_HSTRING
+            namespace sysstr 
+            { 
+                using sys_string = sys_string_hstring; 
+                using sys_string_builder = sys_string_hstring_builder; 
+            }
 
-    #elif SYS_STRING_USE_GENERIC
+            #define SYS_STRING_STATIC SYS_STRING_STATIC_HSTRING
 
-        namespace sysstr
-        {
-            using sys_string = sys_string_generic;
-            using sys_string_builder = sys_string_generic_builder;
-        }
+        #else
 
-        #define SYS_STRING_STATIC SYS_STRING_STATIC_GENERIC
+            namespace sysstr
+            {
+                using sys_string = sys_string_win_generic;
+                using sys_string_builder = sys_string_win_generic_builder;
+            }
 
-    #else
+            #define SYS_STRING_STATIC SYS_STRING_STATIC_WIN_GENERIC
 
-        namespace sysstr
-        {
-            using sys_string = sys_string_win_generic;
-            using sys_string_builder = sys_string_win_generic_builder;
-        }
-
-        #define SYS_STRING_STATIC SYS_STRING_STATIC_WIN_GENERIC
+        #endif
 
     #endif
+
 
 #elif defined(__EMSCRIPTEN__)
 
     #include <sys_string/impl/platforms/emscripten_javascript.h>
-    #include <sys_string/impl/platforms/unix_generic.h>
 
-    #if defined(SYS_STRING_USE_GENERIC)
-
-        namespace sysstr
-        {
-            using sys_string = sys_string_generic;
-            using sys_string_builder = sys_string_generic_builder;
-        }
-
-        #define SYS_STRING_STATIC SYS_STRING_STATIC_GENERIC
-
-    #else
-        
+    #if !defined(SYS_STRING_USE_PYTHON) && !defined(SYS_STRING_USE_GENERIC) 
 
         namespace sysstr
         {
@@ -139,16 +122,21 @@
     #endif
     
 #elif defined(__linux__) || defined(__FreeBSD__) || defined(__unix__)
+    
+    
     #include <sys_string/impl/platforms/unix_generic.h>
 
+    #if !defined(SYS_STRING_USE_PYTHON) && !defined(SYS_STRING_USE_GENERIC) 
 
-    namespace sysstr
-    {
-        using sys_string = sys_string_generic;
-        using sys_string_builder = sys_string_generic_builder;
-    }
+        namespace sysstr
+        {
+            using sys_string = sys_string_generic;
+            using sys_string_builder = sys_string_generic_builder;
+        }
 
-    #define SYS_STRING_STATIC SYS_STRING_STATIC_GENERIC
+        #define SYS_STRING_STATIC SYS_STRING_STATIC_GENERIC
+
+    #endif
 
 #else
     #error Unsupported platform

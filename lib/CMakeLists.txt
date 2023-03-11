@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 3.16)
 
 project(sys_string)
 
-find_package (Python3 COMPONENTS Interpreter)
+find_package (Python3 COMPONENTS Interpreter Development)
 
 set(SRCDIR ${CMAKE_CURRENT_LIST_DIR})
 set(LIBNAME sys_string${SYS_STRING_LIBRARY_SUFFIX})
@@ -44,8 +44,7 @@ target_compile_definitions(${LIBNAME} PUBLIC
 )
 
 target_include_directories(${LIBNAME}
-    
-    PUBLIC
+PUBLIC
     ${SRCDIR}/inc
 )
 
@@ -70,6 +69,7 @@ set(PLATFORM_FILES
     ${SRCDIR}/inc/sys_string/impl/platforms/windows_bstr.h
     ${SRCDIR}/inc/sys_string/impl/platforms/windows_generic.h
     ${SRCDIR}/inc/sys_string/impl/platforms/emscripten_javascript.h
+    ${SRCDIR}/inc/sys_string/impl/platforms/python_any.h
     ${SRCDIR}/inc/sys_string/impl/platforms/unix_generic.h
 )
 source_group("Platforms" FILES ${PLATFORM_FILES})

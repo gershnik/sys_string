@@ -12,7 +12,7 @@
 
 using namespace sysstr;
 
-#if !SYS_STRING_USE_GENERIC
+#if !SYS_STRING_USE_GENERIC && !SYS_STRING_USE_PYTHON
 
 TEST_CASE( "Apple Conversions", "[apple]") {
 
@@ -31,7 +31,7 @@ TEST_CASE( "Apple Conversions", "[apple]") {
 
 }
 
-#else
+#elif SYS_STRING_USE_GENERIC
 
 TEST_CASE( "Apple Conversions", "[apple]") {
 

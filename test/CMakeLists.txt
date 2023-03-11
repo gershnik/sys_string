@@ -16,6 +16,18 @@ endif()
 
 project(test)
 
+find_package (Python3 COMPONENTS Interpreter Development)
+
+if(${Python3_Development_FOUND})
+    include_directories(
+    SYSTEM
+        ${Python3_INCLUDE_DIRS}
+    )
+
+    link_libraries(
+        ${Python3_LIBRARIES}
+    )
+endif()
 
 set (CXX_STANDARDS
     17
@@ -34,12 +46,24 @@ if (WIN32)
         unix_gen
     )
 
+    if (Python3_Development_FOUND)
+
+        list(APPEND STORAGE_TYPES python)
+
+    endif()
+
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
 
     set (STORAGE_TYPES
         cfstr
         unix_gen
     )
+
+    if (Python3_Development_FOUND)
+
+        list(APPEND STORAGE_TYPES python)
+
+    endif()
 
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL Android)
 
@@ -61,6 +85,12 @@ else()
         def
     )
 
+    if (Python3_FOUND)
+
+        list(APPEND STORAGE_TYPES python)
+
+    endif()
+
 endif()
 
 set(STORAGE_FLAG_def "")
@@ -70,6 +100,7 @@ set(STORAGE_FLAG_win_gen "")
 set(STORAGE_FLAG_cfstr "")
 set(STORAGE_FLAG_andr "")
 set(STORAGE_FLAG_unix_gen SYS_STRING_USE_GENERIC=1)
+set(STORAGE_FLAG_python SYS_STRING_USE_PYTHON=1)
 
 set(TEST_COMMAND "")
 set(TEST_DEPS "")

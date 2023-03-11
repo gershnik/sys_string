@@ -129,7 +129,7 @@ using namespace sysstr;
         CHECK(strcmp(sys_string("a水𐀀𝄞bcå🤢").c_str(), "a水𐀀𝄞bcå🤢") == 0);
     }
 
-#else
+#elif !defined(SYS_STRING_USE_PYTHON)
 
     TEST_CASE( "Windows Conversions", "[windows]") {
 

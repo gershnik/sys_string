@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 3.16)
 
 project(sys_string)
 
-find_package (Python3 COMPONENTS Interpreter Development)
+find_package (Python3 COMPONENTS Interpreter)
 
 set(SRCDIR ${CMAKE_CURRENT_LIST_DIR})
 set(LIBNAME sys_string${SYS_STRING_LIBRARY_SUFFIX})

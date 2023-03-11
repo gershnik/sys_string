@@ -11,6 +11,8 @@
 
 #include <sys_string/impl/util/char_buffer.h>
 
+#include <variant>
+
 namespace sysstr
 {
     class py_storage;
@@ -284,27 +286,6 @@ namespace sysstr
         template<class Char>
         py_storage(const Char * str, size_t len);
         
-        template<>
-        py_storage(const char * str, size_t len):
-            py_storage(util::check_create(PyUnicode_DecodeUTF8((const char *)str, len, "replace")), handle_retain::no)
-        {}
-
-        #if SYS_STRING_USE_CHAR8
-            template<>
-            py_storage(const char8_t * str, size_t len):
-                py_storage(util::check_create(PyUnicode_DecodeUTF8((const char *)str, len, "replace")), handle_retain::no)
-            {}
-        #endif
-
-        template<>
-        py_storage(const char16_t * str, size_t len) :
-            py_storage(util::check_create(PyUnicode_DecodeUTF16((const char *)str, len * sizeof(char16_t), "replace", 0)), handle_retain::no)
-        {}
-
-        template<>
-        py_storage(const char32_t * str, size_t len):
-            py_storage(util::check_create(PyUnicode_DecodeUTF32((const char *)str, len * sizeof(char32_t), "replace", 0)), handle_retain::no)
-        {}
         
         ~py_storage() noexcept
             { release(m_str); }
@@ -396,6 +377,28 @@ namespace sysstr
     private:
         PyObject * m_str = nullptr;
     };
+
+    template<>
+    inline py_storage::py_storage(const char * str, size_t len):
+        py_storage(util::check_create(PyUnicode_DecodeUTF8((const char *)str, len, "replace")), handle_retain::no)
+    {}
+
+    #if SYS_STRING_USE_CHAR8
+        template<>
+        inline py_storage::py_storage(const char8_t * str, size_t len):
+            py_storage(util::check_create(PyUnicode_DecodeUTF8((const char *)str, len, "replace")), handle_retain::no)
+        {}
+    #endif
+
+    template<>
+    inline py_storage::py_storage(const char16_t * str, size_t len) :
+        py_storage(util::check_create(PyUnicode_DecodeUTF16((const char *)str, len * sizeof(char16_t), "replace", 0)), handle_retain::no)
+    {}
+
+    template<>
+    inline py_storage::py_storage(const char32_t * str, size_t len):
+        py_storage(util::check_create(PyUnicode_DecodeUTF32((const char *)str, len * sizeof(char32_t), "replace", 0)), handle_retain::no)
+    {}
 }
 
 namespace sysstr::util

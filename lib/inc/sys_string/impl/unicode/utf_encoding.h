@@ -426,8 +426,8 @@ namespace sysstr
             
             if constexpr (Validate)
                 return !( (c & 0xFFFFF800) == 0x0000D800 || c > 0x010FFFF );
-            
-            return true;
+            else
+                return true;
         }
         
         constexpr const char32_t * begin() const noexcept

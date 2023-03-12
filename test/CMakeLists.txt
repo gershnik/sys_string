@@ -186,6 +186,7 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
         test_builder.cpp
         test_utf_iteration.cpp
         test_utf_util.cpp
+        test_generic.cpp
         "$<$<PLATFORM_ID:Darwin>:test_apple.mm>"
         "$<$<PLATFORM_ID:Android>:test_android.cpp>" 
         "$<$<PLATFORM_ID:Windows>:test_windows.cpp>" 

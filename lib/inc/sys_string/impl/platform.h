@@ -9,9 +9,13 @@
 #error This header must not be included directly. Please include sys_string.h
 #endif
 
-#if defined(SYS_STRING_USE_PYTHON)
-    #include <sys_string/impl/platforms/python_any.h>
+#include <sys_string/impl/platforms/unix_generic.h>
 
+#if SYS_STRING_ENABLE_PYTHON
+    #include <sys_string/impl/platforms/python_any.h>
+#endif
+
+#if SYS_STRING_USE_PYTHON
     namespace sysstr
     {
         using sys_string = sys_string_pystr;
@@ -20,9 +24,7 @@
 
     #define SYS_STRING_STATIC SYS_STRING_STATIC_PYSTR
 
-#elif defined(SYS_STRING_USE_GENERIC)
-
-    #include <sys_string/impl/platforms/unix_generic.h>
+#elif SYS_STRING_USE_GENERIC
 
     namespace sysstr
     {
@@ -37,7 +39,7 @@
 #if (defined(__APPLE__) && defined(__MACH__))
     #include <sys_string/impl/platforms/apple_cfstr.h>
 
-    #if !defined(SYS_STRING_USE_PYTHON) && !defined(SYS_STRING_USE_GENERIC) 
+    #if !SYS_STRING_USE_PYTHON && !SYS_STRING_USE_GENERIC
         namespace sysstr
         {
             using sys_string = sys_string_cfstr;
@@ -51,7 +53,7 @@
 
     #include <sys_string/impl/platforms/android_java.h>
 
-    #if !defined(SYS_STRING_USE_PYTHON) && !defined(SYS_STRING_USE_GENERIC) 
+    #if !SYS_STRING_USE_PYTHON && !SYS_STRING_USE_GENERIC
 
         namespace sysstr
         {
@@ -68,7 +70,7 @@
     #include <sys_string/impl/platforms/windows_hstring.h>
     #include <sys_string/impl/platforms/windows_generic.h>
 
-    #if !defined(SYS_STRING_USE_PYTHON) && !defined(SYS_STRING_USE_GENERIC) 
+    #if !SYS_STRING_USE_PYTHON && !SYS_STRING_USE_GENERIC
 
         #if SYS_STRING_WIN_BSTR
 
@@ -109,7 +111,7 @@
 
     #include <sys_string/impl/platforms/emscripten_javascript.h>
 
-    #if !defined(SYS_STRING_USE_PYTHON) && !defined(SYS_STRING_USE_GENERIC) 
+    #if !SYS_STRING_USE_PYTHON && !SYS_STRING_USE_GENERIC
 
         namespace sysstr
         {
@@ -124,9 +126,7 @@
 #elif defined(__linux__) || defined(__FreeBSD__) || defined(__unix__)
     
     
-    #include <sys_string/impl/platforms/unix_generic.h>
-
-    #if !defined(SYS_STRING_USE_PYTHON) && !defined(SYS_STRING_USE_GENERIC) 
+    #if !SYS_STRING_USE_PYTHON && !SYS_STRING_USE_GENERIC
 
         namespace sysstr
         {

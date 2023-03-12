@@ -38,10 +38,16 @@
 
 #endif
 
-#if defined(SYS_STRING_USE_PYTHON)
+#if SYS_STRING_USE_PYTHON
+    #if defined(SYS_STRING_ENABLE_PYTHON)
+        #undef SYS_STRING_ENABLE_PYTHON
+    #endif
 
+    #define SYS_STRING_ENABLE_PYTHON 1
+#endif
+
+#if SYS_STRING_ENABLE_PYTHON
     #include <Python.h>
-
 #endif
 
 #if __SIZEOF_POINTER__ == 8 || (defined(_MSC_VER) && _WIN64)

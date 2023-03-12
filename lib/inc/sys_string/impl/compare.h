@@ -33,7 +33,7 @@ namespace sysstr
 
     #endif
 
-    #if defined (SYS_STRING_USE_PYTHON)
+    #if SYS_STRING_ENABLE_PYTHON
 
     template<>
     inline auto sys_string_pystr::compare(const sys_string_t<py_storage> & lhs, const sys_string_t<py_storage> & rhs) noexcept -> compare_result

@@ -11,6 +11,8 @@
 
 using namespace sysstr;
 
+#if !SYS_STRING_USE_GENERIC && !SYS_STRING_USE_PYTHON
+
 #if SYS_STRING_WIN_BSTR
     TEST_CASE("Windows Empty String", "[windows]")
     {
@@ -110,26 +112,7 @@ using namespace sysstr;
         WindowsDeleteString(hstr);
     }
 
-#elif SYS_STRING_USE_GENERIC
-
-    TEST_CASE( "Windows Conversions", "[windows]") {
-
-        REQUIRE(sys_string().c_str());
-        CHECK(strcmp(sys_string().c_str(), "") == 0);
-
-        REQUIRE(S("").c_str());
-        CHECK(strcmp(S("").c_str(), "") == 0);
-
-        REQUIRE(sys_string("").c_str());
-        CHECK(strcmp(sys_string("").c_str(), "") == 0);
-
-        REQUIRE(sys_string((const char*)nullptr).c_str());
-        CHECK(strcmp(sys_string((const char*)nullptr).c_str(), "") == 0);
-
-        CHECK(strcmp(sys_string("a水𐀀𝄞bcå🤢").c_str(), "a水𐀀𝄞bcå🤢") == 0);
-    }
-
-#elif !defined(SYS_STRING_USE_PYTHON)
+#else
 
     TEST_CASE( "Windows Conversions", "[windows]") {
 
@@ -148,4 +131,5 @@ using namespace sysstr;
         CHECK(wcscmp(sys_string(L"a水𐀀𝄞bcå🤢").w_str(), L"a水𐀀𝄞bcå🤢") == 0);
     }
 
+#endif
 #endif

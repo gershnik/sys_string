@@ -1,5 +1,5 @@
 //
-// Copyright 2020 Eugene Gershnik
+// Copyright 2023 Eugene Gershnik
 //
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file or at
@@ -12,9 +12,9 @@
 
 using namespace sysstr;
 
-#if !SYS_STRING_USE_GENERIC && !SYS_STRING_USE_PYTHON
+#if SYS_STRING_USE_GENERIC
 
-TEST_CASE( "Linux Conversions", "[linux]") {
+TEST_CASE( "Generic Conversions", "[generic]") {
 
     REQUIRE(sys_string().c_str());
     CHECK(strcmp(sys_string().c_str(), "") == 0);

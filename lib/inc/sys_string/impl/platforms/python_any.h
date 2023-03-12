@@ -270,7 +270,7 @@ namespace sysstr
         {}
         
         py_storage(native_handle_type str, handle_retain retain_handle = handle_retain::yes) noexcept :
-            m_str(str ? (retain_handle == handle_retain::yes ? retain(str) : str) : null_string())
+            m_str(canonicalize(str, retain_handle))
         {}
 
     protected:
@@ -284,7 +284,9 @@ namespace sysstr
         {}
         
         template<class Char>
-        py_storage(const Char * str, size_t len);
+        py_storage(const Char * str, size_t len):
+            py_storage(create_from(str, len), handle_retain::no)
+        {}
         
         
         ~py_storage() noexcept
@@ -374,31 +376,31 @@ namespace sysstr
             return retain(null.m_str);
         }
 
+        template<class Char>
+        static PyObject * create_from(const Char * str, size_t len) 
+        {
+            if constexpr (utf_encoding_of<Char> == utf_encoding::utf8)
+                return util::check_create(PyUnicode_DecodeUTF8((const char *)str, len, "replace"));
+            else if constexpr (utf_encoding_of<Char> == utf_encoding::utf16)
+                return util::check_create(PyUnicode_DecodeUTF16((const char *)str, len * sizeof(char16_t), "replace", 0));
+            else if constexpr (utf_encoding_of<Char> == utf_encoding::utf32)
+                return util::check_create(PyUnicode_DecodeUTF32((const char *)str, len * sizeof(char32_t), "replace", 0));
+        }
+
+        static inline PyObject * canonicalize(PyObject * str, handle_retain retain_handle)
+        {
+            if (!str)
+                return null_string();
+            #if (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 12) 
+                if (PyUnicode_READY(str) != 0)  
+                    throw std::bad_alloc();
+            #endif
+            return (retain_handle == handle_retain::yes ? retain(str) : str);
+        }
+
     private:
         PyObject * m_str = nullptr;
     };
-
-    template<>
-    inline py_storage::py_storage(const char * str, size_t len):
-        py_storage(util::check_create(PyUnicode_DecodeUTF8((const char *)str, len, "replace")), handle_retain::no)
-    {}
-
-    #if SYS_STRING_USE_CHAR8
-        template<>
-        inline py_storage::py_storage(const char8_t * str, size_t len):
-            py_storage(util::check_create(PyUnicode_DecodeUTF8((const char *)str, len, "replace")), handle_retain::no)
-        {}
-    #endif
-
-    template<>
-    inline py_storage::py_storage(const char16_t * str, size_t len) :
-        py_storage(util::check_create(PyUnicode_DecodeUTF16((const char *)str, len * sizeof(char16_t), "replace", 0)), handle_retain::no)
-    {}
-
-    template<>
-    inline py_storage::py_storage(const char32_t * str, size_t len):
-        py_storage(util::check_create(PyUnicode_DecodeUTF32((const char *)str, len * sizeof(char32_t), "replace", 0)), handle_retain::no)
-    {}
 }
 
 namespace sysstr::util

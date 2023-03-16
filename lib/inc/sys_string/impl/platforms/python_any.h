@@ -39,6 +39,26 @@ namespace sysstr::util
         }
         return src;
     }
+    
+    template<size_t N>
+    constexpr auto find_max_codepoint(const char32_t (&ar)[N]) -> char32_t {
+        char32_t max = 0;
+        for(char32_t c: ar) {
+            if (c > max)
+                max = c;
+        }
+        return max;
+    }
+    
+    inline auto init_static_string(PyUnicodeObject & str, size_t size, PyUnicode_Kind kind, const void * chars) {
+        str._base._base.ob_base.ob_refcnt = 2;
+        str._base._base.ob_base.ob_type = &PyUnicode_Type;
+        str._base._base.length = size;
+        str._base._base.state.kind = kind;
+        str._base._base.state.ready = 1;
+        str.data.any = const_cast<void *>(chars);
+    }
+
 
     class py_builder_storage
     {
@@ -441,4 +461,20 @@ namespace sysstr
     using sys_string_pystr_builder = sys_string_builder_t<py_storage>;
 }
 
-#define SYS_STRING_STATIC_PYSTR(x) ::sysstr::sys_string_pystr(::sysstr::util::check_create(PyUnicode_FromString(x)), ::sysstr::handle_retain::no)
+
+#define SYS_STRING_STATIC_PYSTR(x) ([] () noexcept -> ::sysstr::sys_string_pystr { \
+        constexpr auto size = ::std::size(U##x); \
+        constexpr auto maxChar = ::sysstr::util::find_max_codepoint(U##x); \
+        static PyUnicodeObject str{}; \
+        if constexpr (maxChar <= 0x7fu) { \
+            ::sysstr::util::init_static_string(str, size - 1, PyUnicode_1BYTE_KIND, x); \
+            str._base.utf8 = const_cast<char *>(x); \
+            str._base.utf8_length = size - 1; \
+        } else if constexpr (maxChar <= 0xffffu) { \
+            ::sysstr::util::init_static_string(str, size - 1, PyUnicode_2BYTE_KIND, u##x); \
+        } else { \
+            ::sysstr::util::init_static_string(str, size - 1, PyUnicode_4BYTE_KIND, U##x); \
+        } \
+        auto ptr = reinterpret_cast<PyObject *>(&str); \
+        return *reinterpret_cast<::sysstr::sys_string_pystr *>(&ptr); \
+    }())

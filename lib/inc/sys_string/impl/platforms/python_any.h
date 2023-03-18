@@ -429,34 +429,39 @@ namespace sysstr::util
         auto str = convert_to_string(builder);
         return sys_string_t<py_storage>(str, handle_retain::no);
     }
+
+    template <typename T, typename = int>
+    struct HasHashMember : std::false_type { };
+
+    template <typename T>
+    struct HasHashMember <T, decltype((void) T::x, 0)> : std::true_type { };
     
     template<PyUnicode_Kind Kind>
     struct PyUnicodeObject_wrapper : PyUnicodeObject
     {
-        constexpr PyUnicodeObject_wrapper(size_t size, const void * chars)
+        #ifdef __GNUC__
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+        #endif
+        constexpr PyUnicodeObject_wrapper(size_t size, const void * chars):
+            PyUnicodeObject{._base = { ._base = {PyObject_HEAD_INIT(&PyUnicode_Type)}}}
         {
-            #ifdef Py_SET_REFCNT
-                Py_SET_REFCNT(this, 1);
-            #else
-                Py_REFCNT(this) = 1;
-            #endif
-            #ifdef Py_SET_TYPE
-                Py_SET_TYPE(this, &PyUnicode_Type);
-            #else
-                Py_TYPE(this) = &PyUnicode_Type;
-            #endif
-
             this->_base._base.length = size;
-            this->_base._base.hash = -1;
+            if constexpr (HasHashMember<PyASCIIObject>::value) //pypy lacks hash
+                this->_base._base.hash = -1;
             this->_base._base.state.kind = Kind;
             this->_base._base.state.ready = 1;
             this->data.any = const_cast<void *>(chars);
             if constexpr (Kind == PyUnicode_1BYTE_KIND)
             {
+                this->_base._base.state.ascii = 1;
                 this->_base.utf8 = static_cast<char *>(const_cast<void *>(chars));
                 this->_base.utf8_length = size;
             }
         }
+        #ifdef __GNUC__
+        #pragma GCC diagnostic pop
+        #endif
         
         sys_string_t<py_storage> as_string() noexcept
         {

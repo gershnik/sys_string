@@ -33,6 +33,7 @@ TEST_CASE( "Python Conversions", "[python]") {
     auto raw = PyUnicode_FromString("\xEF\xBF\xBD");
     REQUIRE(raw);
     CHECK(sys_string(raw) == sys_string(u"�"));
+    Py_DECREF(raw);
 }
 
 #endif

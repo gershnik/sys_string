@@ -483,7 +483,7 @@ namespace sysstr
         constexpr auto size = ::std::size(U##x); \
         constexpr auto maxChar = ::sysstr::util::find_max_codepoint(U##x); \
         if constexpr (maxChar <= 0x7fu) { \
-            static ::sysstr::util::PyUnicodeObject_wrapper<PyUnicode_1BYTE_KIND> str(size - 1, x); \
+            static ::sysstr::util::PyUnicodeObject_wrapper<PyUnicode_1BYTE_KIND> str(size - 1, u8##x); \
             return str.as_string(); \
         } else if constexpr (maxChar <= 0xffffu) { \
             static ::sysstr::util::PyUnicodeObject_wrapper<PyUnicode_2BYTE_KIND> str(size - 1, u##x); \

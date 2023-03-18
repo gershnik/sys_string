@@ -111,6 +111,7 @@ Those are described on the following pages.
 * [Android](Android.md)
 * [Linux](Linux.md)
 * [Emscripten](Emscripten.md)
+* [Python](Python.md)
 
 ## Adding Strings
 

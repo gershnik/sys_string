@@ -435,8 +435,17 @@ namespace sysstr::util
     {
         constexpr PyUnicodeObject_wrapper(size_t size, const void * chars)
         {
-            this->_base._base.ob_base.ob_refcnt = 1;
-            this->_base._base.ob_base.ob_type = &PyUnicode_Type;
+            #ifdef Py_SET_REFCNT
+                Py_SET_REFCNT(this, 1);
+            #else
+                Py_REFCNT(this) = 1;
+            #endif
+            #ifdef Py_SET_TYPE
+                Py_SET_TYPE(this, &PyUnicode_Type);
+            #else
+                Py_TYPE(this) = &PyUnicode_Type;
+            #endif
+
             this->_base._base.length = size;
             this->_base._base.hash = -1;
             this->_base._base.state.kind = Kind;

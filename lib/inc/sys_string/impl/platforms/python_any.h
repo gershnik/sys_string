@@ -444,14 +444,17 @@ namespace sysstr::util
         #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
         #endif
         constexpr PyUnicodeObject_wrapper(size_t size, const void * chars):
-            PyUnicodeObject{._base = { ._base = {PyObject_HEAD_INIT(&PyUnicode_Type)}}}
+            PyUnicodeObject{{{PyObject_HEAD_INIT(&PyUnicode_Type)}}}
         {
             this->_base._base.length = size;
             if constexpr (HasHashMember<PyASCIIObject>::value) //pypy lacks hash
                 this->_base._base.hash = -1;
             this->_base._base.state.kind = Kind;
             this->_base._base.state.ready = 1;
-            this->data.any = const_cast<void *>(chars);
+            if constexpr (std::is_same_v<decltype(this->data), void *>)
+                this->data = const_cast<void *>(chars);
+            else
+                this->data.any = const_cast<void *>(chars);
             if constexpr (Kind == PyUnicode_1BYTE_KIND)
             {
                 this->_base._base.state.ascii = 1;

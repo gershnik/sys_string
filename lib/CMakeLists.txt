@@ -37,6 +37,7 @@ target_compile_options(${LIBNAME} PRIVATE
 target_link_libraries(${LIBNAME} PUBLIC
     "$<$<PLATFORM_ID:Darwin>:-framework CoreFoundation>"
     "$<$<PLATFORM_ID:Windows>:runtimeobject.lib>"
+    "$<$<PLATFORM_ID:Emscripten>:embind>"
 )
 
 target_compile_definitions(${LIBNAME} PUBLIC

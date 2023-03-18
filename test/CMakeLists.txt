@@ -166,8 +166,7 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
         
         sys_string${STANDARD_SUFFIX}
                 
-        "$<$<PLATFORM_ID:Android>:log>"
-        "$<$<PLATFORM_ID:Emscripten>:embind>" 
+        "$<$<PLATFORM_ID:Android>:log>" 
     )
 
     if (SYS_STRING_TEST_SHARED)

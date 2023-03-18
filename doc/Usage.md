@@ -110,6 +110,8 @@ Those are described on the following pages.
 * [Windows](Windows.md)
 * [Android](Android.md)
 * [Linux](Linux.md)
+* [Emscripten](Emscripten.md)
+* [Python](Python.md)
 
 ## Adding Strings
 

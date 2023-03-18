@@ -16,11 +16,10 @@ using namespace emscripten;
 #pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
 
 
-#if !SYS_STRING_USE_GENERIC
+#if !SYS_STRING_USE_GENERIC && !SYS_STRING_USE_PYTHON
 
     TEST_CASE( "Javascript Conversions", "[javascript]") {
 
-        emscripten::val gug;
         EM_VAL handle = (EM_VAL)EM_ASM_PTR({
             return Emval.toHandle("");
         }, 0);

@@ -16,6 +16,18 @@ endif()
 
 project(test)
 
+find_package (Python3 COMPONENTS Interpreter Development)
+
+if(${Python3_Development_FOUND})
+    include_directories(
+    SYSTEM
+        ${Python3_INCLUDE_DIRS}
+    )
+
+    link_libraries(
+        ${Python3_LIBRARIES}
+    )
+endif()
 
 set (CXX_STANDARDS
     17
@@ -34,12 +46,24 @@ if (WIN32)
         unix_gen
     )
 
+    if (Python3_Development_FOUND)
+
+        list(APPEND STORAGE_TYPES python)
+
+    endif()
+
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
 
     set (STORAGE_TYPES
         cfstr
         unix_gen
     )
+
+    if (Python3_Development_FOUND)
+
+        list(APPEND STORAGE_TYPES python)
+
+    endif()
 
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL Android)
 
@@ -61,6 +85,12 @@ else()
         def
     )
 
+    if (Python3_FOUND)
+
+        list(APPEND STORAGE_TYPES python)
+
+    endif()
+
 endif()
 
 set(STORAGE_FLAG_def "")
@@ -70,6 +100,7 @@ set(STORAGE_FLAG_win_gen "")
 set(STORAGE_FLAG_cfstr "")
 set(STORAGE_FLAG_andr "")
 set(STORAGE_FLAG_unix_gen SYS_STRING_USE_GENERIC=1)
+set(STORAGE_FLAG_python SYS_STRING_USE_PYTHON=1)
 
 set(TEST_COMMAND "")
 set(TEST_DEPS "")
@@ -135,8 +166,7 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
         
         sys_string${STANDARD_SUFFIX}
                 
-        "$<$<PLATFORM_ID:Android>:log>"
-        "$<$<PLATFORM_ID:Emscripten>:embind>" 
+        "$<$<PLATFORM_ID:Android>:log>" 
     )
 
     if (SYS_STRING_TEST_SHARED)
@@ -155,6 +185,8 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
         test_builder.cpp
         test_utf_iteration.cpp
         test_utf_util.cpp
+        test_generic.cpp
+        test_python.cpp
         "$<$<PLATFORM_ID:Darwin>:test_apple.mm>"
         "$<$<PLATFORM_ID:Android>:test_android.cpp>" 
         "$<$<PLATFORM_ID:Windows>:test_windows.cpp>" 

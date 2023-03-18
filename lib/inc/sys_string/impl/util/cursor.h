@@ -262,7 +262,7 @@ namespace sysstr::util
         
         iter_cursor operator++(int)
         {
-            index_cursor ret = *this;
+            iter_cursor ret = *this;
             ++(*this);
             return ret;
         }

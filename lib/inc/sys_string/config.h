@@ -38,6 +38,21 @@
 
 #endif
 
+#if SYS_STRING_USE_PYTHON
+    #if defined(SYS_STRING_ENABLE_PYTHON)
+        #undef SYS_STRING_ENABLE_PYTHON
+    #endif
+
+    #define SYS_STRING_ENABLE_PYTHON 1
+#endif
+
+#if SYS_STRING_ENABLE_PYTHON
+    #include <Python.h>
+    #if PY_MAJOR_VERSION < 3 || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 7)
+        #error This code requires Python 3.7 or newer
+    #endif
+#endif
+
 #if __SIZEOF_POINTER__ == 8 || (defined(_MSC_VER) && _WIN64)
     #define SYS_STRING_SIZEOF_POINTER 8
 #elif __SIZEOF_POINTER__ == 4 || (defined(_MSC_VER) && _WIN32)

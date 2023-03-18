@@ -434,7 +434,7 @@ namespace sysstr::util
     struct HasHashMember : std::false_type { };
 
     template <typename T>
-    struct HasHashMember <T, decltype((void) T::x, 0)> : std::true_type { };
+    struct HasHashMember <T, decltype((void)T::hash, 0)> : std::true_type { };
     
     template<PyUnicode_Kind Kind>
     struct PyUnicodeObject_wrapper : PyUnicodeObject

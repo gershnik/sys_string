@@ -176,7 +176,7 @@ namespace sysstr::util
     {
         auto size = builder.size();
         return std::visit([&](auto && buf) {
-            int dumbPyPy = (std::endian::native != std::endian::little) - (std::endian::native == std::endian::little);
+            int dumbPyPy = (endian::native != endian::little) - (endian::native == endian::little);
             return size ? check_create(PyUnicode_DecodeUTF32((const char *)buf.data(), size * sizeof(char32_t), "replace", &dumbPyPy)) :
                                         nullptr;
         }, builder.release());
@@ -395,10 +395,10 @@ namespace sysstr
             if constexpr (utf_encoding_of<Char> == utf_encoding::utf8) {
                 return util::check_create(PyUnicode_DecodeUTF8((const char *)str, len, "replace"));
             } else if constexpr (utf_encoding_of<Char> == utf_encoding::utf16) {
-                int dumbPyPy = (std::endian::native != std::endian::little) - (std::endian::native == std::endian::little);
+                int dumbPyPy = (endian::native != endian::little) - (endian::native == endian::little);
                 return util::check_create(PyUnicode_DecodeUTF16((const char *)str, len * sizeof(char16_t), "replace", &dumbPyPy));
             } else if constexpr (utf_encoding_of<Char> == utf_encoding::utf32) {
-                int dumbPyPy = (std::endian::native != std::endian::little) - (std::endian::native == std::endian::little);
+                int dumbPyPy = (endian::native != endian::little) - (endian::native == endian::little);
                 return util::check_create(PyUnicode_DecodeUTF32((const char *)str, len * sizeof(char32_t), "replace", &dumbPyPy));
             }
         }

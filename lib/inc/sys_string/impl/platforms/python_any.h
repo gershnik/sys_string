@@ -12,6 +12,7 @@
 #include <sys_string/impl/util/char_buffer.h>
 
 #include <variant>
+#include <bit>
 
 namespace sysstr
 {
@@ -175,7 +176,8 @@ namespace sysstr::util
     {
         auto size = builder.size();
         return std::visit([&](auto && buf) {
-            return size ? check_create(PyUnicode_DecodeUTF32((const char *)buf.data(), size * sizeof(char32_t), "replace", 0)) :
+            int dumbPyPy = (std::endian::native != std::endian::little) - (std::endian::native == std::endian::little);
+            return size ? check_create(PyUnicode_DecodeUTF32((const char *)buf.data(), size * sizeof(char32_t), "replace", &dumbPyPy)) :
                                         nullptr;
         }, builder.release());
     }
@@ -390,12 +392,15 @@ namespace sysstr
         template<class Char>
         static PyObject * create_from(const Char * str, size_t len) 
         {
-            if constexpr (utf_encoding_of<Char> == utf_encoding::utf8)
+            if constexpr (utf_encoding_of<Char> == utf_encoding::utf8) {
                 return util::check_create(PyUnicode_DecodeUTF8((const char *)str, len, "replace"));
-            else if constexpr (utf_encoding_of<Char> == utf_encoding::utf16)
-                return util::check_create(PyUnicode_DecodeUTF16((const char *)str, len * sizeof(char16_t), "replace", 0));
-            else if constexpr (utf_encoding_of<Char> == utf_encoding::utf32)
-                return util::check_create(PyUnicode_DecodeUTF32((const char *)str, len * sizeof(char32_t), "replace", 0));
+            } else if constexpr (utf_encoding_of<Char> == utf_encoding::utf16) {
+                int dumbPyPy = (std::endian::native != std::endian::little) - (std::endian::native == std::endian::little);
+                return util::check_create(PyUnicode_DecodeUTF16((const char *)str, len * sizeof(char16_t), "replace", &dumbPyPy));
+            } else if constexpr (utf_encoding_of<Char> == utf_encoding::utf32) {
+                int dumbPyPy = (std::endian::native != std::endian::little) - (std::endian::native == std::endian::little);
+                return util::check_create(PyUnicode_DecodeUTF32((const char *)str, len * sizeof(char32_t), "replace", &dumbPyPy));
+            }
         }
 
         static inline PyObject * canonicalize(PyObject * str, handle_retain retain_handle)

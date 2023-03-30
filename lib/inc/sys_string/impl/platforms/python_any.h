@@ -440,6 +440,21 @@ namespace sysstr::util
 
     template <typename T>
     struct HasHashMember <T, decltype((void)T::hash, 0)> : std::true_type { };
+
+    template<class T>
+    constexpr void gccIsAPieceOfShit_assignHash(T & obj) {
+        if constexpr(HasHashMember<T>::value)
+            obj.hash = -1;
+    }
+
+    template<class T>
+    constexpr void gccIsAPieceOfShit_assignData(T & obj, void * data) {
+        obj.any = data;
+    }
+
+    constexpr void gccIsAPieceOfShit_assignData(void * & obj, void * data) {
+        obj = data;
+    }
     
     template<PyUnicode_Kind Kind>
     struct PyUnicodeObject_wrapper : PyUnicodeObject
@@ -452,14 +467,10 @@ namespace sysstr::util
             PyUnicodeObject{{{PyObject_HEAD_INIT(&PyUnicode_Type)}}}
         {
             this->_base._base.length = size;
-            if constexpr (HasHashMember<PyASCIIObject>::value) //pypy lacks hash
-                this->_base._base.hash = -1;
+            gccIsAPieceOfShit_assignHash(this->_base._base); //pypy lacks hash in PyASCIIObject
             this->_base._base.state.kind = Kind;
             this->_base._base.state.ready = 1;
-            if constexpr (std::is_same_v<decltype(this->data), void *>)
-                this->data = const_cast<void *>(chars);
-            else
-                this->data.any = const_cast<void *>(chars);
+            gccIsAPieceOfShit_assignData(this->data, const_cast<void *>(chars));
             if constexpr (Kind == PyUnicode_1BYTE_KIND)
             {
                 this->_base._base.state.ascii = 1;

@@ -81,12 +81,12 @@ Another way to look at it is that `sys_string_t` sometimes trades micro-benchmar
 This library has been tested with
 * Xcode 13 - 14 on x86_64 and arm64
 * MSVC 16.9 - 17.4 on x86_64
-* Clang 12.0.5 under Android NDK, ANDROID_PLATFORM=19 on x86, x86_64, armeabi-v7a and arm64-v8a architectures
+* Clang 12.0.5 under Android NDK, ANDROID_PLATFORM=19 on x86, x86_64, `armeabi-v7a` and `arm64-v8a` architectures
 * GCC 9.3 - 11.3 on x86_64 Ubuntu 20.04 - 22.04
 * Emscripten 3.1.21 
 
 ## Usage
 
-* [Building](doc/Building.md)
+* [Building/Integrating](doc/Building.md)
 * [Usage](doc/Usage.md)
 

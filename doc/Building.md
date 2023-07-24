@@ -1,8 +1,8 @@
-# Building and configuration
+# Integrating and configuring SysString
 
-## Building
+## Integration
 
-### CMake
+### CMake via FetchContent
 
 With modern CMake the easiest way to use this library is
 
@@ -14,22 +14,78 @@ FetchContent_Declare(sys_string
     GIT_SHALLOW    TRUE
 )
 FetchContent_MakeAvailable(sys_string)
+...
+target_link_libraries(mytarget
+PRIVATE
+  sys_string::sys_string
+)
 ```
+> ℹ&#xFE0F; _[What is FetchContent?](https://cmake.org/cmake/help/latest/module/FetchContent.html)_
 
-Alternatively, if you prefer to store the sources locally clone this repository and 
-add its `lib` sub-directory as subdirectory of your CMake project. Something like
+### CMake from download
+
+Alternatively, you can clone this repository somewhere and do this:
 
 ```cmake
-add_subdirectory(PATH_TO_SYS_STRING_REPO/lib, sys_string)
-```
-
-In either case you can now use this library by doing something like
-
-```cmake
-target_link_library(your_target PRIVATE sys_string)
+add_subdirectory(PATH_WHERE_YOU_DOWNALODED_IT_TO, sys_string)
+...
+target_link_libraries(mytarget
+PRIVATE
+  sys_string::sys_string
+)
 ```
 
 Note that you need to have your compiler to default to at least C++17 or set `CMAKE_CXX_STANDARD` to at least 17 in order for build to succeed.
+
+### Building and installing on your system
+
+You can also build and install this library on your system using CMake.
+
+1. Download or clone this repository into SOME_PATH
+2. On command line:
+```bash
+cd SOME_PATH
+cmake -S . -B build 
+cmake --build build
+
+#Optional
+#cmake --build build --target run-test
+
+#install to /usr/local
+sudo cmake --install build
+#or for a different prefix
+#cmake --install build --prefix /usr
+```
+
+Once the library has been installed it can be used int the following ways:
+
+#### Basic use 
+
+Set the include directory to `<prefix>/include` where `<prefix>` is the install prefix from above.
+Add `<prefix>/lib/libsys_string.a` to your link libraries.
+
+#### CMake package
+
+```cmake
+find_package(sys_string)
+
+target_link_libraries(mytarget
+PRIVATE
+  sys_string::sys_string
+)
+```
+
+#### Via `pkg-config`
+
+Add the output of `pkg-config --cflags --libs sys_string` to your compiler flags.
+
+Note that the default installation prefix `/usr/local` might not be in the list of places your
+`pkg-config` looks into. If so you might need to do:
+```bash
+export PKG_CONFIG_PATH=/usr/local/share/pkgconfig
+```
+before running `pkg-config`
+
 
 ### Other build systems
 
@@ -43,10 +99,11 @@ If you use a different build system then:
   * Windows: `runtimeobject.lib`
   * Emscripten: `embind`
 
+Note that you need to have your compiler to use at least C++17 mode in order for build to succeed.
 
 ## Configuration options
 
-Whichever build system you use you can set the following macros (either on command line or _before_ including any library headers) to control the library behavior:
+Whichever method you use you can set the following macros (either on command line or _before_ including any library headers) to control the library behavior:
 
 * `SYS_STRING_NO_S_MACRO` - set it to 1 to disable short `S()` macro. See [Usage](doc/Usage.md#basics) for details
 * `SYS_STRING_WIN_BSTR` - set it to 1 to use `BSTR` as default `sys_string` storage on Windows. It has no effect on other platforms.

@@ -87,6 +87,6 @@ This library has been tested with
 
 ## Usage
 
-* [Building](doc/Building.md)
+* [Building/Integrating](doc/Building.md)
 * [Usage](doc/Usage.md)
 

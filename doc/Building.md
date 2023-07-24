@@ -10,9 +10,8 @@ With modern CMake the easiest way to use this library is
 include(FetchContent)
 FetchContent_Declare(sys_string
     GIT_REPOSITORY git@github.com:gershnik/sys_string.git
-    GIT_TAG        <desired tag like v1.2>
+    GIT_TAG        <desired tag like v2.10>
     GIT_SHALLOW    TRUE
-    SOURCE_SUBDIR  lib
 )
 FetchContent_MakeAvailable(sys_string)
 ```

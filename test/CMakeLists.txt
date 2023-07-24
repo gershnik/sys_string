@@ -5,18 +5,8 @@
 # license that can be found in the LICENSE file or at
 # https://github.com/gershnik/sys_string/blob/master/LICENSE.txt
 #
-cmake_minimum_required(VERSION 3.16)
-cmake_policy(SET CMP0092 NEW)
-cmake_policy(SET CMP0079 NEW)
 
-if (WIN32)
-set(CMAKE_SYSTEM_VERSION "10.0.19041.0" CACHE STRING "Windows SDK Version" FORCE)
-endif()
-
-
-project(test)
-
-find_package (Python3 COMPONENTS Interpreter Development)
+find_package (Python3 COMPONENTS Development)
 
 if(${Python3_Development_FOUND})
     include_directories(
@@ -120,22 +110,14 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL Android)
 endif()
     
 foreach(STANDARD_SUFFIX ${CXX_STANDARDS})
-
-    set(CMAKE_CXX_STANDARD ${CXX_STANDARD_${STANDARD_SUFFIX}})
-    set(SYS_STRING_LIBRARY_SUFFIX ${STANDARD_SUFFIX})
-    add_subdirectory(../lib  lib${STANDARD_SUFFIX})
-    unset(CMAKE_CXX_STANDARD)
-endforeach()
-
-foreach(STANDARD_SUFFIX ${CXX_STANDARDS})
 foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
 
     set(TEST_SUFFIX ${STANDARD_SUFFIX}${STORAGE_SUFFIX})
 
     if (SYS_STRING_TEST_SHARED)
-        add_library(test-${TEST_SUFFIX} SHARED)
+        add_library(test-${TEST_SUFFIX} SHARED EXCLUDE_FROM_ALL)
     else()
-        add_executable(test-${TEST_SUFFIX})
+        add_executable(test-${TEST_SUFFIX} EXCLUDE_FROM_ALL)
     endif()
 
     set_target_properties(test-${TEST_SUFFIX} PROPERTIES
@@ -164,7 +146,7 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
 
     target_link_libraries(test-${TEST_SUFFIX} PRIVATE
         
-        sys_string${STANDARD_SUFFIX}
+        sys_string::sys_string
                 
         "$<$<PLATFORM_ID:Android>:log>" 
     )

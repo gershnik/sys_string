@@ -21,7 +21,7 @@ add_subdirectory(lib)
 
 if (PROJECT_IS_TOP_LEVEL)
     
-    include(cmake/install.cmake)
+    include(lib/cmake/install.cmake)
     add_subdirectory(test)
 
 endif()

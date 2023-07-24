@@ -138,6 +138,10 @@ if(${Python3_Interpreter_FOUND})
 
 endif()
 
+if (PROJECT_IS_TOP_LEVEL)
+    
+    include(cmake/install.cmake)
 
+endif()
 
 

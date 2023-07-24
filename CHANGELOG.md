@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [2.11] - 2023-07-24
+
 ### Changed
 - Updated CMake configuration to modernize it and allow local installation
 
@@ -130,3 +132,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [2.8]: https://github.com/gershnik/argum/releases/v2.8
 [2.9]: https://github.com/gershnik/argum/releases/v2.9
 [2.10]: https://github.com/gershnik/argum/releases/v2.10
+[2.11]: https://github.com/gershnik/sys_string/releases/v2.11

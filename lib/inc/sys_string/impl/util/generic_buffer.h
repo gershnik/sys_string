@@ -220,7 +220,15 @@ namespace sysstr::util::generic
         }
         buffer(buffer && src) noexcept
         { 
+            //Good boy GCC 12! src.m_data is indeed not necessarily fully initialized
+            #if defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 12
+            #pragma GCC diagnostic push
+            #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+            #endif
             memcpy(&m_data, &src.m_data, sizeof(m_data));
+            #if defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 12
+            #pragma GCC diagnostic pop
+            #endif
             src.set_empty();
         }
         buffer & operator=(const buffer & rhs) noexcept

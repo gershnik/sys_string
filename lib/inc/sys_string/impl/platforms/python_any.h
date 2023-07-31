@@ -407,10 +407,10 @@ namespace sysstr
         {
             if (!str)
                 return null_string();
-            #if (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 12) 
-                if (PyUnicode_READY(str) != 0)  
-                    throw std::bad_alloc();
-            #endif
+        #if (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 12) 
+            if (PyUnicode_READY(str) != 0)  
+                throw std::bad_alloc();
+        #endif
             return (retain_handle == handle_retain::yes ? retain(str) : str);
         }
 

@@ -45,6 +45,10 @@ jobs:
     - name: Configure
       shell: bash
       run: |
+        if [[ '${{ matrix.os }}' == 'ubuntu-latest' ]]; then
+          sudo apt update
+          sudo apt install -y python3-dev
+        fi
         if [[ '${{ matrix.cc }}' != '' ]]; then
           export CC=${{ matrix.cc }}
         fi
@@ -111,7 +115,7 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Set Up Emscripten
-      uses: mymindstorm/setup-emsdk@v11
+      uses: mymindstorm/setup-emsdk@v12
       with:
         version: 3.1.26
         actions-cache-folder: 'emsdk-cache'

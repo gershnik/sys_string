@@ -112,7 +112,7 @@ namespace sysstr::util::generic
         {
             this->set_empty();
         }
-        buffer(nullptr_t) noexcept
+        buffer(std::nullptr_t) noexcept
         {
             this->set_dynamic(nullptr, 0);
         }

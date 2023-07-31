@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [2.12] - 2023-07-31
+
 ### Fixed
 - Fixed CLang compilation errors
 - Fixed CMake installation not producing proper version when run from extracted official archive
@@ -137,3 +139,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [2.9]: https://github.com/gershnik/argum/releases/v2.9
 [2.10]: https://github.com/gershnik/argum/releases/v2.10
 [2.11]: https://github.com/gershnik/sys_string/releases/v2.11
+[2.12]: https://github.com/gershnik/sys_string/releases/v2.12

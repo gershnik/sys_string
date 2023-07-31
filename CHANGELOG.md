@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Fixed CLang compilation errors
 - Fixed CMake installation not producing proper version when run from extracted official archive
+- Fixed various compiler warnings
 
 ## [2.11] - 2023-07-24
 

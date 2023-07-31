@@ -8,7 +8,14 @@
 
 cmake_minimum_required(VERSION 3.25)
 
-project(sys_string)
+if (NOT SYSSTR_VERSION)
+    file(READ VERSION SYSSTR_VERSION)
+    if (NOT SYSSTR_VERSION)
+        message(FATAL_ERROR "Cannot determine library version (VERSION file not found)")
+    endif()
+    string(STRIP ${SYSSTR_VERSION} SYSSTR_VERSION)
+endif()
+project(sys_string VERSION ${SYSSTR_VERSION})
 
 find_package (Python3 COMPONENTS Interpreter)
 

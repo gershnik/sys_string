@@ -8,9 +8,9 @@
 
 cmake_minimum_required(VERSION 3.25)
 
-file(READ VERSION SYSSTR_VERSION)
+file(READ lib/VERSION SYSSTR_VERSION)
 if (NOT SYSSTR_VERSION)
-    message(FATAL_ERROR "Cannot determine library version (VERSION file not found)")
+    message(FATAL_ERROR "Cannot determine library version (lib/VERSION file not found)")
 endif()
 string(STRIP ${SYSSTR_VERSION} SYSSTR_VERSION)
 

@@ -2,6 +2,9 @@ name: Test
 
 on: 
   push:
+    branches: 
+      - '*'
+      - '*/**'
     paths-ignore:
       - 'README.md'
       - 'CHANGELOG.md'

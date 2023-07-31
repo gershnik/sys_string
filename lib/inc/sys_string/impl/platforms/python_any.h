@@ -12,7 +12,6 @@
 #include <sys_string/impl/util/char_buffer.h>
 
 #include <variant>
-#include <bit>
 
 namespace sysstr
 {

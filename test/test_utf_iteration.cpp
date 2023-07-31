@@ -13,6 +13,14 @@
 using namespace sysstr;
 using namespace std::literals;
 
+#ifdef __clang__
+//Workaround for clang bug on Linux
+//See https://github.com/llvm/llvm-project/issues/55560
+static [[maybe_unused]] std::u16string clang_string_workaround(const char16_t* a, const char16_t* b) { return {a, b}; }
+static [[maybe_unused]] std::u32string clang_string_workaround(const char32_t* a, const char32_t* b) { return {a, b}; }
+#endif
+
+
 namespace
 {
     const std::string_view & printable(const std::string_view & str)

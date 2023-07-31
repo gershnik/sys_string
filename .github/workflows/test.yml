@@ -45,10 +45,6 @@ jobs:
     - name: Configure
       shell: bash
       run: |
-        if [[ '${{ matrix.os }}' == 'ubuntu-latest' ]]; then
-          sudo apt update
-          sudo apt install -y python3-dev
-        fi
         if [[ '${{ matrix.cc }}' != '' ]]; then
           export CC=${{ matrix.cc }}
         fi

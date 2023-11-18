@@ -35,10 +35,12 @@ namespace std
     {
         using namespace sysstr;
 
-        typename sys_string_t<Storage>::char_access access(val);
-        std::hash<typename sys_string_t<Storage>::char_access::value_type> hasher;
-        typename sys_string_t<Storage>::hash_type result = 0;
-        for(typename sys_string_t<Storage>::char_access::size_type i = 0, count = access.size(); i < count; ++i)
+        using sys_string_t = ::sysstr::sys_string_t<Storage>;
+
+        typename sys_string_t::char_access access(val);
+        std::hash<typename sys_string_t::char_access::value_type> hasher;
+        typename sys_string_t::hash_type result = 0;
+        for(typename sys_string_t::char_access::size_type i = 0, count = access.size(); i < count; ++i)
             result = result * 31 + hasher(access[i]);
         return result;
     }

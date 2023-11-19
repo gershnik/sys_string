@@ -480,7 +480,7 @@ namespace sysstr::util
             this->_base._base.length = size;
             gccIsAPieceOfShit_assignHash(this->_base._base); //pypy lacks hash in PyASCIIObject
             this->_base._base.state.kind = Kind;
-            gccIsAPieceOfShit_assignReady(this->_base._base, 1);
+            gccIsAPieceOfShit_assignReady(this->_base._base.state, 1);
             gccIsAPieceOfShit_assignData(this->data, const_cast<void *>(chars));
             if constexpr (Kind == PyUnicode_1BYTE_KIND)
             {

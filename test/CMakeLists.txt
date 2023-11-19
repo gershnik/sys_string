@@ -17,6 +17,8 @@ if(${Python3_Development_FOUND})
     link_libraries(
         ${Python3_LIBRARIES}
     )
+
+    set(CMAKE_MSVCIDE_RUN_PATH ${Python_RUNTIME_LIBRARY_DIRS})
 endif()
 
 set (CXX_STANDARDS

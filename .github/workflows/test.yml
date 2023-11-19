@@ -37,12 +37,13 @@ jobs:
         - os: ubuntu-latest
           cc: gcc-13
           cxx: g++-13
-        - os: ubuntu-latest
-          cc: clang-13
-          cxx: clang++-13
-        - os: ubuntu-latest
-          cc: clang-14
-          cxx: clang++-14
+        # See https://github.com/actions/runner-images/issues/8659
+        # - os: ubuntu-latest
+        #   cc: clang-13
+        #   cxx: clang++-13
+        # - os: ubuntu-latest
+        #   cc: clang-14
+        #   cxx: clang++-14
         - os: ubuntu-latest
           cc: clang-15
           cxx: clang++-15

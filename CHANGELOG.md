@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [2.13] - 2023-11-18
+
 ### Fixed
 - Compilation error with Python strings under Python 3.12
 - Apple CLang compilation errors with XCode 15
@@ -145,3 +147,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [2.10]: https://github.com/gershnik/argum/releases/v2.10
 [2.11]: https://github.com/gershnik/sys_string/releases/v2.11
 [2.12]: https://github.com/gershnik/sys_string/releases/v2.12
+[2.13]: https://github.com/gershnik/sys_string/releases/v2.13

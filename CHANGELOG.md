@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Fixed
+- Compilation error with Python strings under Python 3.12
+- Apple CLang compilation errors with XCode 15
+
 ## [2.12] - 2023-07-31
 
 ### Fixed

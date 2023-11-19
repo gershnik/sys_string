@@ -446,6 +446,18 @@ namespace sysstr::util
             obj.hash = -1;
     }
 
+    template <typename T, typename = int>
+    struct HasReadyMember : std::false_type { };
+
+    template <typename T>
+    struct HasReadyMember <T, decltype((void)T::ready, 0)> : std::true_type { };
+
+    template<class T>
+    constexpr void gccIsAPieceOfShit_assignReady(T & obj, int value) {
+        if constexpr(HasReadyMember<T>::value)
+            obj.ready = value;
+    }
+
     template<class T>
     constexpr void gccIsAPieceOfShit_assignData(T & obj, void * data) {
         obj.any = data;
@@ -468,7 +480,7 @@ namespace sysstr::util
             this->_base._base.length = size;
             gccIsAPieceOfShit_assignHash(this->_base._base); //pypy lacks hash in PyASCIIObject
             this->_base._base.state.kind = Kind;
-            this->_base._base.state.ready = 1;
+            gccIsAPieceOfShit_assignReady(this->_base._base, 1);
             gccIsAPieceOfShit_assignData(this->data, const_cast<void *>(chars));
             if constexpr (Kind == PyUnicode_1BYTE_KIND)
             {

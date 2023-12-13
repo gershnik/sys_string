@@ -133,18 +133,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Initial version
 
-[1.0]: https://github.com/gershnik/argum/releases/v1.0
-[1.1]: https://github.com/gershnik/argum/releases/v1.1
-[2.0]: https://github.com/gershnik/argum/releases/v2.0
-[2.1]: https://github.com/gershnik/argum/releases/v2.1
-[2.2]: https://github.com/gershnik/argum/releases/v2.2
-[2.3]: https://github.com/gershnik/argum/releases/v2.3
-[2.4]: https://github.com/gershnik/argum/releases/v2.4
-[2.5]: https://github.com/gershnik/argum/releases/v2.5
-[2.7]: https://github.com/gershnik/argum/releases/v2.7
-[2.8]: https://github.com/gershnik/argum/releases/v2.8
-[2.9]: https://github.com/gershnik/argum/releases/v2.9
-[2.10]: https://github.com/gershnik/argum/releases/v2.10
+[1.0]: https://github.com/gershnik/sys_string/releases/v1.0
+[1.1]: https://github.com/gershnik/sys_string/releases/v1.1
+[2.0]: https://github.com/gershnik/sys_string/releases/v2.0
+[2.1]: https://github.com/gershnik/sys_string/releases/v2.1
+[2.2]: https://github.com/gershnik/sys_string/releases/v2.2
+[2.3]: https://github.com/gershnik/sys_string/releases/v2.3
+[2.4]: https://github.com/gershnik/sys_string/releases/v2.4
+[2.5]: https://github.com/gershnik/sys_string/releases/v2.5
+[2.7]: https://github.com/gershnik/sys_string/releases/v2.7
+[2.8]: https://github.com/gershnik/sys_string/releases/v2.8
+[2.9]: https://github.com/gershnik/sys_string/releases/v2.9
+[2.10]: https://github.com/gershnik/sys_string/releases/v2.10
 [2.11]: https://github.com/gershnik/sys_string/releases/v2.11
 [2.12]: https://github.com/gershnik/sys_string/releases/v2.12
 [2.13]: https://github.com/gershnik/sys_string/releases/v2.13

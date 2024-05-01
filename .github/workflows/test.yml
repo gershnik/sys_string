@@ -37,12 +37,13 @@ jobs:
         - os: ubuntu-latest
           compiler: gcc
           version: 13
-        - os: ubuntu-latest
-          compiler: clang
-          version: 13
-        - os: ubuntu-latest
-          compiler: clang
-          version: 14
+        # See https://github.com/actions/runner-images/issues/8659
+        # - os: ubuntu-latest
+        #   compiler: clang
+        #   version: 13
+        # - os: ubuntu-latest
+        #   compiler: clang
+        #   version: 14
         - os: ubuntu-latest
           compiler: clang
           version: 15

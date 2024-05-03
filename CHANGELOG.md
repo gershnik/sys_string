@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [2.14] - 2024-05-02
+
 ### Fixed
 
 - Missing standard header causing compilation error on some systems.
@@ -152,3 +154,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [2.11]: https://github.com/gershnik/sys_string/releases/v2.11
 [2.12]: https://github.com/gershnik/sys_string/releases/v2.12
 [2.13]: https://github.com/gershnik/sys_string/releases/v2.13
+[2.14]: https://github.com/gershnik/sys_string/releases/v2.14

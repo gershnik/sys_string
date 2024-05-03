@@ -19,6 +19,7 @@
 #include <optional>
 #include <ostream>
 #include <limits>
+#include <stdarg.h>
 
 #if SYS_STRING_USE_SPACESHIP_OPERATOR
     #include <compare>

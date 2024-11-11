@@ -137,21 +137,6 @@ namespace sysstr::util
 
 namespace sysstr
 {
-    template<>
-    inline sys_string_t<android_storage>::sys_string_t(const char_access::cursor & src, size_type length):
-        sys_string_t(src.iterator(), length)
-    {}
-
-    template<>
-    inline sys_string_t<android_storage>::sys_string_t(const char_access::reverse_cursor & src, size_type length):
-        sys_string_t(src.iterator() - length, length)
-    {}
-
-    template<>
-    inline sys_string_t<android_storage>::sys_string_t(const char_access::iterator & first, const char_access::iterator & last):
-        sys_string_t(first, last - first)
-    {}
-
     using sys_string_android = sys_string_t<android_storage>;
     using sys_string_android_builder = sys_string_builder_t<android_storage>;
 }

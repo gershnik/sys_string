@@ -28,14 +28,12 @@ namespace
         return str;
     }
 
-#if SYS_STRING_USE_CHAR8
 
     std::string printable(const std::u8string_view & str)
     {
         return std::string((const char *)str.data(), str.size());
     }
 
-#endif
 
     std::string printable(const std::u16string_view & str)
     {
@@ -52,96 +50,116 @@ namespace
     }
 }
 
-template<class Char>
-std::basic_string<Char> reverse(const std::basic_string_view<Char> & str)
+template<class Cont>
+std::basic_string<std::ranges::range_value_t<Cont>> reverse(const Cont & str)
 {
-    return std::basic_string<Char>(str.crbegin(), str.crend());
+    return std::basic_string<std::ranges::range_value_t<Cont>>(std::crbegin(str), std::crend(str));
 }
 
-template<class Char, size_t N>
-std::basic_string<Char> reverse(const Char (&str)[N])
+template<class View, class It, class EndIt>
+void check_reversibility(const View & view, It first, EndIt last)
 {
-    return std::basic_string<Char>(std::reverse_iterator<const Char *>(str + N - 1), std::reverse_iterator<const Char *>(str));
-}
-
-template<class View, class ExpectedCont, class ExpectedBackwardCont>
-void check_view_iteration(const View & view,
-                          const ExpectedCont & expected,
-                          const ExpectedBackwardCont & expected_backward)
-{
-    std::basic_string<typename View::value_type> dest;
-    std::copy(view.begin(), view.end(), std::back_inserter(dest));
-    CHECK(dest == expected);
-    dest.clear();
-    std::copy(view.cbegin(), view.cend(), std::back_inserter(dest));
-    CHECK(dest == expected);
-    dest.clear();
-    std::copy(view.rbegin(), view.rend(), std::back_inserter(dest));
-    CHECK(dest == expected_backward);
-    dest.clear();
-    std::copy(view.crbegin(), view.crend(), std::back_inserter(dest));
-    CHECK(dest == expected_backward);
-    
-      
-    CHECK(view.begin().reverse() == view.rend());
-    CHECK(view.rbegin().reverse() == view.end());
-    CHECK(view.end().reverse() == view.rbegin());
-    CHECK(view.rend().reverse() == view.begin());
-    CHECK(view.cbegin().reverse() == view.crend());
-    CHECK(view.crbegin().reverse() == view.cend());
-    CHECK(view.cend().reverse() == view.crbegin());
-    CHECK(view.crend().reverse() == view.cbegin());
-}
-
-template<utf_encoding SrcEnc, utf_encoding DstEnc, class SrcCont, class ExpectedCont, class ExpectedBackwardCont>
-void do_check_iteration(const SrcCont & src,
-                        const ExpectedCont & expected,
-                        const ExpectedBackwardCont & expected_backward)
-{
-    using src_char_t = std::remove_const_t<std::remove_reference_t<decltype(src[0])>>;
-    using expected_char_t = std::remove_const_t<std::remove_reference_t<decltype(expected[0])>>;
-    using expected_backward_char_t = std::remove_const_t<std::remove_reference_t<decltype(expected_backward[0])>>;
-    
-    static_assert(std::is_same_v<expected_char_t, expected_backward_char_t>);
-    static_assert(std::is_same_v<expected_char_t, utf_char_of<DstEnc>>);
-    
-    INFO( "From: " << SrcEnc << " to: " << DstEnc << " src: " << printable(src));
-
-    utf_view<utf_encoding_of<expected_char_t>, const SrcCont> view(src);
-    check_view_iteration(view, expected, expected_backward);
-    
-    std::basic_string_view<src_char_t> storage_view(src);
-    auto sfirst = storage_view.begin(), slast = storage_view.end();
-    auto it = view.begin(), last = view.end();
-    for( ; ; )
-    {
-        auto sit = sfirst + it.storage_pos();
-        CHECK(sit == it.storage_pos() + sfirst);
-        CHECK(sit - it.storage_pos() == sfirst);
-        CHECK(sit - sfirst == (typename std::iterator_traits<decltype(sit)>::difference_type)(it.storage_pos()));
-        CHECK(sit >= sfirst);
-        CHECK((sit == sfirst || sit > sfirst));
-        CHECK(sit <= slast);
-        CHECK((sit == slast || sit < slast));
-        if (it == last)
-            break;
-        ++it;
+    auto rlast = view.reverse(first);
+    for(auto it = first; it != last; ++it) {
+        std::basic_string<decltype(*it)> forward_reversed;
+        std::copy(first, it, std::back_inserter(forward_reversed));
+        forward_reversed = reverse(forward_reversed);
+        std::basic_string<decltype(*it)> reversed;
+        std::copy(view.reverse(it), rlast, std::back_inserter(reversed));
+        CHECK(forward_reversed == reversed);
     }
 }
 
-template<utf_encoding SrcEnc, utf_encoding DstEnc, class SrcCont, class ExpectedCont>
+
+template<utf_encoding SrcEnc, utf_encoding DstEnc,
+         std::ranges::input_range SrcCont,
+         std::ranges::forward_range ExpectedCont,
+         std::ranges::forward_range ExpectedBackwardCont>
+requires(utf_encoding_of<std::ranges::range_value_t<SrcCont>> == SrcEnc &&
+         utf_encoding_of<std::ranges::range_value_t<ExpectedCont>> == DstEnc &&
+         std::is_same_v<std::ranges::range_value_t<ExpectedCont>, std::ranges::range_value_t<ExpectedBackwardCont>>)
+void do_check_iteration(const SrcCont & src,
+                        const ExpectedCont & expected,
+                        const ExpectedBackwardCont & expected_backward,
+                        bool check_reverse)
+{
+    INFO( "From: utf" << SrcEnc << " to: utf" << DstEnc << " src: `" << printable(src) << '`');
+
+    using view_type = utf_view<DstEnc, const SrcCont>;
+    
+    view_type view(src);
+    
+    std::basic_string<typename view_type::value_type> expected_str(std::begin(expected), std::end(expected));
+    std::basic_string<typename view_type::value_type> expected_backward_str(std::begin(expected_backward), std::end(expected_backward));
+    std::basic_string<typename view_type::value_type> dest;
+    std::ranges::copy(view.begin(), view.end(), std::back_inserter(dest));
+    CHECK(dest == expected_str);
+    dest.clear();
+    std::ranges::copy(view.cbegin(), view.cend(), std::back_inserter(dest));
+    CHECK(dest == expected_str);
+    dest.clear();
+    std::ranges::copy(view.rbegin(), view.rend(), std::back_inserter(dest));
+    CHECK(dest == expected_backward_str);
+    dest.clear();
+    std::ranges::copy(view.crbegin(), view.crend(), std::back_inserter(dest));
+    CHECK(dest == expected_backward_str);
+
+    auto last = view.begin();
+    while(last != view.end())
+        ++last;
+
+    auto clast = view.cbegin();
+    while(clast != view.cend())
+        ++clast;
+    
+    auto rlast = view.rbegin();
+    while(rlast != view.rend())
+        ++rlast;
+
+    auto crlast = view.crbegin();
+    while(crlast != view.crend())
+        ++crlast;
+      
+    CHECK(view.reverse(view.begin()) == rlast);
+    CHECK(view.reverse(view.rbegin()) == last);
+    CHECK(view.reverse(last) == view.rbegin());
+    CHECK(view.reverse(rlast) == view.begin());
+
+    CHECK(view.reverse(view.cbegin()) == crlast);
+    CHECK(view.reverse(view.crbegin()) == clast);
+    CHECK(view.reverse(clast) == view.crbegin());
+    CHECK(view.reverse(crlast) == view.cbegin());
+    
+    if (check_reverse)
+    {
+        check_reversibility(view, view.begin(), view.end());
+        check_reversibility(view, view.rbegin(), view.rend());
+    }
+}
+
+template<utf_encoding SrcEnc, utf_encoding DstEnc,
+         std::ranges::input_range SrcCont,
+         std::ranges::bidirectional_range ExpectedCont>
+requires(utf_encoding_of<std::ranges::range_value_t<SrcCont>> == SrcEnc &&
+         utf_encoding_of<std::ranges::range_value_t<ExpectedCont>> == DstEnc)
 void check_iteration(const SrcCont & src,
                      const ExpectedCont & expected)
 {
-    do_check_iteration<SrcEnc, DstEnc>(src, expected, reverse(expected));
+    do_check_iteration<SrcEnc, DstEnc>(src, expected, reverse(expected), true);
 }
 
-template<utf_encoding SrcEnc, utf_encoding DstEnc, class SrcCont, class ExpectedCont, class ExpectedBackwardCont>
+template<utf_encoding SrcEnc, utf_encoding DstEnc,
+         std::ranges::input_range SrcCont,
+         std::ranges::forward_range ExpectedCont,
+         std::ranges::bidirectional_range ExpectedBackwardCont>
+requires(utf_encoding_of<std::ranges::range_value_t<SrcCont>> == SrcEnc &&
+         utf_encoding_of<std::ranges::range_value_t<ExpectedCont>> == DstEnc &&
+         std::is_same_v<std::ranges::range_value_t<ExpectedCont>, std::ranges::range_value_t<ExpectedBackwardCont>>)
 void check_iteration(const SrcCont & src,
                      const ExpectedCont & expected,
                      const ExpectedBackwardCont & expected_backward)
 {
-    do_check_iteration<SrcEnc, DstEnc>(src, expected, reverse(expected_backward));
+    do_check_iteration<SrcEnc, DstEnc>(src, expected, reverse(expected_backward), false);
 }
 
 
@@ -153,9 +171,9 @@ TEST_CASE( "UTF8 Iteration on UTF8 sequence", "[utf_iteration]") {
     check_iteration<from, to>("", "");
     check_iteration<from, to>("a", "a");
     check_iteration<from, to>(u8"¢", "¢"); //2-byte
-    check_iteration<from, to>("ह"s, "ह"); //3-byte
-    check_iteration<from, to>("𐍈"sv, "𐍈"); //4-byte
-    check_iteration<from, to>("🤢"sv, "🤢"); //out of bmp in surrogate range
+    check_iteration<from, to>("ह"s, "ह"sv); //3-byte
+    check_iteration<from, to>("𐍈"sv, "𐍈"s); //4-byte
+    check_iteration<from, to>("🤢"sv, "🤢"s); //out of bmp in surrogate range
     
     //1  Some correct UTF-8 text
     check_iteration<from, to>("a水𐀀𝄞bcå®®", "a水𐀀𝄞bcå®®");
@@ -287,9 +305,9 @@ TEST_CASE( "UTF16 Iteration on UTF8 sequence", "[utf_iteration]") {
     check_iteration<from, to>("", u"");
     check_iteration<from, to>("a", u"a");
     check_iteration<from, to>(u8"¢", u"¢"); //2-byte
-    check_iteration<from, to>("ह"s, u"ह"); //3-byte
-    check_iteration<from, to>("𐍈"sv, u"𐍈"); //4-byte
-    check_iteration<from, to>("🤢"sv, u"🤢"); //out of bmp in surrogate range
+    check_iteration<from, to>("ह"s, u"ह"sv); //3-byte
+    check_iteration<from, to>("𐍈"sv, u"𐍈"s); //4-byte
+    check_iteration<from, to>("🤢"sv, u"🤢"s); //out of bmp in surrogate range
     
     //1  Some correct UTF-8 text
     check_iteration<from, to>("a水𐀀𝄞bcå®®", u"a水𐀀𝄞bcå®®");
@@ -421,9 +439,9 @@ TEST_CASE( "UTF32 Iteration on UTF8 sequence", "[utf_iteration]") {
     check_iteration<from, to>("", U"");
     check_iteration<from, to>("a", U"a");
     check_iteration<from, to>(u8"¢", U"¢"); //2-byte
-    check_iteration<from, to>("ह"s, U"ह"); //3-byte
-    check_iteration<from, to>("𐍈"sv, U"𐍈"); //4-byte
-    check_iteration<from, to>("🤢"sv, U"🤢"); //out of bmp in surrogate range
+    check_iteration<from, to>("ह"s, U"ह"sv); //3-byte
+    check_iteration<from, to>("𐍈"sv, U"𐍈"s); //4-byte
+    check_iteration<from, to>("🤢"sv, U"🤢"s); //out of bmp in surrogate range
     
     //1  Some correct UTF-8 text
     check_iteration<from, to>("a水𐀀𝄞bcå®®", U"a水𐀀𝄞bcå®®");
@@ -601,9 +619,9 @@ TEST_CASE( "UTF32 Iteration on UTF16 sequence", "[utf_iteration]") {
 
 TEST_CASE( "UTF8 Iteration on UTF32 sequence", "[utf_iteration]") {
 
-    check_iteration<utf32, utf8>(U""s, "");
-    check_iteration<utf32, utf8>(U"a"s, "a");
-    check_iteration<utf32, utf8>(U"ab"s, "ab");
+    check_iteration<utf32, utf8>(U""s, ""sv);
+    check_iteration<utf32, utf8>(U"a"s, "a"sv);
+    check_iteration<utf32, utf8>(U"ab"s, "ab"sv);
     
     check_iteration<utf32, utf8>(U"¢", "¢"); //2-byte
     check_iteration<utf32, utf8>(U"ह", "ह"); //3-byte
@@ -622,9 +640,9 @@ TEST_CASE( "UTF8 Iteration on UTF32 sequence", "[utf_iteration]") {
 
 TEST_CASE( "UTF16 Iteration on UTF32 sequence", "[utf_iteration]") {
 
-    check_iteration<utf32, utf16>(U""s, u"");
-    check_iteration<utf32, utf16>(U"a"s, u"a");
-    check_iteration<utf32, utf16>(U"ab"s, u"ab");
+    check_iteration<utf32, utf16>(U""s, u""sv);
+    check_iteration<utf32, utf16>(U"a"s, u"a"sv);
+    check_iteration<utf32, utf16>(U"ab"s, u"ab"sv);
     
     check_iteration<utf32, utf16>(U"¢", u"¢"); //2-byte
     check_iteration<utf32, utf16>(U"ह", u"ह"); //3-byte

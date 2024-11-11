@@ -22,12 +22,12 @@ if(${Python3_Development_FOUND})
 endif()
 
 set (CXX_STANDARDS
-    17
     20
+    23
 )
 
-set(CXX_STANDARD_17 17)
 set(CXX_STANDARD_20 20)
+set(CXX_STANDARD_23 23)
 
 if (WIN32)
 

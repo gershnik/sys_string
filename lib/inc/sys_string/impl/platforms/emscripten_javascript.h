@@ -60,8 +60,8 @@ namespace sysstr
         {}
 
 #ifdef _MSC_VER
-        template<class Char>
-        emscripten_storage(const Char * str, size_t len, std::enable_if_t<has_utf_encoding<Char>> * = nullptr):
+        template<has_utf_encoding Char>
+        emscripten_storage(const Char * str, size_t len):
             super(str, len)
         {}
 #endif
@@ -161,21 +161,6 @@ namespace sysstr::util
 
 namespace sysstr
 {
-    template<>
-    inline sys_string_t<emscripten_storage>::sys_string_t(const char_access::cursor & src, size_type length):
-        sys_string_t(src.iterator(), length)
-    {}
-
-    template<>
-    inline sys_string_t<emscripten_storage>::sys_string_t(const char_access::reverse_cursor & src, size_type length):
-        sys_string_t(src.iterator() - length, length)
-    {}
-
-    template<>
-    inline sys_string_t<emscripten_storage>::sys_string_t(const char_access::iterator & first, const char_access::iterator & last):
-        sys_string_t(first, last - first)
-    {}
-
     using sys_string_emscripten = sys_string_t<emscripten_storage>;
     using sys_string_emscripten_builder = sys_string_builder_t<emscripten_storage>;
 }

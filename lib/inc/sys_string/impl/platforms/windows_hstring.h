@@ -167,8 +167,6 @@ namespace sysstr::util
         using reverse_iterator = std::reverse_iterator<const value_type *>;
         using const_reverse_iterator = reverse_iterator;
 
-        using cursor = iter_cursor<const_iterator, const_iterator, util::cursor_direction::forward, size_type>;
-        using reverse_cursor = iter_cursor<const_iterator, const_iterator, util::cursor_direction::backward, size_type>;
     public:
         hstring_char_access(const sys_string_t<hstring_storage> & src) noexcept;
         ~hstring_char_access() noexcept
@@ -264,12 +262,10 @@ namespace sysstr
             hstring_storage(buffer_from(str, len), handle_retain::no)
         {}
 
-#if SYS_STRING_USE_CHAR8
         template<>
         hstring_storage(const char8_t * str, size_t len):
             hstring_storage(buffer_from((const char *)str, len), handle_retain::no)
         {}
-#endif
 
         template<>
         hstring_storage(const char16_t * str, size_t len) :
@@ -434,22 +430,6 @@ namespace sysstr
 
 namespace sysstr
 {
-    template<>
-    inline sys_string_t<hstring_storage>::sys_string_t(const char_access::cursor & src, size_type length):
-        sys_string_t(src.iterator(), length)
-    {}
-
-    template<>
-    inline sys_string_t<hstring_storage>::sys_string_t(const char_access::reverse_cursor & src, size_type length):
-        sys_string_t(src.iterator() - length, length)
-    {}
-
-    template<>
-    inline sys_string_t<hstring_storage>::sys_string_t(const char_access::iterator & first, 
-                                                       const char_access::iterator & last):
-        sys_string_t(first, size_type(last - first))
-    {}
-
     using sys_string_hstring = sys_string_t<hstring_storage>; 
     using sys_string_hstring_builder = sys_string_builder_t<hstring_storage>; 
 }

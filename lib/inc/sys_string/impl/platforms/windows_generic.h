@@ -56,8 +56,8 @@ namespace sysstr
     public:
         using super::super;
 
-        template<class Char>
-        win_generic_storage(const Char * str, size_t len, std::enable_if_t<has_utf_encoding<Char>> * = nullptr):
+        template<has_utf_encoding Char>
+        win_generic_storage(const Char * str, size_t len):
             super(str, len)
         {}
 
@@ -106,24 +106,6 @@ namespace sysstr::util
 
 namespace sysstr
 {
-    template<>
-    inline 
-    sys_string_t<win_generic_storage>::sys_string_t(const char_access::cursor & src, size_type length):
-        sys_string_t(src.iterator(), length)
-    {}
-
-    template<>
-    inline 
-    sys_string_t<win_generic_storage>::sys_string_t(const char_access::reverse_cursor & src, size_type length):
-        sys_string_t(src.iterator() - length, length)
-    {}
-
-    template<>
-    inline 
-    sys_string_t<win_generic_storage>::sys_string_t(const char_access::iterator & first, const char_access::iterator & last):
-        sys_string_t(first, last - first)
-    {}
-
     using sys_string_win_generic = sys_string_t<win_generic_storage>;
     using sys_string_win_generic_builder = sys_string_builder_t<win_generic_storage>;
 }

@@ -16,6 +16,7 @@
 #include <new>
 #include <algorithm>
 #include <cstring>
+#include <bit>
 
 namespace sysstr::util::generic
 {
@@ -318,7 +319,7 @@ namespace sysstr::util::generic
             return SizeT(len);
         }
     private:
-        static_assert(endian::native == endian::little || endian::native == endian::big, 
+        static_assert(std::endian::native == std::endian::little || std::endian::native == std::endian::big, 
                       "Only little or big endian architectures are currently supported");
         
         static constexpr size_t data_size = 4 * sizeof(void *);
@@ -330,7 +331,7 @@ namespace sysstr::util::generic
         
         const uintptr_t & dynamic_ptr_value() const noexcept
         {
-            if constexpr (endian::native == endian::little)
+            if constexpr (std::endian::native == std::endian::little)
                 return *reinterpret_cast<const uintptr_t *>(&this->m_data[0]);
             else 
                 return *(reinterpret_cast<const uintptr_t *>(&this->m_data[data_size]) - 1);
@@ -340,7 +341,7 @@ namespace sysstr::util::generic
 
         const uintptr_t & dynamic_size_value() const noexcept
         {
-            if constexpr (endian::native == endian::little)
+            if constexpr (std::endian::native == std::endian::little)
                 return *(reinterpret_cast<const uintptr_t *>(&this->m_data[0]) + 1);
             else 
                 return *(reinterpret_cast<const uintptr_t *>(&this->m_data[data_size]) - 2);
@@ -350,7 +351,7 @@ namespace sysstr::util::generic
 
         const CharT * get_static_data() const noexcept
         {
-            if constexpr (endian::native == endian::little)
+            if constexpr (std::endian::native == std::endian::little)
                 return reinterpret_cast<const CharT *>(&this->m_data[0]) + 1;
             else
                 return reinterpret_cast<const CharT *>(&this->m_data[0]);
@@ -360,7 +361,7 @@ namespace sysstr::util::generic
 
         const std::byte & marker_byte() const noexcept
         {
-            if constexpr (endian::native == endian::little)
+            if constexpr (std::endian::native == std::endian::little)
                 return this->m_data[0]; 
             else
                 return this->m_data[data_size - 1]; 
@@ -393,8 +394,6 @@ namespace sysstr::util::generic
         using reverse_iterator = std::reverse_iterator<const CharT *>;
         using const_reverse_iterator = reverse_iterator;
         
-        using cursor = iter_cursor<char_access::const_iterator, char_access::const_iterator, cursor_direction::forward, size_type>;
-        using reverse_cursor = iter_cursor<char_access::const_iterator, char_access::const_iterator, cursor_direction::backward, size_type>;
     public:
         char_access(const buffer<CharT, SizeT> & buffer) noexcept:
             m_chars(buffer.data()),
@@ -545,8 +544,8 @@ namespace sysstr::util::generic
         storage & operator=(const storage & rhs) noexcept = default;
         storage & operator=(storage && rhs) noexcept = default;
 
-        template<class Char>
-        storage(const Char * str, size_t len, std::enable_if_t<has_utf_encoding<Char>> * = nullptr) :
+        template<has_utf_encoding Char>
+        storage(const Char * str, size_t len) :
             m_buffer(str, len)
         {}
         

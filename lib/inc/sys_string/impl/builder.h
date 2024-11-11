@@ -20,14 +20,19 @@ namespace sysstr
         
         struct view_traits
         {
-            using char_access = const impl_type &;
+            using stored_reference = const impl_type *;
             
-            static constexpr const impl_type & adapt(const sys_string_builder_t & builder) noexcept
-                { return builder.m_impl; }
+            static constexpr bool enable_view = true;
+            static constexpr bool enable_borrowed_range = true;
+            
+            static constexpr const impl_type * adapt(const sys_string_builder_t & builder) noexcept
+                { return &builder.m_impl; }
+            static const impl_type & access(stored_reference ptr) noexcept
+                { return *ptr; }
         };
     public:
         using size_type = typename impl_type::size_type;
-        using storage_type = typename  impl_type::value_type;
+        using storage_type = typename impl_type::value_type;
         
         template<utf_encoding Enc>
         using utf_view = utf_view<Enc, sys_string_builder_t, view_traits>;
@@ -42,11 +47,10 @@ namespace sysstr
         using const_reverse_iterator = typename utf32_view::const_reverse_iterator;
         
     private:
-        template<util::cursor_direction Direction>
-        using const_storage_cursor = decltype(util::cursor_begin<Direction>(std::declval<const impl_type>()));
-        
-        template<util::cursor_direction Direction>
-        using storage_cursor = decltype(util::cursor_begin<Direction>(std::declval<impl_type>()));
+        using const_storage_iterator = decltype(std::begin(std::declval<const impl_type>()));
+        using const_storage_sentinel = decltype(std::end(std::declval<const impl_type>()));
+        using const_storage_reverse_iterator = decltype(std::rbegin(std::declval<const impl_type>()));
+        using const_storage_reverse_sentinel = decltype(std::rend(std::declval<const impl_type>()));
 
     public:
 
@@ -66,76 +70,88 @@ namespace sysstr
             { m_impl.resize(new_size); }
         
         iterator begin() const noexcept
-            { return storage_begin<util::cursor_direction::forward>(); }
-        iterator end() const noexcept
-            { return storage_end<util::cursor_direction::forward>(); }
+            { return iterator(std::begin(m_impl), std::end(m_impl)); }
+        std::default_sentinel_t end() const noexcept
+            { return std::default_sentinel; }
         const_iterator cbegin() const noexcept
             { return begin(); }
-        const_iterator cend() const noexcept
+        std::default_sentinel_t cend() const noexcept
             { return end(); }
         reverse_iterator rbegin() const noexcept
-            { return storage_begin<util::cursor_direction::backward>(); }
-        reverse_iterator rend() const noexcept
-            { return storage_end<util::cursor_direction::backward>(); }
+            { return reverse_iterator(std::rbegin(m_impl), std::rend(m_impl)); }
+        std::default_sentinel_t rend() const noexcept
+            { return std::default_sentinel; }
         const_reverse_iterator crbegin() const noexcept
             { return rbegin(); }
-        const_reverse_iterator crend() const noexcept
+        std::default_sentinel_t crend() const noexcept
             { return rend(); }
+
+        reverse_iterator reverse(iterator it) const
+            { return reverse_iterator(it, std::rend(this->m_impl)); }
+
+        iterator reverse(reverse_iterator it) const
+            { return iterator(it, std::end(this->m_impl)); }
         
 
         void push_back(char32_t c)
             { append_one(m_impl, c); }
         void pop_back() noexcept
         {
-            auto it = ++rbegin();
-            m_impl.erase(m_impl.begin() + it.storage_pos(), m_impl.end());
+            auto it = rbegin();
+            m_impl.erase(it.storage_next().base(), std::end(m_impl));
         }
         
         iterator insert(iterator where, char32_t c)
         {
-            using util::cursor_at;
+            auto res = insert_one(m_impl, where.storage_current(), c);
+            return iterator(res, std::end(m_impl));
+        }
 
-            auto pos = where.storage_pos();
-            insert_one(m_impl, m_impl.begin() + pos, c);
-            return storage_at<util::cursor_direction::forward>(pos);
+        iterator insert(std::default_sentinel_t, char32_t c)
+        {
+            auto res = insert_one(m_impl, std::end(m_impl), c);
+            return iterator(res, std::end(m_impl));
         }
         
-        template<class Char>
+        template<has_utf_encoding Char>
         iterator insert(iterator where, const Char * str, size_t len)
         {
-            using util::cursor_at;
+            auto res = insert_many(m_impl, where.storage_current(), str, len);
+            return iterator(res, std::end(m_impl));
+        }
 
-            auto pos = where.storage_pos();
-            insert_many(m_impl, m_impl.begin() + pos, str, len);
-            return storage_at<util::cursor_direction::forward>(pos);
+        template<has_utf_encoding Char>
+        iterator insert(std::default_sentinel_t, const Char * str, size_t len)
+        {
+            auto res = insert_many(m_impl, std::end(m_impl), str, len);
+            return iterator(res, std::end(m_impl));
         }
         
         iterator erase(iterator where) noexcept
         {
-            using util::cursor_at;
-
-            auto pos = where.storage_pos();
-            auto where_it = m_impl.begin() + pos;
-            m_impl.erase(where_it, where_it + where.storage_size());
-            return storage_at<util::cursor_direction::forward>(pos);
+            auto res = m_impl.erase(where.storage_current(), where.storage_next());
+            return iterator(res, std::end(m_impl));
         }
+
         iterator erase(iterator first, iterator last) noexcept
         {
-            using util::cursor_at;
-            
-            auto first_pos = first.storage_pos();
-            auto last_pos = last.storage_pos();
-            m_impl.erase(m_impl.begin() + first_pos, m_impl.begin() + last_pos);
-            return storage_at<util::cursor_direction::forward>(first_pos);
+            auto res = m_impl.erase(first.storage_current(), last.storage_current());
+            return iterator(res, std::end(m_impl));
+        }
+
+        iterator erase(iterator first, std::default_sentinel_t) noexcept
+        {
+            auto res = m_impl.erase(first.storage_current(), std::end(m_impl));
+            return iterator(res, std::end(m_impl));
         }
         
         sys_string_builder_t & append(char32_t c)
             { append_one(m_impl, c); return *this; }
 
-        template<class Char>
+        template<has_utf_encoding Char>
         sys_string_builder_t & append(const Char * str, size_t len)
             { append_many(m_impl, str, len); return *this; }
-        template<class Char>
+        template<has_utf_encoding Char>
         sys_string_builder_t & append(const Char * str)
             { append_many(m_impl, str, std::char_traits<Char>::length(str)); return *this; }
 
@@ -159,26 +175,27 @@ namespace sysstr
         }
         static void append_one(impl_type & impl, char32_t c);
         
-        static void insert_one(impl_type & impl, typename impl_type::iterator where, char32_t c);
+        static typename impl_type::iterator insert_one(impl_type & impl, typename impl_type::iterator where, char32_t c);
         
-        template<class Char>
+        template<has_utf_encoding Char>
         static void append_many(impl_type & impl, const Char * str, size_t len);
         
-        template<class Char>
-        static void insert_many(impl_type & impl, typename impl_type::iterator pos, const Char * str, size_t len);
+        template<has_utf_encoding Char>
+        static typename impl_type::iterator insert_many(impl_type & impl, typename impl_type::iterator pos, const Char * str, size_t len);
         
         template<class Access>
         void append_access(const Access & access);
         
-        template<util::cursor_direction Direction>
-        auto storage_begin() const -> const_storage_cursor<Direction>
-            { return util::cursor_begin<Direction>(m_impl); }
-        template<util::cursor_direction Direction>
-        auto storage_end() const -> const_storage_cursor<Direction>
-            { return util::cursor_end<Direction>(m_impl); }
-        template<util::cursor_direction Direction>
-        auto storage_at(size_type pos) const -> const_storage_cursor<Direction>
-            { return util::cursor_at<Direction>(m_impl, pos); }
+        auto storage_begin() const 
+            { return std::begin(m_impl); }
+        auto storage_end() const 
+            { return std::end(m_impl); }
+
+        auto storage_rbegin() const 
+            { return std::rbegin(m_impl); }
+        auto storage_rend() const 
+            { return std::rend(m_impl); }
+        
     private:
         impl_type m_impl;
     };
@@ -198,21 +215,24 @@ namespace sysstr
     }
 
     template<class Storage>
-    void sys_string_builder_t<Storage>::insert_one(impl_type & impl, typename impl_type::iterator where, char32_t c)
+    auto sys_string_builder_t<Storage>::insert_one(impl_type & impl, typename impl_type::iterator where, char32_t c) ->
+        typename impl_type::iterator
     {
         if constexpr (std::is_same_v<storage_type, char32_t>)
         {
-            impl.insert(where, c);
+            return impl.insert(where, c);
         }
         else
         {
             using converter = utf_converter<utf32, utf_encoding_of<storage_type>>;
+            auto pos = where - std::begin(impl);
             converter::convert(&c, &c + 1, std::inserter(impl, where));
+            return std::begin(impl) + pos;
         }
     }
 
     template<class Storage>
-    template<class Char>
+    template<has_utf_encoding Char>
     void sys_string_builder_t<Storage>::append_many(impl_type & impl, const Char * str, size_t len)
     {
         if constexpr (std::is_same_v<storage_type, Char>)
@@ -228,18 +248,20 @@ namespace sysstr
 
 
     template<class Storage>
-    template<class Char>
-    void sys_string_builder_t<Storage>::insert_many(impl_type & impl, typename impl_type::iterator where, const Char * str, size_t len)
+    template<has_utf_encoding Char>
+    auto sys_string_builder_t<Storage>::insert_many(impl_type & impl, typename impl_type::iterator where, const Char * str, size_t len) ->
+    typename impl_type::iterator
     {
         if constexpr (std::is_same_v<storage_type, Char>)
         {
-            impl.insert(where, str, limit_size(len));
+            return impl.insert(where, str, limit_size(len));
         }
         else
         {
-            auto inserter = std::inserter(impl, where);
             using converter = utf_converter<utf_encoding_of<Char>, utf_encoding_of<storage_type>>;
-            converter::convert(str, str + len, inserter);
+            auto pos = where - std::begin(impl);
+            converter::convert(str, str + len, std::inserter(impl, where));
+            return std::begin(impl) + pos;
         }
     }
 

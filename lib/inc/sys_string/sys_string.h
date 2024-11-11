@@ -19,14 +19,9 @@
 #include <optional>
 #include <ostream>
 #include <limits>
+#include <compare>
 #include <stdarg.h>
 
-#if SYS_STRING_USE_SPACESHIP_OPERATOR
-    #include <compare>
-#endif
-#if SYS_STRING_USE_SPAN
-    #include <span>
-#endif
 
 #define HEADER_SYS_STRING_H_INSIDE
 
@@ -69,6 +64,10 @@ namespace sysstr::util
 
 namespace sysstr
 {
+    template<class T, class Storage>
+    concept sys_string_or_char = std::is_same_v<std::remove_cvref_t<T>, sys_string_t<Storage>> ||
+                                 std::is_same_v<std::remove_cvref_t<T>, char32_t>;
+
     template<class Storage>
     class sys_string_t : public Storage
     {
@@ -79,15 +78,17 @@ namespace sysstr
         
         struct view_traits
         {
-            using char_access = typename Storage::char_access;
+            using stored_reference = typename Storage::char_access;
+            
+            static constexpr bool enable_view = false;
+            static constexpr bool enable_borrowed_range = false;
             
             static constexpr const sys_string_t & adapt(const sys_string_t & str) noexcept
                 { return str; }
+            static const stored_reference & access(const stored_reference & acc) noexcept
+                { return acc; }
         };
 
-        template<class StringOrChar>
-        static constexpr bool is_string_or_char = std::is_same_v<std::remove_cv_t<std::remove_reference_t<StringOrChar>>, sys_string_t> ||
-                                                  std::is_same_v<std::remove_cv_t<std::remove_reference_t<StringOrChar>>, char32_t>;
     public:
         using size_type = typename storage::size_type;
         using storage_type = typename storage::storage_type;
@@ -104,17 +105,10 @@ namespace sysstr
         using utf16_view = utf_view<utf16>;
         using utf32_view = utf_view<utf32>;
         
-    #if SYS_STRING_USE_SPACESHIP_OPERATOR
         using compare_result = std::strong_ordering;
         static constexpr compare_result ordering_less = std::strong_ordering::less;
         static constexpr compare_result ordering_equal = std::strong_ordering::equal;
         static constexpr compare_result ordering_greater = std::strong_ordering::greater;
-    #else
-        using compare_result = int;
-        static constexpr compare_result ordering_less = -1;
-        static constexpr compare_result ordering_equal = 0;
-        static constexpr compare_result ordering_greater = 1;
-    #endif
         
     public:
         sys_string_t() noexcept = default;
@@ -127,53 +121,44 @@ namespace sysstr
         using storage::storage;
      
 
-        template<class Char>
-        sys_string_t(const Char * str, size_t len, std::enable_if_t<has_utf_encoding<Char>> * = nullptr) :
+        template<has_utf_encoding Char>
+        sys_string_t(const Char * str, size_t len) :
             storage(str, len)
         {}
         
-        template<class Char>
-        sys_string_t(const Char * str, std::enable_if_t<has_utf_encoding<Char>> * = nullptr) :
+        template<has_utf_encoding Char>
+        sys_string_t(const Char * str) :
             sys_string_t(str, str ? std::char_traits<Char>::length(str) : 0)
         {}
         
-        template<class Char>
-        sys_string_t(char val, std::enable_if_t<has_utf_encoding<Char>> * = nullptr) :
+        template<has_utf_encoding Char>
+        sys_string_t(Char val) :
             sys_string_t(&val, 1)
         {}
     
-        template<class Char>
-        sys_string_t(const std::basic_string<Char> & val, std::enable_if_t<has_utf_encoding<Char>> * = nullptr) :
-            sys_string_t(val.data(), val.size())
+        template<std::ranges::contiguous_range Range>
+        requires(has_utf_encoding<std::ranges::range_value_t<Range>>)
+        sys_string_t(Range && val) :
+            sys_string_t(std::ranges::data(std::forward<Range>(val)), std::ranges::size(std::forward<Range>(val)))
         {}
 
-        template<class Char>
-        sys_string_t(const std::basic_string_view<Char> & val, std::enable_if_t<has_utf_encoding<Char>> * = nullptr) :
-            sys_string_t(val.data(), val.size())
-        {}
-        
-        template<class Char>
-        sys_string_t(const std::vector<Char> & val, std::enable_if_t<has_utf_encoding<Char>> * = nullptr) :
-            sys_string_t(val.data(), val.size())
-        {}
-
-    #if SYS_STRING_USE_SPAN
-        template<class Char, std::size_t Extent>
-        sys_string_t(const std::span<Char, Extent> & val, std::enable_if_t<has_utf_encoding<Char>> * = nullptr) :
-            sys_string_t(val.data(), val.size())
-        {}
-    #endif
-        
-        
         sys_string_t(const typename utf32_view::iterator & first, const typename utf32_view::iterator & last):
-            sys_string_t(first.storage_cursor(), last.storage_pos() - first.storage_pos())
+            sys_string_t(first.storage_current(), last.storage_current())
+        {}
+
+        sys_string_t(const typename utf32_view::iterator & first, std::default_sentinel_t):
+            sys_string_t(first.storage_current(), first.storage_last())
         {}
         
-        sys_string_t(const typename char_access::iterator & first, const typename char_access::iterator & last);
+        template<std::sized_sentinel_for<typename char_access::iterator> EndIt>
+        sys_string_t(const typename char_access::iterator & first, const EndIt & last):
+            sys_string_t(first, last - first)
+        {}
 
-        sys_string_t(const typename char_access::cursor & src, size_type length);
-        
-        sys_string_t(const typename char_access::reverse_cursor & src, size_type length);
+        template<std::sized_sentinel_for<typename char_access::reverse_iterator> EndIt>
+        sys_string_t(const typename char_access::reverse_iterator & first, const EndIt & last):
+            sys_string_t(first.base() - (last - first), first.base())
+        {}
 
         explicit sys_string_t(storage && st) noexcept : storage(std::move(st))
         {}
@@ -208,100 +193,81 @@ namespace sysstr
         friend auto operator!=(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> bool
             { return compare(lhs, rhs) != 0; }
         
-    #if SYS_STRING_USE_SPACESHIP_OPERATOR
 
         friend auto operator<=>(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> std::strong_ordering
             { return compare(lhs, rhs); }
         
-    #else
-
-        friend auto operator<(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> bool
-            { return compare(lhs, rhs) < 0; }
-        friend auto operator<=(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> bool
-            { return compare(lhs, rhs) <= 0; }
-        friend auto operator>(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> bool
-            { return compare(lhs, rhs) > 0; }
-        friend auto operator>=(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> bool
-            { return compare(lhs, rhs) >= 0; }
-        
-    #endif
         
         friend auto compare(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> compare_result
             { return sys_string_t::compare(lhs, rhs); }
         friend auto compare_no_case(const sys_string_t lhs, const sys_string_t & rhs) noexcept -> compare_result
             { return sys_string_t::compare_no_case(lhs, rhs); }
         
-        template<class StringOrChar1, class StringOrChar2>
-        friend auto operator+(const StringOrChar1 lhs, const StringOrChar2 rhs) ->
-                std::enable_if_t<sys_string_t<Storage>::is_string_or_char<StringOrChar1> && sys_string_t<Storage>::is_string_or_char<StringOrChar2>,
-                util::addition<Storage, StringOrChar1, StringOrChar2>>
+        template<sys_string_or_char<Storage> StringOrChar1, sys_string_or_char<Storage> StringOrChar2>
+        friend auto operator+(const StringOrChar1 lhs, const StringOrChar2 rhs) -> util::addition<Storage, StringOrChar1, StringOrChar2>
             { return util::addition<Storage, StringOrChar1, StringOrChar2>(std::move(lhs), std::move(rhs)); }
         
         auto to_lower() const -> sys_string_t;
         auto to_upper() const -> sys_string_t;
 
-        template<class Pred = isspace>
+        template<std::predicate<char32_t> Pred = isspace>
         auto trim(Pred pred = Pred()) const -> sys_string_t;
-        template<class Pred = isspace>
+        template<std::predicate<char32_t> Pred = isspace>
         auto ltrim(Pred pred = Pred()) const -> sys_string_t;
-        template<class Pred = isspace>
+        template<std::predicate<char32_t> Pred = isspace>
         auto rtrim(Pred pred = Pred()) const -> sys_string_t;
 
-        template<class Search, class OutIt>
-        auto split(OutIt dest, Search pred) const ->
-            std::enable_if_t<std::is_invocable_v<Search, typename utf32_view::iterator, typename utf32_view::iterator>, OutIt>;
-        template<class StringOrChar, class OutIt>
-        auto split(OutIt dest, const StringOrChar & sep, size_t max_split = std::numeric_limits<size_t>::max()) const ->
-            std::enable_if_t<is_string_or_char<StringOrChar>, OutIt>;
+        template<class Search, std::output_iterator<sys_string_t<Storage>> OutIt>
+        auto split(OutIt dest, Search search) const -> OutIt
+        requires(std::is_invocable_v<Search, typename utf32_view::iterator, std::default_sentinel_t>);
 
-        template<class FwdIt>
+        template<sys_string_or_char<Storage> StringOrChar, std::output_iterator<sys_string_t<Storage>> OutIt>
+        auto split(OutIt dest, const StringOrChar & sep, size_t max_split = std::numeric_limits<size_t>::max()) const -> OutIt;
+
+        template<std::forward_iterator FwdIt>
         auto join(FwdIt first, FwdIt last) const -> sys_string_t;
 
-        template<class StringOrChar>
-        auto starts_with(const StringOrChar & prefix) const -> std::enable_if_t<is_string_or_char<StringOrChar>, bool>;
-        template<class InIt>
+        template<sys_string_or_char<Storage> StringOrChar>
+        auto starts_with(const StringOrChar & prefix) const -> bool;
+
+        template<std::input_iterator InIt>
         auto find_prefix(InIt first, InIt last) const -> InIt;
 
-        template<class StringOrChar>
-        auto remove_prefix(const StringOrChar & prefix) const -> std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>;
+        template<sys_string_or_char<Storage> StringOrChar>
+        auto remove_prefix(const StringOrChar & prefix) const -> sys_string_t;
         
-        template<class StringOrChar>
-        auto ends_with(const StringOrChar & suffix) const -> std::enable_if_t<is_string_or_char<StringOrChar>, bool>;
-        template<class InIt>
+        template<sys_string_or_char<Storage> StringOrChar>
+        auto ends_with(const StringOrChar & suffix) const -> bool;
+        
+        template<std::input_iterator InIt>
         auto find_suffix(InIt first, InIt last) const -> InIt;
 
-        template<class StringOrChar>
-        auto remove_suffix(const StringOrChar & prefix) const -> std::enable_if_t<is_string_or_char<StringOrChar>, sys_string_t>;
+        template<sys_string_or_char<Storage> StringOrChar>
+        auto remove_suffix(const StringOrChar & prefix) const -> sys_string_t;
         
-        template<class StringOrChar>
-        auto contains(const StringOrChar & inner) const -> std::enable_if_t<is_string_or_char<StringOrChar>, bool>;
-        template<class InIt>
+        template<sys_string_or_char<Storage> StringOrChar>
+        auto contains(const StringOrChar & inner) const -> bool;
+
+        template<std::input_iterator InIt>
         auto find_contained(InIt first, InIt last) const -> InIt;
 
-        template<class StringOrChar1, class StringOrChar2>
+        template<sys_string_or_char<Storage> StringOrChar1, sys_string_or_char<Storage> StringOrChar2>
         auto replace(const StringOrChar1 & old, const StringOrChar2 & new_,
-                     size_t max_count = std::numeric_limits<size_t>::max()) const ->
-            std::enable_if_t<is_string_or_char<StringOrChar1> && is_string_or_char<StringOrChar2>, sys_string_t>;
+                     size_t max_count = std::numeric_limits<size_t>::max()) const -> sys_string_t;
 
-        template<class StringOrChar>
-        auto suffix_after_first(const StringOrChar & divider) const -> 
-            std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<sys_string_t>>;
-        template<class StringOrChar>
-        auto prefix_before_first(const StringOrChar & divider) const -> 
-            std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<sys_string_t>>;
-        template<class StringOrChar>
-        auto suffix_after_last(const StringOrChar & divider) const -> 
-            std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<sys_string_t>>;
-        template<class StringOrChar>
-        auto prefix_before_last(const StringOrChar & divider) const -> 
-            std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<sys_string_t>>;
+        template<sys_string_or_char<Storage> StringOrChar>
+        auto suffix_after_first(const StringOrChar & divider) const -> std::optional<sys_string_t>;
+        template<sys_string_or_char<Storage> StringOrChar>
+        auto prefix_before_first(const StringOrChar & divider) const -> std::optional<sys_string_t>;
+        template<sys_string_or_char<Storage> StringOrChar>
+        auto suffix_after_last(const StringOrChar & divider) const -> std::optional<sys_string_t>;
+        template<sys_string_or_char<Storage> StringOrChar>
+        auto prefix_before_last(const StringOrChar & divider) const -> std::optional<sys_string_t>;
 
-        template<class StringOrChar>
-        auto partition_at_first(const StringOrChar & divider) const -> 
-            std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<std::pair<sys_string_t, sys_string_t>>>;
-        template<class StringOrChar>
-        auto partition_at_last(const StringOrChar & divider) const -> 
-            std::enable_if_t<is_string_or_char<StringOrChar>, std::optional<std::pair<sys_string_t, sys_string_t>>>;
+        template<sys_string_or_char<Storage> StringOrChar>
+        auto partition_at_first(const StringOrChar & divider) const -> std::optional<std::pair<sys_string_t, sys_string_t>>;
+        template<sys_string_or_char<Storage> StringOrChar>
+        auto partition_at_last(const StringOrChar & divider) const -> std::optional<std::pair<sys_string_t, sys_string_t>>;
 
     private:
         static auto compare(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> compare_result;

@@ -15,7 +15,7 @@ on:
 
 env:
   BUILD_TYPE: Release
-  NDK_VER: 21.3.6528147
+  NDK_VER: 27.2.12479018
   NDK_ARCH: x86_64
   NDK_API: 29
 
@@ -28,31 +28,16 @@ jobs:
         include:
         - os: macos-latest
         - os: windows-latest
-        - os: ubuntu-latest
-          compiler: gcc
-          version: 11
-        - os: ubuntu-latest
-          compiler: gcc
-          version: 12
-        - os: ubuntu-latest
-          compiler: gcc
-          version: 13
-        # See https://github.com/actions/runner-images/issues/8659
-        # - os: ubuntu-latest
-        #   compiler: clang
-        #   version: 13
-        # - os: ubuntu-latest
-        #   compiler: clang
-        #   version: 14
-        - os: ubuntu-latest
-          compiler: clang
-          version: 15
-        - os: ubuntu-latest
-          compiler: clang
-          version: 16
-        - os: ubuntu-latest
-          compiler: clang
-          version: 17
+        - {os: ubuntu-latest, compiler: gcc, version: 11 }
+        - {os: ubuntu-latest, compiler: gcc, version: 12 }
+        - {os: ubuntu-latest, compiler: gcc, version: 13 }
+        - {os: ubuntu-24.04, compiler: gcc, version: 14 }
+        - {os: ubuntu-latest, compiler: clang, version: 13 }
+        - {os: ubuntu-latest, compiler: clang, version: 14 }
+        - {os: ubuntu-latest, compiler: clang, version: 15 }
+        - {os: ubuntu-latest, compiler: clang, version: 16 }
+        - {os: ubuntu-latest, compiler: clang, version: 17 }
+        - {os: ubuntu-latest, compiler: clang, version: 18 }
     
     steps:
     - name: Checkout
@@ -61,16 +46,18 @@ jobs:
     - name: System Setup
       shell: bash
       run: |
-        if [[ '${{ matrix.os }}' == 'ubuntu-latest' ]]; then
+        if [[ '${{ matrix.os }}' == ubuntu-* ]]; then
           if [[ '${{ matrix.compiler }}' == 'clang' ]]; then
             wget https://apt.llvm.org/llvm.sh
             chmod u+x llvm.sh
-            sudo ./llvm.sh ${{ matrix.version }}
+            sudo ./llvm.sh ${{ matrix.version }} 
+            sudo apt-get install -y clang-tools-${{ matrix.version }}
             echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
             echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
           fi
 
           if [[ '${{ matrix.compiler }}' == 'gcc' ]]; then
+            sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
             sudo apt-get update
             sudo apt-get install -y gcc-${{ matrix.version }} g++-${{ matrix.version }}
             echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
@@ -149,7 +136,7 @@ jobs:
     - name: Set Up Emscripten
       uses: mymindstorm/setup-emsdk@v14
       with:
-        version: 3.1.26
+        version: 3.1.70
         actions-cache-folder: 'emsdk-cache'
 
     - name: Configure

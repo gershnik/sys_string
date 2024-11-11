@@ -13,9 +13,7 @@
 #include <iterator>
 #include <algorithm>
 #include <string>
-#if SYS_STRING_USE_SPACESHIP_OPERATOR
-    #include <compare>
-#endif
+#include <compare>
 
 namespace sysstr::util
 {
@@ -47,78 +45,25 @@ namespace sysstr::util
     template<bool Val, class... Args>
     static constexpr bool dependent_bool = Val;
 
-    inline constexpr auto make_compare_result(int res)
-    {
-    #if SYS_STRING_USE_SPACESHIP_OPERATOR
-        return res <=> 0;
-    #else
-        return res;
-    #endif
-    }
-
-    template<class T>
-    inline constexpr auto compare_3way(T a, T b)
-    {
-    #if SYS_STRING_USE_SPACESHIP_OPERATOR
-        return a <=> b;
-    #else
-        return (a > b) - (a < b);
-    #endif
-    }
-
     template<class Char>
     inline constexpr auto compare_3way(const Char * lhs, size_t lhs_size, const Char * rhs, size_t rhs_size) noexcept
     {
         auto shortest_length = std::min(lhs_size, rhs_size);
         int res = std::char_traits<Char>::compare(lhs, rhs, shortest_length);
-    #if SYS_STRING_USE_SPACESHIP_OPERATOR
-        if (res != 0)
-            return res <=> 0;
-    #else
-        if (res != 0)
-            return res;
-    #endif
-        return compare_3way(lhs_size, rhs_size);
+        if (auto ord = (res <=> 0); ord != 0)
+            return ord;
+        return lhs_size <=> rhs_size;
     }
 
-    template<class InputIt1, class InputIt2>
-    inline constexpr auto lexicographical_compare_3way(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2)
-    {
-        for ( ; (first1 != last1) && (first2 != last2); ++first1, (void) ++first2 ) 
-        {
-            if (auto res = compare_3way(*first1, *first2))
-                return res;
-        }
-    #if SYS_STRING_USE_SPACESHIP_OPERATOR
-        return (first2 == last2) <=> (first1 == last1);
-    #else
-        return (first2 == last2) - (first1 == last1);
-    #endif
-    }
-
-    template<class InputIt1, class InputIt2, class Compare3Way>
-    inline constexpr auto lexicographical_compare_3way(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, Compare3Way comp)
-    {
-        for ( ; (first1 != last1) && (first2 != last2); ++first1, (void) ++first2 ) 
-        {
-            if (auto res = comp(*first1, *first2); res != 0)
-                return res;
-        }
-    #if SYS_STRING_USE_SPACESHIP_OPERATOR
-        return (first2 == last2) <=> (first1 == last1);
-    #else
-        return (first2 == last2) - (first1 == last1);
-    #endif
-    }
-
-    template<class OutT, class InIt, class Pred, class OutIt>
-    auto split(InIt str_start, InIt str_end, OutIt dest, Pred pred) -> OutIt
+    template<class OutT, std::forward_iterator It, std::sentinel_for<It> Sentinel, std::output_iterator<OutT> OutIt, class Pred>
+    auto split(It str_start, Sentinel str_end, OutIt dest, Pred pred) -> OutIt
+    requires(std::is_constructible_v<OutT, std::tuple_element_t<0, decltype(pred(str_start, str_end))>, std::tuple_element_t<1, decltype(pred(str_start, str_end))>>)
     {
         for( ; ; )
         {
             auto [found_start, found_end] = pred(str_start, str_end);
             *dest++ = OutT(str_start, found_start);
-            if (found_start == str_end)
+            if (found_start == found_end)
                 break;
             str_start = found_end;
         }

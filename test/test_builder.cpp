@@ -12,6 +12,34 @@
 
 using namespace sysstr;
 
+static_assert(std::ranges::forward_range<sys_string_builder>);
+static_assert(!std::ranges::random_access_range<sys_string_builder>);
+static_assert(!std::ranges::common_range<sys_string_builder>);
+static_assert(!std::ranges::view<sys_string_builder>);
+static_assert(!std::ranges::borrowed_range<sys_string_builder>);
+static_assert(std::ranges::viewable_range<sys_string_builder>);
+              
+static_assert(std::ranges::forward_range<sys_string_builder::utf32_view>);
+static_assert(!std::ranges::bidirectional_range<sys_string_builder::utf32_view>);
+static_assert(!std::ranges::common_range<sys_string_builder::utf32_view>);
+static_assert(std::ranges::view<sys_string_builder::utf32_view>);
+static_assert(std::ranges::borrowed_range<sys_string_builder::utf32_view>);
+static_assert(std::ranges::viewable_range<sys_string_builder::utf32_view>);
+
+static_assert(std::ranges::forward_range<sys_string_builder::utf16_view>);
+static_assert(!std::ranges::bidirectional_range<sys_string_builder::utf16_view>);
+static_assert(!std::ranges::common_range<sys_string_builder::utf16_view>);
+static_assert(std::ranges::view<sys_string_builder::utf16_view>);
+static_assert(std::ranges::borrowed_range<sys_string_builder::utf16_view>);
+static_assert(std::ranges::viewable_range<sys_string_builder::utf16_view>);
+
+static_assert(std::ranges::forward_range<sys_string_builder::utf8_view>);
+static_assert(!std::ranges::bidirectional_range<sys_string_builder::utf8_view>);
+static_assert(!std::ranges::common_range<sys_string_builder::utf8_view>);
+static_assert(std::ranges::view<sys_string_builder::utf8_view>);
+static_assert(std::ranges::borrowed_range<sys_string_builder::utf8_view>);
+static_assert(std::ranges::viewable_range<sys_string_builder::utf8_view>);
+
 TEST_CASE( "Builder basics", "[builder]") {
 
     CHECK(sys_string_builder().build() == S(""));
@@ -49,17 +77,25 @@ TEST_CASE( "Builder iteration", "[builder]") {
     
     CHECK(*builder.begin() == U'🪀');
     CHECK(*builder.rbegin() == U'🀁');
-    CHECK(std::distance(builder.begin(), builder.end()) == 7);
-    CHECK(std::distance(builder.rbegin(), builder.rend()) == 7);
+    CHECK(std::ranges::distance(builder.begin(), builder.end()) == 7);
+    CHECK(std::ranges::distance(builder.rbegin(), builder.rend()) == 7);
+
+    auto last = builder.begin();
+    while(last != builder.end())
+        ++last;
+
+    auto rlast = builder.rbegin();
+    while(rlast != builder.rend())
+        ++rlast;
     
-    CHECK(builder.begin().reverse() == builder.rend());
-    CHECK(builder.end().reverse() == builder.rbegin());
-    CHECK(builder.rbegin().reverse() == builder.end());
-    CHECK(builder.rend().reverse() == builder.begin());
+    CHECK(builder.reverse(builder.begin()) == rlast);
+    CHECK(builder.reverse(last) == builder.rbegin());
+    CHECK(builder.reverse(builder.rbegin()) == last);
+    CHECK(builder.reverse(rlast) == builder.begin());
     CHECK(builder.begin() == builder.cbegin());
-    CHECK(builder.end() == builder.cend());
+    //CHECK(builder.end() == builder.cend());
     CHECK(builder.rbegin() == builder.crbegin());
-    CHECK(builder.rend() == builder.crend());
+    //CHECK(builder.rend() == builder.crend());
 
 }
 
@@ -122,7 +158,7 @@ TEST_CASE( "Builder erase", "[builder]") {
     CHECK(builder.build() == S("🩳�𐊃𐜃𐤈🀁"));
     
     builder.append(u"🪀🩳�𐊃𐜃𐤈🀁");
-    it = builder.erase((++builder.rbegin()).reverse());
+    it = builder.erase(builder.reverse(++builder.rbegin()));
     CHECK(it == builder.end());
     CHECK(builder.build() == S("🪀🩳�𐊃𐜃𐤈"));
     

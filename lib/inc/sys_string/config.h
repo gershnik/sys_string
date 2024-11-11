@@ -8,8 +8,18 @@
 #ifndef HEADER_SYS_STRING_CONFIG_H_INCLUDED
 #define HEADER_SYS_STRING_CONFIG_H_INCLUDED
 
-#define SYS_STRING_USE_SPACESHIP_OPERATOR (__cpp_impl_three_way_comparison >= 201907)
-#define SYS_STRING_USE_CHAR8              (__cpp_char8_t >= 201811)
+#if __cplusplus < 202002L || (defined(_MSVC_LANG) && _MSVC_LANG < 202002L)
+    #error This library requires C++20 or above
+#endif
+
+#if __cpp_impl_three_way_comparison < 201907
+    #error This library requires your compiler to support three-way comparison
+#endif
+
+#if __cpp_char8_t < 201811
+    #error This library requires your compiler to support char8_t
+#endif
+
 
 
 #if (defined(__APPLE__) && defined(__MACH__))
@@ -80,45 +90,14 @@
     #include <version>
 #endif
 
-#define SYS_STRING_USE_SPAN               (__cpp_lib_span >= 202002)
-#define SYS_STRING_USE_STD_ENDIAN         (__cpp_lib_endian >= 201907)
-#define SYS_STRING_USE_RANGES             (__cpp_lib_ranges >= 201911)
-
-#if __cpp_lib_constexpr_algorithms >= 201806
-    #define SYS_STRING_CONSTEXPR_ALGO  constexpr
-#else
-    #define SYS_STRING_CONSTEXPR_ALGO
+#if __cpp_lib_endian < 201907
+    #error Your standard library does not support std::endian
 #endif
 
-#if SYS_STRING_USE_STD_ENDIAN
-
-    #include <bit>
-    namespace sysstr
-    {
-        using endian = std::endian; 
-    }
-
-#else
-
-    namespace sysstr
-    {
-        enum class endian
-        {
-        #ifdef _MSC_VER
-            little = 0,
-            big    = 1,
-            native = little
-        #elif defined(__BYTE_ORDER__)
-            little = __ORDER_LITTLE_ENDIAN__,
-            big    = __ORDER_BIG_ENDIAN__,
-            native = __BYTE_ORDER__
-        #else 
-            #error Please define byte order values for your compiler
-        #endif
-        };
-    }
-
+#if __cpp_lib_ranges < 201911
+    #error Your standard library does not support ranges
 #endif
+
 
 
 #endif

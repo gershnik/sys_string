@@ -57,9 +57,7 @@ namespace sysstr
     template<> struct utf_encoding_value<char>          { static constexpr utf_encoding value = utf8; };
     template<> struct utf_encoding_value<unsigned char> { static constexpr utf_encoding value = utf8; };
     template<> struct utf_encoding_value<signed char>   { static constexpr utf_encoding value = utf8; };
-    #if SYS_STRING_USE_CHAR8
     template<> struct utf_encoding_value<char8_t>       { static constexpr utf_encoding value = utf8; };
-    #endif
     template<> struct utf_encoding_value<char16_t>      { static constexpr utf_encoding value = utf16; };
     template<> struct utf_encoding_value<char32_t>      { static constexpr utf_encoding value = utf32; };
     #if SYS_STRING_WCHAR_T_IS_UTF16
@@ -68,21 +66,11 @@ namespace sysstr
 
     template<class T> constexpr utf_encoding utf_encoding_of = utf_encoding_value<std::remove_cv_t<T>>::value;
 
-    template<class T> struct has_utf_encoding_type          : public std::false_type {};
-    template<> struct has_utf_encoding_type<char>           : public std::true_type {};
-    template<> struct has_utf_encoding_type<unsigned char>  : public std::true_type {};
-    template<> struct has_utf_encoding_type<signed char>    : public std::true_type {};
-    #if SYS_STRING_USE_CHAR8
-    template<> struct has_utf_encoding_type<char8_t>        : public std::true_type {};
-    #endif
-    template<> struct has_utf_encoding_type<char16_t>       : public std::true_type {};
-    template<> struct has_utf_encoding_type<char32_t>       : public std::true_type {};
-    #if SYS_STRING_WCHAR_T_IS_UTF16
-    template<> struct has_utf_encoding_type<wchar_t>        : public std::true_type {};
-    #endif
-
-    template<class T> constexpr bool has_utf_encoding = has_utf_encoding_type<std::remove_cv_t<T>>::value;
-
+    template<class T> concept has_utf_encoding = requires {
+        utf_encoding_of<T>;
+    };
+    
+    
     template<utf_encoding Enc> struct utf_encoding_max_length;
     template<> struct utf_encoding_max_length<utf8>     { static constexpr size_t value = 4; };
     template<> struct utf_encoding_max_length<utf16>    { static constexpr size_t value = 2; };

@@ -22,21 +22,38 @@ static_assert(std::is_nothrow_destructible_v<sys_string>);
 static_assert(std::is_nothrow_swappable_v<sys_string>);
 static_assert(std::is_standard_layout_v<sys_string>);
 
-#if SYS_STRING_USE_SPACESHIP_OPERATOR
-    template<class T>
-    bool is_eq(T val)
-        { return std::partial_ordering(val) == 0; }
-    template<class T>
-    bool is_lt(T val)
-        { return std::partial_ordering(val) != 0; }
-#else
-    template<class T>
-    bool is_eq(T val)
-        { return val == 0; }
-    template<class T>
-    bool is_lt(T val)
-        { return val < 0; }
-#endif
+static_assert(std::ranges::random_access_range<sys_string::char_access>);
+static_assert(!std::ranges::view<sys_string::char_access>);
+static_assert(!std::ranges::borrowed_range<sys_string::char_access>);
+static_assert(!std::ranges::viewable_range<sys_string::char_access>);
+              
+static_assert(std::ranges::forward_range<sys_string::utf32_view>);
+static_assert(!std::ranges::bidirectional_range<sys_string::utf32_view>);
+static_assert(!std::ranges::common_range<sys_string::utf32_view>);
+static_assert(!std::ranges::view<sys_string::utf32_view>);
+static_assert(!std::ranges::borrowed_range<sys_string::utf32_view>);
+static_assert(!std::ranges::viewable_range<sys_string::utf32_view>);
+
+static_assert(std::ranges::forward_range<sys_string::utf16_view>);
+static_assert(!std::ranges::bidirectional_range<sys_string::utf16_view>);
+static_assert(!std::ranges::common_range<sys_string::utf16_view>);
+static_assert(!std::ranges::view<sys_string::utf16_view>);
+static_assert(!std::ranges::borrowed_range<sys_string::utf16_view>);
+static_assert(!std::ranges::viewable_range<sys_string::utf16_view>);
+
+static_assert(std::ranges::forward_range<sys_string::utf8_view>);
+static_assert(!std::ranges::bidirectional_range<sys_string::utf8_view>);
+static_assert(!std::ranges::common_range<sys_string::utf8_view>);
+static_assert(!std::ranges::view<sys_string::utf8_view>);
+static_assert(!std::ranges::borrowed_range<sys_string::utf8_view>);
+static_assert(!std::ranges::viewable_range<sys_string::utf8_view>);
+
+template<class T>
+bool is_eq(T val)
+    { return std::partial_ordering(val) == 0; }
+template<class T>
+bool is_lt(T val)
+    { return std::partial_ordering(val) != 0; }
 
 template<class CharT> const CharT * select([[maybe_unused]] const char * s8, 
                                             [[maybe_unused]] const char16_t * s16, 
@@ -92,7 +109,7 @@ TEST_CASE( "Iteration", "[general]" ) {
         
         converted.clear();
         sys_string::utf8_view view(str);
-        std::copy(view.rbegin(), view.rend(), std::back_inserter(converted));
+        std::ranges::copy(view.rbegin(), view.rend(), std::back_inserter(converted));
         CHECK(converted == std::string{expected.rbegin(), expected.rend()});
 
         converted.clear();
@@ -114,7 +131,7 @@ TEST_CASE( "Iteration", "[general]" ) {
         
         converted.clear();
         sys_string::utf16_view view(str);
-        std::copy(view.rbegin(), view.rend(), std::back_inserter(converted));
+        std::ranges::copy(view.rbegin(), view.rend(), std::back_inserter(converted));
         CHECK(converted == std::u16string{expected.rbegin(), expected.rend()});
 
         converted.clear();
@@ -137,7 +154,7 @@ TEST_CASE( "Iteration", "[general]" ) {
         
         converted.clear();
         sys_string::utf32_view view(str);
-        std::copy(view.rbegin(), view.rend(), std::back_inserter(converted));
+        std::ranges::copy(view.rbegin(), view.rend(), std::back_inserter(converted));
         CHECK(converted == std::u32string{expected.rbegin(), expected.rend()});
         
         converted.clear();
@@ -163,7 +180,7 @@ TEST_CASE( "Iteration", "[general]" ) {
         
         converted.clear();
         sys_string::char_access access(str);
-        std::copy(access.rbegin(), access.rend(), std::back_inserter(converted));
+        std::ranges::copy(access.rbegin(), access.rend(), std::back_inserter(converted));
         CHECK(converted == std::basic_string<sys_string::storage_type>{expected.rbegin(), expected.rend()});
         
         converted.clear();
@@ -316,13 +333,13 @@ TEST_CASE( "Split", "[general]" ) {
     CHECK(splitter(S("a"), S("")) == std::vector({S("a")}));
     CHECK(splitter(S("ab"), S("")) == std::vector({S("ab")}));
     
-    auto searcher = [] (sys_string::utf32_view::iterator str_start, sys_string::utf32_view::iterator str_end) noexcept {
+    auto searcher = [] (sys_string::utf32_view::iterator str_start, std::default_sentinel_t str_end) noexcept {
         
         constexpr char32_t seps[] = U"xyz";
         
-        auto found_it = std::find_first_of(str_start, str_end, std::begin(seps), std::end(seps));
+        auto found_it = std::ranges::find_first_of(str_start, str_end, std::begin(seps), std::end(seps));
         if (found_it == str_end)
-            return std::pair(str_end, str_end);
+            return std::pair(found_it, found_it);
         auto found_end = found_it;
         ++found_end;
         return std::pair(found_it, found_end);

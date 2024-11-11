@@ -32,7 +32,7 @@ set_target_properties(${LIBNAME} PROPERTIES
 
 target_compile_features(${LIBNAME} 
 PUBLIC 
-    cxx_std_17
+    cxx_std_20
 )
 
 target_compile_options(${LIBNAME} 
@@ -105,7 +105,7 @@ set(UTIL_FILES
     ${SRCDIR}/inc/sys_string/impl/util/util.h
     ${SRCDIR}/inc/sys_string/impl/util/char_buffer.h
     ${SRCDIR}/inc/sys_string/impl/util/generic_buffer.h
-    ${SRCDIR}/inc/sys_string/impl/util/cursor.h
+    ${SRCDIR}/inc/sys_string/impl/util/iter_util.h
     
 )
 source_group("Utils" FILES ${UTIL_FILES})

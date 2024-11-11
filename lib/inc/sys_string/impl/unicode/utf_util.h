@@ -9,7 +9,6 @@
 #define HEADER_SYS_STRING_UNICODE_UTF_UTIL_INCLUDED
 
 #include <sys_string/impl/util/util.h>
-#include <sys_string/impl/util/cursor.h>
 #include <sys_string/impl/unicode/utf_encoding.h>
 
 namespace sysstr
@@ -19,55 +18,55 @@ namespace sysstr
     class utf_converter
     {
     private:
-        template<class InCursor>
-        static void reading(InCursor & cursor) noexcept(noexcept(*cursor) && noexcept(++cursor) && noexcept(bool(cursor)));
-        template<class InIt, class EndIt>
-        static void reading(InIt first, EndIt last) noexcept(noexcept(*first++) && noexcept(first != last));
-        template<class OutIt>
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+        static void reading(It first, EndIt last) noexcept(noexcept(*first++) && noexcept(first != last));
+        template<std::ranges::forward_range Range>
+        static void reading(Range && range) noexcept(noexcept(reading(std::begin(range), std::end(range))));
+        template<std::output_iterator<utf_char_of<To>> OutIt>
         static void writing(OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<To>()));
         template<class Func>
         static void applying(Func func) noexcept(noexcept(func(utf_char_of<To>())));
     public:
-        template<class InCursor, class Func>
-        static Func for_each_converted(InCursor & cursor, Func func) noexcept(noexcept(reading(cursor)) && noexcept(applying(func)));
-        
-        template<class InCursor, class OutIt>
+        template<std::ranges::forward_range Range, class Func>
+        static Func for_each_converted(Range && range, Func func) noexcept(noexcept(reading(std::forward<Range>(range))) && noexcept(applying(func)));
+
+        template<std::ranges::forward_range Range, std::output_iterator<utf_char_of<To>> OutIt>
         SYS_STRING_FORCE_INLINE
-        static OutIt convert(InCursor & cursor, OutIt dest) noexcept(noexcept(reading(cursor)) && noexcept(writing(dest)))
+        static OutIt convert(Range && range, OutIt dest) noexcept(noexcept(reading(std::forward<Range>(range))) && noexcept(writing(dest)))
         {
-            for_each_converted(cursor, [&](auto c) { *dest++ = c; });
+            for_each_converted(std::forward<Range>(range), [&](auto c) { *dest++ = c; });
             return dest;
         }
-        
-        template<class InCursor>
+
+        template<std::ranges::forward_range Range>
         SYS_STRING_FORCE_INLINE
-        static size_t converted_length(InCursor & cursor) noexcept(noexcept(reading(cursor)))
+        static size_t converted_length(Range && range) noexcept(noexcept(reading(std::forward<Range>(range))))
         {
             size_t ret = 0;
-            for_each_converted(cursor, [&](auto) { ++ret; });
+            for_each_converted(std::forward<Range>(range), [&](auto) { ++ret; });
             return ret;
         }
         
-        template<class InIt, class EndIt, class Func>
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt, class Func>
         SYS_STRING_FORCE_INLINE
-        static Func for_each_converted(InIt first, EndIt last, Func func) noexcept(noexcept(reading(first, last)) && noexcept(applying(func)))
+        static Func for_each_converted(It first, EndIt last, Func func) noexcept(noexcept(reading(first, last)) && noexcept(applying(func)))
         {
-            util::iter_cursor<InIt, InIt, util::cursor_direction::forward> cursor(first, last, first);
-            return for_each_converted(cursor, func);
+            using range_t = std::ranges::subrange<It, EndIt>;
+            return for_each_converted(range_t(first, last), func);
         }
         
         
-        template<class InIt, class EndIt, class OutIt>
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt, std::output_iterator<utf_char_of<To>> OutIt>
         SYS_STRING_FORCE_INLINE
-        static OutIt convert(InIt first, EndIt last, OutIt dest) noexcept(noexcept(reading(first, last)) && noexcept(writing(dest)))
+        static OutIt convert(It first, EndIt last, OutIt dest) noexcept(noexcept(reading(first, last)) && noexcept(writing(dest)))
         {
             for_each_converted(first, last, [&](auto c) { *dest++ = c; });
             return dest;
         }
         
-        template<class InIt, class EndIt>
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt>
         SYS_STRING_FORCE_INLINE
-        static size_t converted_length(InIt first, EndIt last) noexcept(noexcept(reading(first, last)))
+        static size_t converted_length(It first, EndIt last) noexcept(noexcept(reading(first, last)))
         {
             size_t ret = 0;
             for_each_converted(first, last, [&](auto) { ++ret; });
@@ -80,33 +79,32 @@ namespace sysstr
     class utf32_input
     {
     private:
-        template<class InCursor>
-        static void reading(InCursor & cursor) noexcept(noexcept(*cursor) && noexcept(++cursor) && noexcept(bool(cursor)));
-        template<class InIt, class EndIt>
-        static void reading(InIt first, EndIt last) noexcept(noexcept(*first++) && noexcept(first != last));
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+        static void reading(It first, EndIt last) noexcept(noexcept(*first++) && noexcept(first != last));
+        template<std::ranges::forward_range Range>
+        static void reading(Range && range) noexcept(noexcept(reading(std::begin(range), std::end(range))));
 
     public:
-        template<class InCursor>
-        static char32_t read(InCursor & cursor) noexcept(noexcept(reading(cursor)));
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+        static char32_t read(It & first, EndIt last) noexcept(noexcept(reading(first,last)));
 
-        template<class InCursor>
-        static char32_t read_reversed(InCursor & cursor) noexcept(noexcept(reading(cursor)));
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+        static char32_t read_reversed(It & first, EndIt last) noexcept(noexcept(reading(first,last)));
 
-        template<class InCursor, class Sink>
+        template<std::ranges::forward_range Range, class Sink>
         SYS_STRING_FORCE_INLINE
-        static Sink read(InCursor & cursor, Sink sink) noexcept(noexcept(reading(cursor)) && noexcept(sink(char32_t())))
+        static Sink read(Range && range, Sink sink) noexcept(noexcept(reading(std::forward<Range>(range))) && noexcept(sink(char32_t())))
         {
-            while(cursor)
-                sink(read(cursor));
-            return sink;
+            return read(std::begin(std::forward<Range>(range)), std::end(std::forward<Range>(range)), sink);
         }
         
-        template<class InIt, class EndIt, class Sink>
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt, class Sink>
         SYS_STRING_FORCE_INLINE
-        static Sink read(InIt first, EndIt last, Sink sink) noexcept(noexcept(reading(first,last)) && noexcept(sink(char32_t())))
+        static Sink read(It first, EndIt last, Sink sink) noexcept(noexcept(reading(first,last)) && noexcept(sink(char32_t())))
         {
-            util::iter_cursor<InIt, EndIt, util::cursor_direction::forward> cursor(first, last, first);
-            return read(cursor, sink);
+            while(first != last)
+                sink(read(first, last));
+            return sink;
         }
     };
 
@@ -160,115 +158,114 @@ namespace sysstr
     };
 
     template<utf_encoding From, utf_encoding To>
-    template<class InCursor, class Func>
+    template<std::ranges::forward_range Range, class Func>
     SYS_STRING_FORCE_INLINE
-    Func utf_converter<From, To>::for_each_converted(InCursor & cursor, Func func) noexcept(noexcept(reading(cursor)) && noexcept(applying(func)))
+    Func utf_converter<From, To>::for_each_converted(Range && range, Func func) 
+        noexcept(noexcept(reading(std::forward<Range>(range))) && noexcept(applying(func)))
     {
-        return utf32_input<From>::read(cursor, utf32_output<To>::make_writer(func)).sink;
+        return utf32_input<From>::read(std::forward<Range>(range), utf32_output<To>::make_writer(func)).sink;
     }
 
 
     //MARK:- UTF-16
 
-    #ifndef __INTELLISENSE__
     template<>
-    template<class InCursor>
+    template<std::forward_iterator It, std::sentinel_for<It> EndIt>
     SYS_STRING_FORCE_INLINE
-    char32_t utf32_input<utf16>::read(InCursor & cursor) noexcept(noexcept(reading(cursor)))
+    char32_t utf32_input<utf16>::read(It & first, EndIt last) noexcept(noexcept(reading(first,last)))
     {
         utf_codepoint_decoder<utf16> decoder;
 
-        decoder.put(uint16_t(*cursor));
-        ++cursor;
+        decoder.put(uint16_t(*first));
+        ++first;
         if (decoder.done())
             return char32_t{decoder.value()};
 
-        if (decoder.error() || !cursor)
+        if (decoder.error() || first == last)
             return char32_t{U'\uFFFD'};
 
-        decoder.put(uint16_t(*cursor));
+        decoder.put(uint16_t(*first));
         if (!decoder.done())
             return char32_t{U'\uFFFD'};
-        ++cursor;
+        ++first;
 
         return char32_t{decoder.value()};
     }
 
     template<>
-    template<class InCursor>
+    template<std::forward_iterator It, std::sentinel_for<It> EndIt>
     SYS_STRING_FORCE_INLINE
-    char32_t utf32_input<utf16>::read_reversed(InCursor & cursor) noexcept(noexcept(reading(cursor)))
+    char32_t utf32_input<utf16>::read_reversed(It & first, EndIt last) noexcept(noexcept(reading(first, last)))
     {
         utf_reverse_codepoint_decoder<utf16> decoder;
 
-        decoder.put(uint16_t(*cursor));
-        ++cursor;
+        decoder.put(uint16_t(*first));
+        ++first;
         if (decoder.done())
             return char32_t{decoder.value()};
 
-        if (decoder.error() || !cursor)
+        if (decoder.error() || first == last)
             return char32_t{U'\uFFFD'};
 
-        decoder.put(uint16_t(*cursor));
+        decoder.put(uint16_t(*first));
         if (!decoder.done())
             return char32_t{U'\uFFFD'};
-        ++cursor;
+        ++first;
 
         return char32_t{decoder.value()};
     }
-    #endif
 
     //MARK:- UTF-8
 
-    #ifndef __INTELLISENSE__
     template<>
-    template<class InCursor>
+    template<std::forward_iterator It, std::sentinel_for<It> EndIt>
     SYS_STRING_FORCE_INLINE
-    char32_t utf32_input<utf8>::read(InCursor & cursor) noexcept(noexcept(reading(cursor)))
+    char32_t utf32_input<utf8>::read(It & first, EndIt last) noexcept(noexcept(reading(first, last)))
     {
-        uint8_t byte = uint8_t(*cursor);
-        ++cursor;
+        uint8_t byte = uint8_t(*first);
+        ++first;
         if (byte <= 0x7f)
             return char32_t{byte};
 
         utf_codepoint_decoder<utf8> decoder;
         decoder.put(byte);
-        if (decoder.error() || !cursor)
+        if (decoder.error() || first == last)
             return char32_t{U'\uFFFD'};
 
         for ( ; ; )
         {
-            byte = uint8_t(*cursor);
+            byte = uint8_t(*first);
             decoder.put(byte);
             if (decoder.error())
                 return char32_t{U'\uFFFD'};
-            ++cursor;
+            ++first;
             if (decoder.done())
                 return char32_t{decoder.value()};
-            if (!cursor)
+            if (first == last)
                 return char32_t{U'\uFFFD'};
         }
     }
 
     template<>
-    template<class InCursor>
+    template<std::forward_iterator It, std::sentinel_for<It> EndIt>
     SYS_STRING_FORCE_INLINE
-    char32_t utf32_input<utf8>::read_reversed(InCursor & cursor) noexcept(noexcept(reading(cursor)))
+    char32_t utf32_input<utf8>::read_reversed(It & first, EndIt last) noexcept(noexcept(reading(first, last)))
     {
-        uint8_t byte = uint8_t(*cursor);
-        ++cursor;
+        uint8_t byte = uint8_t(*first);
+        ++first;
         if (byte <= 0x7f)
             return char32_t{byte};
         
         utf_reverse_codepoint_decoder<utf8> decoder;
         decoder.put(byte);
-        if (decoder.error() || !cursor)
+        if (decoder.error() || first == last)
             return char32_t{U'\uFFFD'};
 
-        for (uint8_t rewind_count = 1; ; ++rewind_count)
+        It rewind_point = first;
+        for ( ; ; )
         {
-            byte = uint8_t(*cursor);
-            ++cursor;
+            byte = uint8_t(*first);
+            ++first;
             decoder.put(byte);
 
             if (decoder.done())
@@ -276,38 +273,36 @@ namespace sysstr
             
             if (decoder.error())
             { 
-                cursor -= rewind_count;
+                first = std::move(rewind_point);
                 return char32_t{U'\uFFFD'};
             }
             
-            if (!cursor)
+            if (first == last)
                 return char32_t{u'\uFFFD'};
         }
     }
-    #endif
 
     //MARK:- UTF-32
 
     
-    #ifndef __INTELLISENSE__
     template<>
-    template<class InCursor>
+    template<std::forward_iterator It, std::sentinel_for<It> EndIt>
     SYS_STRING_FORCE_INLINE
-    char32_t utf32_input<utf32>::read(InCursor & cursor) noexcept(noexcept(reading(cursor)))
+    char32_t utf32_input<utf32>::read(It & first, EndIt last) noexcept(noexcept(reading(first, last)))
     {
         utf_codepoint_decoder<utf32> decoder;
-        bool res = decoder.put(uint32_t(*cursor));
-        ++cursor;
+        bool res = decoder.put(uint32_t(*first));
+        ++first;
         return res ? char32_t{decoder.value()} : U'\uFFFD';
     }
 
     template<>
-    template<class InCursor>
-    char32_t utf32_input<utf32>::read_reversed(InCursor & cursor) noexcept(noexcept(reading(cursor)))
+    template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+    SYS_STRING_FORCE_INLINE
+    char32_t utf32_input<utf32>::read_reversed(It & first, EndIt last) noexcept(noexcept(reading(first, last)))
     {
-        return utf32_input::read(cursor);
+        return utf32_input::read(first, last);
     }
-    #endif
 }
 
 #endif 

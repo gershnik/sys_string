@@ -20,7 +20,7 @@ namespace sysstr::util
         using size_type = size_t;
         using hash_type = unsigned;
         
-        static constexpr size_type max_size = std::numeric_limits<ssize_t>::max() / sizeof(char16_t);
+        static constexpr size_type max_size = std::numeric_limits<ptrdiff_t>::max() / sizeof(char16_t);
     };
 
     template<size_t N>

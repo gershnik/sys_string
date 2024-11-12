@@ -107,7 +107,7 @@ namespace sysstr::util::generic
         static constexpr uintptr_t dynamic_flag = 0b01;
         using dynamic_type = dynamic_buffer<CharT, SizeT>;
     public:
-        static constexpr SizeT max_size = SizeT(std::numeric_limits<SizeT>::max() - sizeof(dynamic_type)) / sizeof(CharT);
+        static constexpr SizeT max_size = SizeT(std::numeric_limits<std::make_signed_t<SizeT>>::max() - sizeof(dynamic_type)) / sizeof(CharT);
     public:
         buffer() noexcept
         {

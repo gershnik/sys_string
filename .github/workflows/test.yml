@@ -26,8 +26,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - {os: macos-latest, version: 16 }
-        - {os: macos-latest, version: "15.4" }
+        - {os: macos-15, version: 16 }
+        - {os: macos-14, version: "15.4" }
         
         - os: windows-latest
         

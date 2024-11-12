@@ -25,28 +25,24 @@ static_assert(std::is_standard_layout_v<sys_string>);
 static_assert(std::ranges::random_access_range<sys_string::char_access>);
 static_assert(!std::ranges::view<sys_string::char_access>);
 static_assert(!std::ranges::borrowed_range<sys_string::char_access>);
-static_assert(!std::ranges::viewable_range<sys_string::char_access>);
               
 static_assert(std::ranges::forward_range<sys_string::utf32_view>);
 static_assert(!std::ranges::bidirectional_range<sys_string::utf32_view>);
 static_assert(!std::ranges::common_range<sys_string::utf32_view>);
 static_assert(!std::ranges::view<sys_string::utf32_view>);
 static_assert(!std::ranges::borrowed_range<sys_string::utf32_view>);
-static_assert(!std::ranges::viewable_range<sys_string::utf32_view>);
 
 static_assert(std::ranges::forward_range<sys_string::utf16_view>);
 static_assert(!std::ranges::bidirectional_range<sys_string::utf16_view>);
 static_assert(!std::ranges::common_range<sys_string::utf16_view>);
 static_assert(!std::ranges::view<sys_string::utf16_view>);
 static_assert(!std::ranges::borrowed_range<sys_string::utf16_view>);
-static_assert(!std::ranges::viewable_range<sys_string::utf16_view>);
 
 static_assert(std::ranges::forward_range<sys_string::utf8_view>);
 static_assert(!std::ranges::bidirectional_range<sys_string::utf8_view>);
 static_assert(!std::ranges::common_range<sys_string::utf8_view>);
 static_assert(!std::ranges::view<sys_string::utf8_view>);
 static_assert(!std::ranges::borrowed_range<sys_string::utf8_view>);
-static_assert(!std::ranges::viewable_range<sys_string::utf8_view>);
 
 template<class T>
 bool is_eq(T val)

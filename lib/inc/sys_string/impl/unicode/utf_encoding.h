@@ -64,11 +64,11 @@ namespace sysstr
     template<> struct utf_encoding_value<wchar_t>       { static constexpr utf_encoding value = utf16; };
     #endif
 
-    template<class T> constexpr utf_encoding utf_encoding_of = utf_encoding_value<std::remove_cv_t<T>>::value;
-
     template<class T> concept has_utf_encoding = requires {
-        utf_encoding_of<T>;
+        utf_encoding_value<std::remove_cv_t<T>>::value;
     };
+
+    template<has_utf_encoding T> constexpr utf_encoding utf_encoding_of = utf_encoding_value<std::remove_cv_t<T>>::value;
     
     
     template<utf_encoding Enc> struct utf_encoding_max_length;

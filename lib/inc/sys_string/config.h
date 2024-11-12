@@ -8,7 +8,7 @@
 #ifndef HEADER_SYS_STRING_CONFIG_H_INCLUDED
 #define HEADER_SYS_STRING_CONFIG_H_INCLUDED
 
-#if __cplusplus < 202002L || (defined(_MSVC_LANG) && _MSVC_LANG < 202002L)
+#if __cplusplus < 202002L && _MSVC_LANG < 202002L
     #error This library requires C++20 or above
 #endif
 

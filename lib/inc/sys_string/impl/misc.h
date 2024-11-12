@@ -207,17 +207,19 @@ namespace sysstr
     }
 
     template<class Storage>
-    template<class Search, std::output_iterator<sys_string_t<Storage>> OutIt>
+    template<class Search, class OutIt>
     auto sys_string_t<Storage>::split(OutIt dest, Search search) const -> OutIt
-    requires(std::is_invocable_v<Search, typename utf32_view::iterator, std::default_sentinel_t>)
+    requires(std::output_iterator<OutIt, sys_string_t> &&
+             std::is_invocable_v<Search, typename sys_string_t::utf32_view::iterator, std::default_sentinel_t>)
     {
         utf32_view view(*this);
         return util::split<sys_string_t<Storage>>(view.begin(), view.end(), dest, search);
     }
 
     template<class Storage>
-    template<sys_string_or_char<Storage> StringOrChar, std::output_iterator<sys_string_t<Storage>> OutIt>
+    template<sys_string_or_char<Storage> StringOrChar, class OutIt>
     auto sys_string_t<Storage>::split(OutIt dest, const StringOrChar & sep, size_t max_split) const -> OutIt
+    requires(std::output_iterator<OutIt, sys_string_t>)
     {
         util::string_or_char32_char_access<Storage, StringOrChar> sep_access(sep);
         if (!sep_access.is_valid() || sep_access.size() == 0)

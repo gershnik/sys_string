@@ -217,12 +217,14 @@ namespace sysstr
         template<std::predicate<char32_t> Pred = isspace>
         auto rtrim(Pred pred = Pred()) const -> sys_string_t;
 
-        template<class Search, std::output_iterator<sys_string_t<Storage>> OutIt>
+        template<class Search, class OutIt>
         auto split(OutIt dest, Search search) const -> OutIt
-        requires(std::is_invocable_v<Search, typename utf32_view::iterator, std::default_sentinel_t>);
+        requires(std::output_iterator<OutIt, sys_string_t> &&
+                 std::is_invocable_v<Search, typename sys_string_t::utf32_view::iterator, std::default_sentinel_t>);
 
-        template<sys_string_or_char<Storage> StringOrChar, std::output_iterator<sys_string_t<Storage>> OutIt>
-        auto split(OutIt dest, const StringOrChar & sep, size_t max_split = std::numeric_limits<size_t>::max()) const -> OutIt;
+        template<sys_string_or_char<Storage> StringOrChar, class OutIt>
+        auto split(OutIt dest, const StringOrChar & sep, size_t max_split = std::numeric_limits<size_t>::max()) const -> OutIt
+        requires(std::output_iterator<OutIt, sys_string_t>);
 
         template<std::forward_iterator FwdIt>
         auto join(FwdIt first, FwdIt last) const -> sys_string_t;

@@ -121,38 +121,23 @@ namespace sysstr
             SYS_STRING_FORCE_INLINE
             constexpr void operator()(char32_t value) noexcept(noexcept(sink(utf_char_of<To>())))
             {
-                utf_codepoint_encoder<To, false> encoder;
-                encoder.put(value);
-                for(auto first = encoder.begin(), last = encoder.end(); first != last; ++first)
-                    sink(*first);
+                if constexpr (To != utf32)
+                {
+                    utf_codepoint_encoder<To, false> encoder;
+                    encoder.put(value);
+                    for(auto first = encoder.begin(), last = encoder.end(); first != last; ++first)
+                        sink(*first);
+                }
+                else 
+                {
+                    sink(value);
+                }
             }
         };
         //Moronic GCC refuses to accept deduction guide not on namespace level
         //https://gcc.gnu.org/bugzilla/show_bug.cgi?id=79501
         //template<class Sink> writer(Sink sink) -> writer<Sink>;
         
-        template<class Sink> static auto make_writer(Sink sink) -> writer<Sink>
-            { return writer<Sink>(sink); }
-    };
-
-    template<>
-    struct utf32_output<utf32>
-    {
-        template<class Sink>
-        struct writer
-        {
-            Sink sink;
-
-            writer(Sink s) : sink(s) {}
-            
-            constexpr void operator()(char32_t value) noexcept(noexcept(sink(value)))
-            {
-                sink(value);
-            }
-        };
-        //Moronic GCC refuses to accept deduction guide not on namespace level
-        //https://gcc.gnu.org/bugzilla/show_bug.cgi?id=79501
-        //template<class Sink> writer(Sink sink) -> writer<Sink>;
         template<class Sink> static auto make_writer(Sink sink) -> writer<Sink>
             { return writer<Sink>(sink); }
     };
@@ -167,141 +152,126 @@ namespace sysstr
     }
 
 
-    //MARK:- UTF-16
-
-    template<>
+    template<utf_encoding From>
     template<std::forward_iterator It, std::sentinel_for<It> EndIt>
     SYS_STRING_FORCE_INLINE
-    char32_t utf32_input<utf16>::read(It & first, EndIt last) noexcept(noexcept(reading(first,last)))
+    char32_t utf32_input<From>::read(It & first, EndIt last) noexcept(noexcept(reading(first,last)))
     {
-        utf_codepoint_decoder<utf16> decoder;
-
-        decoder.put(uint16_t(*first));
-        ++first;
-        if (decoder.done())
-            return char32_t{decoder.value()};
-
-        if (decoder.error() || first == last)
-            return char32_t{U'\uFFFD'};
-
-        decoder.put(uint16_t(*first));
-        if (!decoder.done())
-            return char32_t{U'\uFFFD'};
-        ++first;
-
-        return char32_t{decoder.value()};
-    }
-
-    template<>
-    template<std::forward_iterator It, std::sentinel_for<It> EndIt>
-    SYS_STRING_FORCE_INLINE
-    char32_t utf32_input<utf16>::read_reversed(It & first, EndIt last) noexcept(noexcept(reading(first, last)))
-    {
-        utf_reverse_codepoint_decoder<utf16> decoder;
-
-        decoder.put(uint16_t(*first));
-        ++first;
-        if (decoder.done())
-            return char32_t{decoder.value()};
-
-        if (decoder.error() || first == last)
-            return char32_t{U'\uFFFD'};
-
-        decoder.put(uint16_t(*first));
-        if (!decoder.done())
-            return char32_t{U'\uFFFD'};
-        ++first;
-
-        return char32_t{decoder.value()};
-    }
-
-    //MARK:- UTF-8
-
-    template<>
-    template<std::forward_iterator It, std::sentinel_for<It> EndIt>
-    SYS_STRING_FORCE_INLINE
-    char32_t utf32_input<utf8>::read(It & first, EndIt last) noexcept(noexcept(reading(first, last)))
-    {
-        uint8_t byte = uint8_t(*first);
-        ++first;
-        if (byte <= 0x7f)
-            return char32_t{byte};
-
-        utf_codepoint_decoder<utf8> decoder;
-        decoder.put(byte);
-        if (decoder.error() || first == last)
-            return char32_t{U'\uFFFD'};
-
-        for ( ; ; )
+        if constexpr (From == utf8) 
         {
-            byte = uint8_t(*first);
-            decoder.put(byte);
-            if (decoder.error())
-                return char32_t{U'\uFFFD'};
+            uint8_t byte = uint8_t(*first);
             ++first;
-            if (decoder.done())
-                return char32_t{decoder.value()};
-            if (first == last)
-                return char32_t{U'\uFFFD'};
-        }
-    }
+            if (byte <= 0x7f)
+                return char32_t{byte};
 
-    template<>
-    template<std::forward_iterator It, std::sentinel_for<It> EndIt>
-    SYS_STRING_FORCE_INLINE
-    char32_t utf32_input<utf8>::read_reversed(It & first, EndIt last) noexcept(noexcept(reading(first, last)))
-    {
-        uint8_t byte = uint8_t(*first);
-        ++first;
-        if (byte <= 0x7f)
-            return char32_t{byte};
-        
-        utf_reverse_codepoint_decoder<utf8> decoder;
-        decoder.put(byte);
-        if (decoder.error() || first == last)
-            return char32_t{U'\uFFFD'};
-
-        It rewind_point = first;
-        for ( ; ; )
-        {
-            byte = uint8_t(*first);
-            ++first;
+            utf_codepoint_decoder<utf8> decoder;
             decoder.put(byte);
-
-            if (decoder.done())
-                return char32_t{decoder.value()};
-            
-            if (decoder.error())
-            { 
-                first = std::move(rewind_point);
+            if (decoder.error() || first == last)
                 return char32_t{U'\uFFFD'};
+
+            for ( ; ; )
+            {
+                byte = uint8_t(*first);
+                decoder.put(byte);
+                if (decoder.error())
+                    return char32_t{U'\uFFFD'};
+                ++first;
+                if (decoder.done())
+                    return char32_t{decoder.value()};
+                if (first == last)
+                    return char32_t{U'\uFFFD'};
             }
-            
-            if (first == last)
-                return char32_t{u'\uFFFD'};
         }
+        else if constexpr (From == utf16) 
+        {
+            utf_codepoint_decoder<utf16> decoder;
+
+            decoder.put(uint16_t(*first));
+            ++first;
+            if (decoder.done())
+                return char32_t{decoder.value()};
+
+            if (decoder.error() || first == last)
+                return char32_t{U'\uFFFD'};
+
+            decoder.put(uint16_t(*first));
+            if (!decoder.done())
+                return char32_t{U'\uFFFD'};
+            ++first;
+
+            return char32_t{decoder.value()};
+        } 
+        else if constexpr (From == utf32)
+        {
+            utf_codepoint_decoder<utf32> decoder;
+            bool res = decoder.put(uint32_t(*first));
+            ++first;
+            return res ? char32_t{decoder.value()} : U'\uFFFD';
+        }
+
+
     }
 
-    //MARK:- UTF-32
-
-    
-    template<>
+    template<utf_encoding From>
     template<std::forward_iterator It, std::sentinel_for<It> EndIt>
     SYS_STRING_FORCE_INLINE
-    char32_t utf32_input<utf32>::read(It & first, EndIt last) noexcept(noexcept(reading(first, last)))
+    char32_t utf32_input<From>::read_reversed(It & first, EndIt last) noexcept(noexcept(reading(first, last)))
     {
-        utf_codepoint_decoder<utf32> decoder;
-        bool res = decoder.put(uint32_t(*first));
-        ++first;
-        return res ? char32_t{decoder.value()} : U'\uFFFD';
-    }
+        if constexpr (From == utf8)
+        {
+            uint8_t byte = uint8_t(*first);
+            ++first;
+            if (byte <= 0x7f)
+                return char32_t{byte};
+            
+            utf_reverse_codepoint_decoder<utf8> decoder;
+            decoder.put(byte);
+            if (decoder.error() || first == last)
+                return char32_t{U'\uFFFD'};
 
-    template<>
-    template<std::forward_iterator It, std::sentinel_for<It> EndIt>
-    SYS_STRING_FORCE_INLINE
-    char32_t utf32_input<utf32>::read_reversed(It & first, EndIt last) noexcept(noexcept(reading(first, last)))
-    {
-        return utf32_input::read(first, last);
+            It rewind_point = first;
+            for ( ; ; )
+            {
+                byte = uint8_t(*first);
+                ++first;
+                decoder.put(byte);
+
+                if (decoder.done())
+                    return char32_t{decoder.value()};
+                
+                if (decoder.error())
+                { 
+                    first = std::move(rewind_point);
+                    return char32_t{U'\uFFFD'};
+                }
+                
+                if (first == last)
+                    return char32_t{u'\uFFFD'};
+            }
+        }
+        else if constexpr (From == utf16)
+        {
+            utf_reverse_codepoint_decoder<utf16> decoder;
+
+            decoder.put(uint16_t(*first));
+            ++first;
+            if (decoder.done())
+                return char32_t{decoder.value()};
+
+            if (decoder.error() || first == last)
+                return char32_t{U'\uFFFD'};
+
+            decoder.put(uint16_t(*first));
+            if (!decoder.done())
+                return char32_t{U'\uFFFD'};
+            ++first;
+
+            return char32_t{decoder.value()};
+        }
+        else if constexpr (From == utf32)
+        {
+            return utf32_input::read(first, last);
+        }
     }
 }
 

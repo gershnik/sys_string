@@ -23,25 +23,6 @@ namespace sysstr::util
         { return iter_direction(!bool(dir)); }
 
     
-//    template<class Container>
-//    class fixed_insert_iterator : private std::insert_iterator<Container> 
-//    {
-//    private:
-//        using super = std::insert_iterator<Container>;
-//    public:
-//        using typename super::difference_type;
-//
-//        using super::insert_iterator;
-//        using super::iter;
-//        using super::operator*;
-//
-//        constexpr fixed_insert_iterator & operator++()
-//            { return static_cast<fixed_insert_iterator &>(super::operator++()); }
-//
-//        constexpr fixed_insert_iterator & operator++( int )
-//            { return static_cast<fixed_insert_iterator &>(super::operator++(int{})); }
-//    };
-    
     template<class T, class Base>
     concept reverse_iterator_of =
         std::input_iterator<T> &&

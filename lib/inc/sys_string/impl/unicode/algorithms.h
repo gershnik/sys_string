@@ -28,7 +28,7 @@ namespace sysstr
     {
         static constexpr auto max_output_length = util::unicode::mapper::max_mapped_length;
         
-        template<class OutIt>
+        template<std::output_iterator<utf_char_of<OutEnc>> OutIt>
         auto operator()(char32_t c, OutIt dest) const noexcept(noexcept(*dest++ = utf_char_of<OutEnc>())) -> OutIt
         {
             return util::unicode::mapper::case_fold.map_char<OutEnc>(c, dest);
@@ -40,11 +40,11 @@ namespace sysstr
         class sigma_tolower
         {
         public:
-            template<class Range>
+            template<ranges::reversible_range Range>
             auto operator()(const Range & range, 
                             std::ranges::iterator_t<Range> where) const noexcept -> char32_t
             {
-                auto reversed = range.reverse(where);
+                auto reversed = ranges::make_reverse_iterator(range, where);
                 if (any_non_cased_then_cased(reversed, std::rend(range)))
                 {
                     ++where;
@@ -75,7 +75,7 @@ namespace sysstr
     template<utf_encoding OutEnc>
     struct tolower
     {
-        template<class Range, std::output_iterator<utf_char_of<OutEnc>> OutIt>
+        template<ranges::reversible_range Range, std::output_iterator<utf_char_of<OutEnc>> OutIt>
         inline auto operator()(const Range & range, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<OutEnc>())) -> OutIt
         {
             using namespace util::unicode;
@@ -106,7 +106,7 @@ namespace sysstr
     template<utf_encoding OutEnc>
     struct toupper
     {
-        template<class Range, std::output_iterator<utf_char_of<OutEnc>> OutIt>
+        template<ranges::reversible_range Range, std::output_iterator<utf_char_of<OutEnc>> OutIt>
         inline auto operator()(const Range & range, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<OutEnc>())) -> OutIt
         {
             using namespace util::unicode;

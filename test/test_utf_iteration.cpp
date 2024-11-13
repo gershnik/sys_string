@@ -680,5 +680,19 @@ TEST_CASE( "UTF32 Iteration on UTF32 sequence", "[utf_iteration]") {
     check_iteration<utf32, utf32>(U"\x110000""a", U"\uFFFDa"); //too large + good
 }
 
+TEST_CASE( "Ranges", "[utf_iteration]" ) {
+
+#if __cpp_lib_ranges >= 202202L
+    CHECK(std::ranges::equal(as_utf32(std::vector({'a', 'b', 'c'})), std::array{U'a', U'b', U'c'}));
+    CHECK(std::ranges::equal(std::vector({'a', 'b', 'c'}) | as_utf32, std::array{U'a', U'b', U'c'}));
+
+    CHECK(std::ranges::equal(as_utf16(std::vector({'a', 'b', 'c'})), std::array{u'a', u'b', u'c'}));
+    CHECK(std::ranges::equal(std::vector({'a', 'b', 'c'}) | as_utf16, std::array{u'a', u'b', u'c'}));
+
+    CHECK(std::ranges::equal(as_utf8(std::vector({u'a', u'b', u'c'})), std::array{'a', 'b', 'c'}));
+    CHECK(std::ranges::equal(std::vector({u'a', u'b', u'c'}) | as_utf8, std::array{'a', 'b', 'c'}));
+#endif
+}
+
 
 

@@ -11,6 +11,77 @@
 #include <sys_string/config.h>
 
 #include <iterator>
+#include <ranges>
+
+namespace sysstr::ranges //non-standard extensions to std::ranges
+{
+    template<class T, class Base>
+    concept reverse_iterator_of =
+        std::input_iterator<T> &&
+        std::input_iterator<Base> &&
+        std::is_constructible_v<T, Base> &&
+    requires(T t) {
+      
+        { t.base() } -> std::same_as<Base>;
+    };
+
+    template<std::ranges::range R>
+    using reverse_iterator_t = decltype(std::ranges::rbegin(std::declval<R&>()));
+    template<std::ranges::range R>
+    using const_reverse_iterator_t = decltype(std::ranges::crbegin(std::declval<R&>()));
+    template<std::ranges::range R>
+    using reverse_sentinel_t = decltype(std::ranges::rend(std::declval<R&>()));
+    template<std::ranges::range R>
+    using const_reverse_sentinel_t = decltype(std::ranges::crend(std::declval<R&>()));
+
+    template<class R>
+    concept reverse_traversable_range = std::ranges::range<R> && requires(R & r) {
+        std::ranges::rbegin(r);
+        std::ranges::rend(r);
+        std::ranges::crbegin(r);
+        std::ranges::crend(r);
+    };
+
+    template<class R>
+    concept common_reverse_traversable_range = reverse_traversable_range<R> && 
+                                                std::ranges::common_range<R> &&
+                                                std::same_as<reverse_iterator_t<R>, reverse_sentinel_t<R>>;
+
+    template<class R>
+    concept standard_reverse_traversable_range = common_reverse_traversable_range<R> &&
+                                            reverse_iterator_of<reverse_iterator_t<R>, std::ranges::iterator_t<R>>;
+
+    
+    template<class R>
+    concept custom_reverse_traversable_range = reverse_traversable_range<R> && requires(R & r) 
+    {
+        { r.reverse(std::declval<std::ranges::iterator_t<R>>()) } -> std::same_as<reverse_iterator_t<R>>;
+        { r.reverse(std::declval<reverse_iterator_t<R>>()) } -> std::same_as<std::ranges::iterator_t<R>>;
+    };
+
+
+    template<standard_reverse_traversable_range R>
+    decltype(auto) make_reverse_iterator(R && /*range*/, std::ranges::iterator_t<std::remove_reference_t<R>> it)
+        { return reverse_iterator_t<R>(it); }
+
+    template<standard_reverse_traversable_range R>
+    decltype(auto) make_reverse_iterator(R && /*range*/, reverse_iterator_t<std::remove_reference_t<R>> it)
+        { return it.base(); }
+
+    template<custom_reverse_traversable_range R>
+    decltype(auto) make_reverse_iterator(R && range, std::ranges::iterator_t<std::remove_reference_t<R>> it)
+        { return range.reverse(it); }
+
+    template<custom_reverse_traversable_range R>
+    decltype(auto) make_reverse_iterator(R && range, reverse_iterator_t<std::remove_reference_t<R>> it)
+        { return range.reverse(it); }
+
+    template<class R>
+    concept reversible_range = reverse_traversable_range<R> && requires(R & r) {
+        make_reverse_iterator(r, std::declval<std::ranges::iterator_t<std::remove_reference_t<R>>>());
+        make_reverse_iterator(r, std::declval<reverse_iterator_t<std::remove_reference_t<R>>>());
+    };
+}
 
 namespace sysstr::util
 {
@@ -22,17 +93,6 @@ namespace sysstr::util
     constexpr iter_direction reverse(iter_direction dir) noexcept
         { return iter_direction(!bool(dir)); }
 
-    
-    template<class T, class Base>
-    concept reverse_iterator_of =
-        std::input_iterator<T> &&
-        std::input_iterator<Base> &&
-        std::is_constructible_v<T, Base> &&
-    requires(T t) {
-      
-        { t.base() } -> std::same_as<Base>;
-    };
-
 
     template<class T>
     concept indexable = requires(T & t, decltype(std::size(t)) n)
@@ -43,6 +103,8 @@ namespace sysstr::util
     template<class Container, iter_direction Direction>
     class index_iterator
     {
+        //We cannot declare ourselves as template<indexable Container> becuase iterators are often declared as nested
+        //types and within a type the Container is incomplete. Sigh. 
         static_assert(indexable<Container>);
 
         friend index_iterator<Container, reverse(Direction)>;
@@ -53,7 +115,7 @@ namespace sysstr::util
         using size_type = decltype(std::size(std::declval<Container>()));
         using reference = decltype(std::declval<Container>()[0]);
         using difference_type = std::make_signed_t<size_type>;
-        using value_type = std::remove_cv_t<std::remove_reference_t<reference>>;
+        using value_type = std::remove_cvref_t<reference>;
 
         static constexpr bool is_forward = (Direction == iter_direction::forward);
         static constexpr bool is_reverse = !is_forward;

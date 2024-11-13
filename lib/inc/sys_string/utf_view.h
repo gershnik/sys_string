@@ -32,6 +32,7 @@ namespace sysstr
     } && (T::enable_view || !T::enable_view) && (T::enable_borrowed_range || !T::enable_borrowed_range);
 
     template<utf_encoding Enc, class Container, utf_access_traits_t<Container> Traits = utf_access_traits<Container>>
+    requires(std::ranges::input_range<std::remove_reference_t<decltype(Traits::access(std::declval<typename Traits::stored_reference>()))>>)
     class utf_view;
     
     namespace util
@@ -77,7 +78,7 @@ namespace sysstr
             }
 
             template<std::input_iterator OtherIt, std::sentinel_for<OtherIt> OtherEndIt>
-            requires(Direction == iter_direction::forward && reverse_iterator_of<OtherIt, It>)
+            requires(Direction == iter_direction::forward && ranges::reverse_iterator_of<OtherIt, It>)
             utf_iterator(const utf_iterator<OutputEnc, OtherIt, OtherEndIt, iter_direction::backward> & rev,
                          EndIt last):
                 m_current(rev.storage_next().base()),
@@ -91,7 +92,7 @@ namespace sysstr
             }
 
             template<std::input_iterator OtherIt, std::sentinel_for<OtherIt> OtherEndIt>
-            requires(Direction == iter_direction::backward && reverse_iterator_of<It, OtherIt>)
+            requires(Direction == iter_direction::backward && ranges::reverse_iterator_of<It, OtherIt>)
             utf_iterator(const utf_iterator<OutputEnc, OtherIt, OtherEndIt, iter_direction::forward> & fwd,
                          EndIt last):
                 m_current(fwd.storage_next()),
@@ -221,14 +222,14 @@ namespace sysstr
             }
 
             template<std::input_iterator OtherIt, std::sentinel_for<OtherIt> OtherEndIt>
-            requires(Direction == iter_direction::forward && reverse_iterator_of<OtherIt, It>)
+            requires(Direction == iter_direction::forward && ranges::reverse_iterator_of<OtherIt, It>)
             utf_iterator(const utf_iterator<utf32, OtherIt, OtherEndIt, iter_direction::backward> & rev,
                          EndIt last):
                 utf_iterator(rev.storage_current().base(), last)
             {}
 
             template<std::input_iterator OtherIt, std::sentinel_for<OtherIt> OtherEndIt>
-            requires(Direction == iter_direction::backward && reverse_iterator_of<It, OtherIt>)
+            requires(Direction == iter_direction::backward && ranges::reverse_iterator_of<It, OtherIt>)
             utf_iterator(const utf_iterator<utf32, OtherIt, OtherEndIt, iter_direction::forward> & fwd,
                          EndIt last):
                 utf_iterator(It(fwd.storage_current()), last)
@@ -289,23 +290,70 @@ namespace sysstr
         };
     }
     
-    template<std::ranges::random_access_range Container>
+    template<std::ranges::input_range Container>
     struct utf_access_traits<Container>
     {
-        using stored_reference = std::add_pointer_t<std::remove_reference_t<Container>>;
+        using stored_reference = std::add_pointer_t<std::add_const_t<std::remove_reference_t<Container>>>;
         
         static constexpr bool enable_view = true;
         static constexpr bool enable_borrowed_range = true;
         
-        static decltype(auto) adapt(std::add_lvalue_reference_t<Container> src) noexcept
+        static decltype(auto) adapt(const std::add_const_t<std::remove_reference_t<Container>> & src) noexcept
             { return &src; }
-        static std::add_lvalue_reference_t<Container> access(stored_reference ptr) noexcept
+        static std::add_const_t<std::remove_reference_t<Container>> & access(stored_reference ptr) noexcept
             { return *ptr; }
+    };
+
+    template<utf_encoding Enc, class Container, utf_access_traits_t<Container> Traits>
+    requires(std::ranges::input_range<std::remove_reference_t<decltype(Traits::access(std::declval<typename Traits::stored_reference>()))>>)
+    class utf_view
+    {
+    private:
+        using stored_reference = typename Traits::stored_reference;
+        
+        static constexpr auto source_encoding = utf_encoding_of<std::ranges::range_value_t<decltype(Traits::access(std::declval<stored_reference>()))>>;
+        
+        using access_iterator = decltype(std::begin(Traits::access(std::declval<stored_reference>())));
+        using access_sentinel = decltype(std::end(Traits::access(std::declval<stored_reference>())));
+    public:
+        using iterator = util::utf_iterator<Enc, access_iterator, access_sentinel, util::iter_direction::forward>;
+        using const_iterator = iterator;
+        
+        using value_type = typename iterator::value_type;
+        using reference = typename iterator::reference;
+        using const_reference = reference;
+        using pointer = typename iterator::pointer;
+        using const_pointer = pointer;
+        
+    public:
+        utf_view(const Container & src) noexcept(noexcept(stored_reference(Traits::adapt(src)))) :
+            m_ref(Traits::adapt(src))
+        {}
+        SYS_STRING_FORCE_INLINE iterator begin() const
+            { return iterator(std::begin(Traits::access(this->m_ref)), std::end(Traits::access(this->m_ref))); }
+        SYS_STRING_FORCE_INLINE std::default_sentinel_t end() const
+            { return std::default_sentinel; }
+        SYS_STRING_FORCE_INLINE const_iterator cbegin() const
+            { return begin(); }
+        SYS_STRING_FORCE_INLINE std::default_sentinel_t cend() const
+            { return end(); }
+
+        
+        template<class Func>
+        decltype(auto) each(Func func) const
+        {
+            return utf_converter<source_encoding, Enc>::for_each_converted(Traits::access(this->m_ref), func);
+        }
+        
+    private:
+        stored_reference m_ref;
     };
 
     
     template<utf_encoding Enc, class Container, utf_access_traits_t<Container> Traits>
-    class utf_view
+    requires(std::ranges::input_range<std::remove_reference_t<decltype(Traits::access(std::declval<typename Traits::stored_reference>()))>> &&
+             ranges::reverse_traversable_range<std::remove_reference_t<decltype(Traits::access(std::declval<typename Traits::stored_reference>()))>>)
+    class utf_view<Enc, Container, Traits>
     {
     private:
         using stored_reference = typename Traits::stored_reference;
@@ -368,6 +416,33 @@ namespace sysstr
     private:
         stored_reference m_ref;
     };
+
+    #if __cpp_lib_ranges >= 202202L
+
+        template<utf_encoding Enc>
+        struct as_utf_func : 
+        #if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 190000
+            //libc++ lies about __cpp_lib_ranges
+            public std::__range_adaptor_closure<as_utf_func<Enc>>
+        #else
+            public std::ranges::range_adaptor_closure<as_utf_func<Enc>>
+        #endif
+        {
+            template <class Range>
+            [[nodiscard]] constexpr auto operator()(Range && range) const
+                noexcept(noexcept(utf_view<Enc, std::remove_reference_t<Range>>(std::forward<Range>(range))))
+                      -> decltype(utf_view<Enc, std::remove_reference_t<Range>>(std::forward<Range>(range))) 
+                         { return utf_view<Enc, std::remove_reference_t<Range>>(std::forward<Range>(range)); }
+
+        };
+
+        template<utf_encoding Enc>
+        inline constexpr auto as_utf = as_utf_func<Enc>{};
+        inline constexpr auto as_utf8 = as_utf_func<utf8>{};
+        inline constexpr auto as_utf16 = as_utf_func<utf16>{};
+        inline constexpr auto as_utf32 = as_utf_func<utf32>{};
+
+    #endif
 }
 
 namespace std::ranges {

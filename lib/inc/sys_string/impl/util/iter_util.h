@@ -16,7 +16,7 @@
 namespace sysstr::ranges //non-standard extensions to std::ranges
 {
     template<class T, class Base>
-    concept reverse_iterator_of =
+    concept reverse_iterator_for =
         std::input_iterator<T> &&
         std::input_iterator<Base> &&
         std::is_constructible_v<T, Base> &&
@@ -48,8 +48,8 @@ namespace sysstr::ranges //non-standard extensions to std::ranges
                                                 std::same_as<reverse_iterator_t<R>, reverse_sentinel_t<R>>;
 
     template<class R>
-    concept standard_reverse_traversable_range = common_reverse_traversable_range<R> &&
-                                            reverse_iterator_of<reverse_iterator_t<R>, std::ranges::iterator_t<R>>;
+    concept standard_reverse_traversable_range = reverse_traversable_range<R> &&
+                                            reverse_iterator_for<reverse_iterator_t<R>, std::ranges::iterator_t<R>>;
 
     
     template<class R>

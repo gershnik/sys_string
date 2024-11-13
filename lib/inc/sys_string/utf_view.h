@@ -17,24 +17,6 @@
 
 namespace sysstr
 {
-    template<class Container>
-    struct utf_access_traits;
-    
-    template<class T, class Container>
-    concept utf_access_traits_t = requires(const Container & cont)
-    {
-        typename T::stored_reference;
-        
-        { T::enable_view } -> std::convertible_to<bool>;
-        { T::enable_borrowed_range } -> std::convertible_to<bool>;
-        { typename T::stored_reference(T::adapt(cont)) };
-        { T::access(std::declval<typename T::stored_reference>()) } -> std::ranges::bidirectional_range;
-    } && (T::enable_view || !T::enable_view) && (T::enable_borrowed_range || !T::enable_borrowed_range);
-
-    template<utf_encoding Enc, class Container, utf_access_traits_t<Container> Traits = utf_access_traits<Container>>
-    requires(std::ranges::input_range<std::remove_reference_t<decltype(Traits::access(std::declval<typename Traits::stored_reference>()))>>)
-    class utf_view;
-    
     namespace util
     {
         template<iter_direction Direction, std::input_iterator It, std::sentinel_for<It> EndIt>
@@ -78,7 +60,7 @@ namespace sysstr
             }
 
             template<std::input_iterator OtherIt, std::sentinel_for<OtherIt> OtherEndIt>
-            requires(Direction == iter_direction::forward && ranges::reverse_iterator_of<OtherIt, It>)
+            requires(Direction == iter_direction::forward && ranges::reverse_iterator_for<OtherIt, It>)
             utf_iterator(const utf_iterator<OutputEnc, OtherIt, OtherEndIt, iter_direction::backward> & rev,
                          EndIt last):
                 m_current(rev.storage_next().base()),
@@ -92,7 +74,7 @@ namespace sysstr
             }
 
             template<std::input_iterator OtherIt, std::sentinel_for<OtherIt> OtherEndIt>
-            requires(Direction == iter_direction::backward && ranges::reverse_iterator_of<It, OtherIt>)
+            requires(Direction == iter_direction::backward && ranges::reverse_iterator_for<It, OtherIt>)
             utf_iterator(const utf_iterator<OutputEnc, OtherIt, OtherEndIt, iter_direction::forward> & fwd,
                          EndIt last):
                 m_current(fwd.storage_next()),
@@ -222,14 +204,14 @@ namespace sysstr
             }
 
             template<std::input_iterator OtherIt, std::sentinel_for<OtherIt> OtherEndIt>
-            requires(Direction == iter_direction::forward && ranges::reverse_iterator_of<OtherIt, It>)
+            requires(Direction == iter_direction::forward && ranges::reverse_iterator_for<OtherIt, It>)
             utf_iterator(const utf_iterator<utf32, OtherIt, OtherEndIt, iter_direction::backward> & rev,
                          EndIt last):
                 utf_iterator(rev.storage_current().base(), last)
             {}
 
             template<std::input_iterator OtherIt, std::sentinel_for<OtherIt> OtherEndIt>
-            requires(Direction == iter_direction::backward && ranges::reverse_iterator_of<It, OtherIt>)
+            requires(Direction == iter_direction::backward && ranges::reverse_iterator_for<It, OtherIt>)
             utf_iterator(const utf_iterator<utf32, OtherIt, OtherEndIt, iter_direction::forward> & fwd,
                          EndIt last):
                 utf_iterator(It(fwd.storage_current()), last)
@@ -289,7 +271,21 @@ namespace sysstr
             value_type m_value = 0;
         };
     }
-    
+
+    template<class T, class Container>
+    concept utf_access_traits_t = requires(const Container & cont)
+    {
+        typename T::stored_reference;
+
+        { T::enable_view } -> std::convertible_to<bool>;
+        { T::enable_borrowed_range } -> std::convertible_to<bool>;
+        { typename T::stored_reference(T::adapt(cont)) };
+        { T::access(std::declval<typename T::stored_reference>()) } -> std::ranges::bidirectional_range;
+    } && (T::enable_view || !T::enable_view) && (T::enable_borrowed_range || !T::enable_borrowed_range);
+
+    template<class Container>
+    struct utf_access_traits;
+
     template<std::ranges::input_range Container>
     struct utf_access_traits<Container>
     {
@@ -304,70 +300,35 @@ namespace sysstr
             { return *ptr; }
     };
 
-    template<utf_encoding Enc, class Container, utf_access_traits_t<Container> Traits>
+    template<utf_encoding Enc, class Container, utf_access_traits_t<Container> Traits = utf_access_traits<Container>>
     requires(std::ranges::input_range<std::remove_reference_t<decltype(Traits::access(std::declval<typename Traits::stored_reference>()))>>)
     class utf_view
     {
     private:
         using stored_reference = typename Traits::stored_reference;
-        
-        static constexpr auto source_encoding = utf_encoding_of<std::ranges::range_value_t<decltype(Traits::access(std::declval<stored_reference>()))>>;
-        
-        using access_iterator = decltype(std::begin(Traits::access(std::declval<stored_reference>())));
-        using access_sentinel = decltype(std::end(Traits::access(std::declval<stored_reference>())));
-    public:
-        using iterator = util::utf_iterator<Enc, access_iterator, access_sentinel, util::iter_direction::forward>;
-        using const_iterator = iterator;
-        
-        using value_type = typename iterator::value_type;
-        using reference = typename iterator::reference;
-        using const_reference = reference;
-        using pointer = typename iterator::pointer;
-        using const_pointer = pointer;
-        
-    public:
-        utf_view(const Container & src) noexcept(noexcept(stored_reference(Traits::adapt(src)))) :
-            m_ref(Traits::adapt(src))
-        {}
-        SYS_STRING_FORCE_INLINE iterator begin() const
-            { return iterator(std::begin(Traits::access(this->m_ref)), std::end(Traits::access(this->m_ref))); }
-        SYS_STRING_FORCE_INLINE std::default_sentinel_t end() const
-            { return std::default_sentinel; }
-        SYS_STRING_FORCE_INLINE const_iterator cbegin() const
-            { return begin(); }
-        SYS_STRING_FORCE_INLINE std::default_sentinel_t cend() const
-            { return end(); }
-
-        
-        template<class Func>
-        decltype(auto) each(Func func) const
-        {
-            return utf_converter<source_encoding, Enc>::for_each_converted(Traits::access(this->m_ref), func);
-        }
-        
-    private:
-        stored_reference m_ref;
-    };
-
-    
-    template<utf_encoding Enc, class Container, utf_access_traits_t<Container> Traits>
-    requires(std::ranges::input_range<std::remove_reference_t<decltype(Traits::access(std::declval<typename Traits::stored_reference>()))>> &&
-             ranges::reverse_traversable_range<std::remove_reference_t<decltype(Traits::access(std::declval<typename Traits::stored_reference>()))>>)
-    class utf_view<Enc, Container, Traits>
-    {
-    private:
-        using stored_reference = typename Traits::stored_reference;
-        
-        static constexpr auto source_encoding = utf_encoding_of<std::ranges::range_value_t<decltype(Traits::access(std::declval<stored_reference>()))>>;
+        static constexpr bool is_reversible = ranges::reverse_traversable_range<
+                                                std::remove_reference_t<decltype(Traits::access(std::declval<stored_reference>()))>>;
+        static constexpr auto source_encoding = utf_encoding_of<
+                                                std::ranges::range_value_t<decltype(Traits::access(std::declval<stored_reference>()))>>;
         
         using access_iterator = decltype(std::begin(Traits::access(std::declval<stored_reference>())));
         using access_sentinel = decltype(std::end(Traits::access(std::declval<stored_reference>())));
-        using access_reverse_iterator = decltype(std::rbegin(Traits::access(std::declval<stored_reference>())));
-        using access_reverse_sentinel = decltype(std::rend(Traits::access(std::declval<stored_reference>())));
+        using access_reverse_iterator = std::conditional_t<is_reversible, 
+                                                           decltype(std::rbegin(Traits::access(std::declval<stored_reference>()))),
+                                                           void>;
+        using access_reverse_sentinel = std::conditional_t<is_reversible, 
+                                                           decltype(std::rend(Traits::access(std::declval<stored_reference>()))),
+                                                           void>;
+
+        using iter_direction = util::iter_direction;
+        static constexpr auto forward = iter_direction::forward;
+        static constexpr auto backward = iter_direction::backward;
     public:
         using iterator = util::utf_iterator<Enc, access_iterator, access_sentinel, util::iter_direction::forward>;
         using const_iterator = iterator;
-        using reverse_iterator = util::utf_iterator<Enc, access_reverse_iterator, access_reverse_sentinel, util::iter_direction::backward>;
+        using reverse_iterator = std::conditional_t<is_reversible, 
+                                                    util::utf_iterator<Enc, access_reverse_iterator, access_reverse_sentinel, util::iter_direction::backward>,
+                                                    void>;
         using const_reverse_iterator = reverse_iterator;
         
         using value_type = typename iterator::value_type;
@@ -376,10 +337,7 @@ namespace sysstr
         using pointer = typename iterator::pointer;
         using const_pointer = pointer;
         
-        using iter_direction = util::iter_direction;
         
-        static constexpr auto forward = iter_direction::forward;
-        static constexpr auto backward = iter_direction::backward;
     public:
         utf_view(const Container & src) noexcept(noexcept(stored_reference(Traits::adapt(src)))) :
             m_ref(Traits::adapt(src))
@@ -392,19 +350,19 @@ namespace sysstr
             { return begin(); }
         SYS_STRING_FORCE_INLINE std::default_sentinel_t cend() const
             { return end(); }
-        SYS_STRING_FORCE_INLINE reverse_iterator rbegin() const
+        SYS_STRING_FORCE_INLINE reverse_iterator rbegin() const requires(is_reversible)
             { return reverse_iterator(std::rbegin(Traits::access(this->m_ref)), std::rend(Traits::access(this->m_ref))); }
-        SYS_STRING_FORCE_INLINE std::default_sentinel_t rend() const
+        SYS_STRING_FORCE_INLINE std::default_sentinel_t rend() const requires(is_reversible)
             { return std::default_sentinel; }
-        SYS_STRING_FORCE_INLINE const_reverse_iterator crbegin() const
+        SYS_STRING_FORCE_INLINE const_reverse_iterator crbegin() const requires(is_reversible)
             { return rbegin(); }
-        SYS_STRING_FORCE_INLINE std::default_sentinel_t crend() const
+        SYS_STRING_FORCE_INLINE std::default_sentinel_t crend() const requires(is_reversible)
             { return rend(); }
 
-        reverse_iterator reverse(iterator it) const
+        reverse_iterator reverse(iterator it) const requires(is_reversible)
             { return reverse_iterator(it, std::rend(Traits::access(this->m_ref))); }
 
-        iterator reverse(reverse_iterator it) const
+        iterator reverse(reverse_iterator it) const requires(is_reversible)
             { return iterator(it, std::end(Traits::access(this->m_ref))); }
         
         template<class Func>

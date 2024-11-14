@@ -59,9 +59,6 @@ namespace sysstr
                                  std::is_same_v<std::remove_cvref_t<T>, char32_t>;
 
 
-    template<class Storage> struct utf_access_traits_for<sys_string_t<Storage>>
-        { using type = typename sys_string_t<Storage>::utf_view_traits; };
-
     template<class Storage>
     class sys_string_t : public Storage
     {
@@ -69,6 +66,8 @@ namespace sysstr
     friend typename Storage::char_access;
     private:
         using storage = Storage;
+
+        static_assert(std::ranges::random_access_range<typename storage::char_access>);
 
     public:
         using size_type = typename storage::size_type;
@@ -79,30 +78,78 @@ namespace sysstr
         
         using char_access = typename storage::char_access;
 
-        struct utf_view_traits
+        template<utf_encoding Enc>
+        class utf_access
         {
-            using stored_reference = typename Storage::char_access;
+        private:
+            static constexpr auto source_encoding = utf_encoding_of<std::ranges::range_value_t<decltype(std::declval<char_access>())>>;
             
-            static constexpr bool enable_view = false;
-            static constexpr bool enable_borrowed_range = false;
+            using char_iterator = decltype(std::begin(std::declval<char_access>()));
+            using char_sentinel = decltype(std::end(std::declval<char_access>()));
+            using char_reverse_iterator = decltype(std::rbegin(std::declval<char_access>()));
+            using char_reverse_sentinel = decltype(std::rend(std::declval<char_access>()));
+        public:
+            using iterator = util::utf_iterator<Enc, char_iterator, char_sentinel, util::iter_direction::forward>;
+            using const_iterator = iterator;
+            using reverse_iterator = util::utf_iterator<Enc, char_reverse_iterator, char_reverse_sentinel, util::iter_direction::backward>;
+            using const_reverse_iterator = reverse_iterator;
             
-            static constexpr const sys_string_t & adapt(const sys_string_t & str) noexcept
-                { return str; }
-            static const stored_reference & access(const stored_reference & acc) noexcept
-                { return acc; }
+            using value_type = typename iterator::value_type;
+            using reference = typename iterator::reference;
+            using const_reference = reference;
+            using pointer = typename iterator::pointer;
+            using const_pointer = pointer;
+            
+        public:
+            utf_access(const sys_string_t & src) noexcept(noexcept(char_access(src))) :
+                m_access(src)
+            {}
+            SYS_STRING_FORCE_INLINE iterator begin() const
+                { return iterator(std::begin(m_access), std::end(m_access)); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t end() const
+                { return std::default_sentinel; }
+            SYS_STRING_FORCE_INLINE const_iterator cbegin() const
+                { return begin(); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t cend() const
+                { return end(); }
+            SYS_STRING_FORCE_INLINE reverse_iterator rbegin() const 
+                { return reverse_iterator(std::rbegin(m_access), std::rend(m_access)); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t rend() const 
+                { return std::default_sentinel; }
+            SYS_STRING_FORCE_INLINE const_reverse_iterator crbegin() const 
+                { return rbegin(); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t crend() const 
+                { return rend(); }
+
+            reverse_iterator reverse(iterator it) const 
+                { return reverse_iterator(it, std::rend(m_access)); }
+
+            iterator reverse(reverse_iterator it) const 
+                { return iterator(it, std::end(m_access)); }
+            
+            template<class Func>
+            decltype(auto) each(Func func) const
+                { return utf_converter<source_encoding, Enc>::for_each_converted(m_access, func); }
+            
+        private:
+            char_access m_access;
         };
+        using utf8_access  = utf_access<utf8>;
+        using utf16_access = utf_access<utf16>;
+        using utf32_access = utf_access<utf32>;
         
         template<utf_encoding Enc>
-        using utf_view = utf_view<Enc, sys_string_t>;
+        using utf_view [[deprecated("use utf_access")]] = utf_access<Enc>;
         
-        using utf8_view  = utf_view<utf8>;
-        using utf16_view = utf_view<utf16>;
-        using utf32_view = utf_view<utf32>;
+        using utf8_view [[deprecated("use utf8_access")]] = utf8_access;
+        using utf16_view [[deprecated("use utf16_access")]] = utf16_access;
+        using utf32_view [[deprecated("use utf32_access")]] = utf32_access;
+
+        using compare_result [[deprecated("use std::strong_ordering")]] = std::strong_ordering;
+        static constexpr std::strong_ordering ordering_less [[deprecated("use std::strong_ordering::less")]] = std::strong_ordering::less;
+        static constexpr std::strong_ordering ordering_equal [[deprecated("use std::strong_ordering::less")]] = std::strong_ordering::equal;
+        static constexpr std::strong_ordering ordering_greater [[deprecated("use std::strong_ordering::less")]] = std::strong_ordering::greater;
         
-        using compare_result = std::strong_ordering;
-        static constexpr compare_result ordering_less = std::strong_ordering::less;
-        static constexpr compare_result ordering_equal = std::strong_ordering::equal;
-        static constexpr compare_result ordering_greater = std::strong_ordering::greater;
         
     public:
         sys_string_t() noexcept = default;
@@ -136,11 +183,11 @@ namespace sysstr
             sys_string_t(std::ranges::data(std::forward<Range>(val)), std::ranges::size(std::forward<Range>(val)))
         {}
 
-        sys_string_t(const typename utf32_view::iterator & first, const typename utf32_view::iterator & last):
+        sys_string_t(const typename utf32_access::iterator & first, const typename utf32_access::iterator & last):
             sys_string_t(first.storage_current(), last.storage_current())
         {}
 
-        sys_string_t(const typename utf32_view::iterator & first, std::default_sentinel_t):
+        sys_string_t(const typename utf32_access::iterator & first, std::default_sentinel_t):
             sys_string_t(first.storage_current(), first.storage_last())
         {}
         
@@ -192,9 +239,9 @@ namespace sysstr
             { return compare(lhs, rhs); }
         
         
-        friend auto compare(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> compare_result
+        friend auto compare(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> std::strong_ordering
             { return sys_string_t::compare(lhs, rhs); }
-        friend auto compare_no_case(const sys_string_t lhs, const sys_string_t & rhs) noexcept -> compare_result
+        friend auto compare_no_case(const sys_string_t lhs, const sys_string_t & rhs) noexcept -> std::strong_ordering
             { return sys_string_t::compare_no_case(lhs, rhs); }
         
         template<sys_string_or_char<Storage> StringOrChar1, sys_string_or_char<Storage> StringOrChar2>
@@ -214,7 +261,7 @@ namespace sysstr
         template<class Search, class OutIt>
         auto split(OutIt dest, Search search) const -> OutIt
         requires(std::output_iterator<OutIt, sys_string_t> &&
-                 std::is_invocable_v<Search, typename sys_string_t::utf32_view::iterator, std::default_sentinel_t>);
+                 std::is_invocable_v<Search, typename sys_string_t::utf32_access::iterator, std::default_sentinel_t>);
 
         template<sys_string_or_char<Storage> StringOrChar, class OutIt>
         auto split(OutIt dest, const StringOrChar & sep, size_t max_split = std::numeric_limits<size_t>::max()) const -> OutIt
@@ -266,8 +313,8 @@ namespace sysstr
         auto partition_at_last(const StringOrChar & divider) const -> std::optional<std::pair<sys_string_t, sys_string_t>>;
 
     private:
-        static auto compare(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> compare_result;
-        static auto compare_no_case(const sys_string_t lhs, const sys_string_t & rhs) noexcept -> compare_result;
+        static auto compare(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> std::strong_ordering;
+        static auto compare_no_case(const sys_string_t lhs, const sys_string_t & rhs) noexcept -> std::strong_ordering;
         
     };
 

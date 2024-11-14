@@ -26,26 +26,26 @@ static_assert(std::ranges::random_access_range<sys_string::char_access>);
 static_assert(!std::ranges::view<sys_string::char_access>);
 static_assert(!std::ranges::borrowed_range<sys_string::char_access>);
               
-static_assert(std::ranges::forward_range<sys_string::utf32_view>);
-static_assert(!std::ranges::bidirectional_range<sys_string::utf32_view>);
-static_assert(!std::ranges::common_range<sys_string::utf32_view>);
-static_assert(!std::ranges::view<sys_string::utf32_view>);
-static_assert(!std::ranges::borrowed_range<sys_string::utf32_view>);
-static_assert(ranges::custom_reverse_traversable_range<sys_string::utf32_view>);
+static_assert(std::ranges::forward_range<sys_string::utf32_access>);
+static_assert(!std::ranges::bidirectional_range<sys_string::utf32_access>);
+static_assert(!std::ranges::common_range<sys_string::utf32_access>);
+static_assert(!std::ranges::view<sys_string::utf32_access>);
+static_assert(!std::ranges::borrowed_range<sys_string::utf32_access>);
+static_assert(ranges::custom_reverse_traversable_range<sys_string::utf32_access>);
 
-static_assert(std::ranges::forward_range<sys_string::utf16_view>);
-static_assert(!std::ranges::bidirectional_range<sys_string::utf16_view>);
-static_assert(!std::ranges::common_range<sys_string::utf16_view>);
-static_assert(!std::ranges::view<sys_string::utf16_view>);
-static_assert(!std::ranges::borrowed_range<sys_string::utf16_view>);
-static_assert(ranges::custom_reverse_traversable_range<sys_string::utf16_view>);
+static_assert(std::ranges::forward_range<sys_string::utf16_access>);
+static_assert(!std::ranges::bidirectional_range<sys_string::utf16_access>);
+static_assert(!std::ranges::common_range<sys_string::utf16_access>);
+static_assert(!std::ranges::view<sys_string::utf16_access>);
+static_assert(!std::ranges::borrowed_range<sys_string::utf16_access>);
+static_assert(ranges::custom_reverse_traversable_range<sys_string::utf16_access>);
 
-static_assert(std::ranges::forward_range<sys_string::utf8_view>);
-static_assert(!std::ranges::bidirectional_range<sys_string::utf8_view>);
-static_assert(!std::ranges::common_range<sys_string::utf8_view>);
-static_assert(!std::ranges::view<sys_string::utf8_view>);
-static_assert(!std::ranges::borrowed_range<sys_string::utf8_view>);
-static_assert(ranges::custom_reverse_traversable_range<sys_string::utf8_view>);
+static_assert(std::ranges::forward_range<sys_string::utf8_access>);
+static_assert(!std::ranges::bidirectional_range<sys_string::utf8_access>);
+static_assert(!std::ranges::common_range<sys_string::utf8_access>);
+static_assert(!std::ranges::view<sys_string::utf8_access>);
+static_assert(!std::ranges::borrowed_range<sys_string::utf8_access>);
+static_assert(ranges::custom_reverse_traversable_range<sys_string::utf8_access>);
 
 template<class T>
 bool is_eq(T val)
@@ -99,7 +99,7 @@ TEST_CASE( "Iteration", "[general]" ) {
     
     SECTION("utf8") {
         std::string converted;
-        for (char c: sys_string::utf8_view(str))
+        for (char c: sys_string::utf8_access(str))
         {
             converted.push_back(c);
         }
@@ -107,12 +107,12 @@ TEST_CASE( "Iteration", "[general]" ) {
         CHECK(converted == expected);
         
         converted.clear();
-        sys_string::utf8_view view(str);
+        sys_string::utf8_access view(str);
         std::ranges::copy(view.rbegin(), view.rend(), std::back_inserter(converted));
         CHECK(converted == std::string{expected.rbegin(), expected.rend()});
 
         converted.clear();
-        std::ranges::copy(sys_string::utf8_view(str), std::back_inserter(converted));
+        std::ranges::copy(sys_string::utf8_access(str), std::back_inserter(converted));
         CHECK(converted == expected);
 
         converted.clear();
@@ -120,7 +120,7 @@ TEST_CASE( "Iteration", "[general]" ) {
         CHECK(converted == expected);
 
         static_assert(std::is_same_v<decltype(as_utf8(sys_string::char_access(str)))::iterator,
-                                     sys_string::utf8_view::iterator>);
+                                     sys_string::utf8_access::iterator>);
 
         bool res = std::ranges::equal(as_utf8(sys_string::char_access(str)) | std::views::take(1), std::array{'a'});
         CHECK(res);
@@ -129,7 +129,7 @@ TEST_CASE( "Iteration", "[general]" ) {
         CHECK(res);
 
         converted.clear();
-        for (char c: sys_string::utf8_view(empty))
+        for (char c: sys_string::utf8_access(empty))
         {
             converted.push_back(c);
         }
@@ -138,7 +138,7 @@ TEST_CASE( "Iteration", "[general]" ) {
 
     SECTION("utf16") {
         std::u16string converted;
-        for (char16_t c: sys_string::utf16_view(str))
+        for (char16_t c: sys_string::utf16_access(str))
         {
             converted.push_back(c);
         }
@@ -146,12 +146,12 @@ TEST_CASE( "Iteration", "[general]" ) {
         CHECK(converted == expected);
         
         converted.clear();
-        sys_string::utf16_view view(str);
+        sys_string::utf16_access view(str);
         std::ranges::copy(view.rbegin(), view.rend(), std::back_inserter(converted));
         CHECK(converted == std::u16string{expected.rbegin(), expected.rend()});
 
         converted.clear();
-        std::ranges::copy(sys_string::utf16_view(str), std::back_inserter(converted));
+        std::ranges::copy(sys_string::utf16_access(str), std::back_inserter(converted));
         CHECK(converted == expected);
 
         converted.clear();
@@ -159,7 +159,7 @@ TEST_CASE( "Iteration", "[general]" ) {
         CHECK(converted == expected);
 
         static_assert(std::is_same_v<decltype(as_utf16(sys_string::char_access(str)))::iterator,
-                                     sys_string::utf16_view::iterator>);
+                                     sys_string::utf16_access::iterator>);
 
         bool res = std::ranges::equal(as_utf16(sys_string::char_access(str)) | std::views::take(1), std::array{'a'});
         CHECK(res);
@@ -168,7 +168,7 @@ TEST_CASE( "Iteration", "[general]" ) {
         CHECK(res);
 
         converted.clear();
-        for (char16_t c: sys_string::utf16_view(empty))
+        for (char16_t c: sys_string::utf16_access(empty))
         {
             converted.push_back(c);
         }
@@ -177,7 +177,7 @@ TEST_CASE( "Iteration", "[general]" ) {
 
     SECTION("utf32") {
         std::u32string converted;
-        for (char32_t c: sys_string::utf32_view(str))
+        for (char32_t c: sys_string::utf32_access(str))
         {
             converted.push_back(c);
         }
@@ -186,12 +186,12 @@ TEST_CASE( "Iteration", "[general]" ) {
 
         
         converted.clear();
-        sys_string::utf32_view view(str);
+        sys_string::utf32_access view(str);
         std::ranges::copy(view.rbegin(), view.rend(), std::back_inserter(converted));
         CHECK(converted == std::u32string{expected.rbegin(), expected.rend()});
 
         converted.clear();
-        std::ranges::copy(sys_string::utf32_view(str), std::back_inserter(converted));
+        std::ranges::copy(sys_string::utf32_access(str), std::back_inserter(converted));
         CHECK(converted == expected);
 
         converted.clear();
@@ -199,7 +199,7 @@ TEST_CASE( "Iteration", "[general]" ) {
         CHECK(converted == expected);
 
         static_assert(std::is_same_v<decltype(as_utf32(sys_string::char_access(str)))::iterator,
-                                     sys_string::utf32_view::iterator>);
+                                     sys_string::utf32_access::iterator>);
 
         bool res = std::ranges::equal(as_utf32(sys_string::char_access(str)) | std::views::take(1), std::array{'a'});
         CHECK(res);
@@ -208,7 +208,7 @@ TEST_CASE( "Iteration", "[general]" ) {
         CHECK(res);
         
         converted.clear();
-        for (char32_t c: sys_string::utf16_view(empty))
+        for (char32_t c: sys_string::utf16_access(empty))
         {
             converted.push_back(c);
         }
@@ -383,7 +383,7 @@ TEST_CASE( "Split", "[general]" ) {
     CHECK(splitter(S("a"), S("")) == std::vector({S("a")}));
     CHECK(splitter(S("ab"), S("")) == std::vector({S("ab")}));
     
-    auto searcher = [] (sys_string::utf32_view::iterator str_start, std::default_sentinel_t str_end) noexcept {
+    auto searcher = [] (sys_string::utf32_access::iterator str_start, std::default_sentinel_t str_end) noexcept {
         
         constexpr char32_t seps[] = U"xyz";
         

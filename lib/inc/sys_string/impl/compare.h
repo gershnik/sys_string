@@ -15,17 +15,17 @@ namespace sysstr
     #if (defined(__APPLE__) && defined(__MACH__))  
 
     template<>
-    inline auto sys_string_cfstr::compare(const sys_string_t<cf_storage> & lhs, const sys_string_t<cf_storage> & rhs) noexcept -> compare_result
+    inline auto sys_string_cfstr::compare(const sys_string_t<cf_storage> & lhs, const sys_string_t<cf_storage> & rhs) noexcept -> std::strong_ordering
     {
         auto lhs_ptr = lhs.cf_str();
         auto rhs_ptr = rhs.cf_str();
 
         if (lhs_ptr == rhs_ptr)
-            return ordering_equal;
+            return std::strong_ordering::equal;
         if (!lhs_ptr)
-            return CFStringGetLength(rhs_ptr) == 0 ? ordering_equal : ordering_less;
+            return CFStringGetLength(rhs_ptr) == 0 ? std::strong_ordering::equal : std::strong_ordering::less;
         if (!rhs_ptr)
-            return CFStringGetLength(lhs_ptr) == 0 ? ordering_equal : ordering_greater;
+            return CFStringGetLength(lhs_ptr) == 0 ? std::strong_ordering::equal : std::strong_ordering::greater;
 
         CFComparisonResult res = CFStringCompare(lhs_ptr, rhs_ptr, 0);
         return res <=> 0;
@@ -36,17 +36,17 @@ namespace sysstr
     #if SYS_STRING_ENABLE_PYTHON
 
     template<>
-    inline auto sys_string_pystr::compare(const sys_string_t<py_storage> & lhs, const sys_string_t<py_storage> & rhs) noexcept -> compare_result
+    inline auto sys_string_pystr::compare(const sys_string_t<py_storage> & lhs, const sys_string_t<py_storage> & rhs) noexcept -> std::strong_ordering
     {
         auto lhs_ptr = lhs.py_str();
         auto rhs_ptr = rhs.py_str();
 
         if (lhs_ptr == rhs_ptr)
-            return ordering_equal;
+            return std::strong_ordering::equal;
         if (!lhs_ptr)
-            return PyUnicode_GetLength(rhs_ptr) == 0 ? ordering_equal : ordering_less;
+            return PyUnicode_GetLength(rhs_ptr) == 0 ? std::strong_ordering::equal : std::strong_ordering::less;
         if (!rhs_ptr)
-            return PyUnicode_GetLength(lhs_ptr) == 0 ? ordering_equal : ordering_greater;
+            return PyUnicode_GetLength(lhs_ptr) == 0 ? std::strong_ordering::equal : std::strong_ordering::greater;
 
         int res = PyUnicode_Compare(lhs_ptr, rhs_ptr);
         return res <=> 0;
@@ -55,7 +55,7 @@ namespace sysstr
     #endif
 
     template<class Storage>
-    inline auto sys_string_t<Storage>::compare(const sys_string_t<Storage> & lhs, const sys_string_t<Storage> & rhs) noexcept -> compare_result
+    inline auto sys_string_t<Storage>::compare(const sys_string_t<Storage> & lhs, const sys_string_t<Storage> & rhs) noexcept -> std::strong_ordering
     {
         char_access lhs_access(lhs);
         char_access rhs_access(rhs);
@@ -64,10 +64,10 @@ namespace sysstr
     }
 
     template<class Storage>
-    auto sys_string_t<Storage>::compare_no_case(const sys_string_t<Storage> lhs, const sys_string_t<Storage> & rhs) noexcept -> compare_result
+    auto sys_string_t<Storage>::compare_no_case(const sys_string_t<Storage> lhs, const sys_string_t<Storage> & rhs) noexcept -> std::strong_ordering
     {
-        utf32_view lhs_view(lhs);
-        utf32_view rhs_view(rhs);
+        utf32_access lhs_view(lhs);
+        utf32_access rhs_view(rhs);
 
         auto lhs_first = lhs_view.begin();
         auto lhs_last = lhs_view.end();

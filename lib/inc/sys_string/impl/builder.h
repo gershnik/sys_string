@@ -12,8 +12,8 @@
 
 namespace sysstr
 {
-    template<class Storage> struct utf_access_traits_for<sys_string_builder_t<Storage>>
-        { using type = typename sys_string_builder_t<Storage>::utf_view_traits; };
+    template<class Storage> struct utf_view_adapter_for<sys_string_builder_t<Storage>>
+        { using type = typename sys_string_builder_t<Storage>::utf_view_adapter; };
 
     template<class Storage>
     class sys_string_builder_t
@@ -26,17 +26,10 @@ namespace sysstr
         using storage_type = typename impl_type::value_type;
         
 
-        struct utf_view_traits
+        struct utf_view_adapter
         {
-            using stored_reference = const impl_type *;
-            
-            static constexpr bool enable_view = true;
-            static constexpr bool enable_borrowed_range = true;
-            
             static constexpr const impl_type * adapt(const sys_string_builder_t & builder) noexcept
                 { return &builder.m_impl; }
-            static const impl_type & access(stored_reference ptr) noexcept
-                { return *ptr; }
         };
 
         template<utf_encoding Enc>
@@ -275,7 +268,7 @@ namespace sysstr
     inline void sys_string_builder_t<Storage>::append_range(const Range & range)
     {
         static_assert(std::is_same_v<std::ranges::range_value_t<Range>, storage_type>);
-        
+
         if constexpr (std::ranges::contiguous_range<Range>)
         {
             m_impl.append(std::data(range), std::size(range));

@@ -121,9 +121,9 @@ namespace sysstr
     inline
     auto sys_string_t<Storage>::to_lower() const -> sys_string_t<Storage>
     {
-        sys_string_t<Storage>::utf32_view view(*this);
+        sys_string_t<Storage>::utf32_access access(*this);
         sys_string_builder_t<Storage> builder;
-        tolower<utf_encoding_of<storage_type>>()(view, std::back_inserter(builder.chars()));
+        tolower<utf_encoding_of<storage_type>>()(access, std::back_inserter(builder.chars()));
         return builder.build();
     }
 
@@ -131,9 +131,9 @@ namespace sysstr
     inline
     auto sys_string_t<Storage>::to_upper() const -> sys_string_t<Storage>
     {
-        sys_string_t<Storage>::utf32_view view(*this);
+        sys_string_t<Storage>::utf32_access access(*this);
         sys_string_builder_t<Storage> builder;
-        toupper<utf_encoding_of<storage_type>>()(view, std::back_inserter(builder.chars()));
+        toupper<utf_encoding_of<storage_type>>()(access, std::back_inserter(builder.chars()));
         return builder.build();
     }
 
@@ -142,11 +142,11 @@ namespace sysstr
     template<std::predicate<char32_t> Pred>
     auto sys_string_t<Storage>::trim(Pred pred) const -> sys_string_t<Storage>
     {
-        sys_string_t<Storage>::utf32_view view(*this);
-        auto trimmed_start = view.begin();
+        sys_string_t<Storage>::utf32_access access(*this);
+        auto trimmed_start = access.begin();
         for( ; ; ++trimmed_start)
         {
-            if (trimmed_start == view.end())
+            if (trimmed_start == access.end())
                 return sys_string_t<Storage>();
 
             char32_t c = *trimmed_start;
@@ -154,7 +154,7 @@ namespace sysstr
                 break;
         }
 
-        auto trimmed_end = view.rbegin();
+        auto trimmed_end = access.rbegin();
         for( ; ; ++trimmed_end)
         {
             char32_t c = *trimmed_end;
@@ -169,9 +169,9 @@ namespace sysstr
     template<std::predicate<char32_t> Pred>
     auto sys_string_t<Storage>::ltrim(Pred pred) const -> sys_string_t<Storage>
     {
-        sys_string_t<Storage>::utf32_view view(*this);
-        auto trimmed_start = view.begin();
-        auto last = view.end();
+        sys_string_t<Storage>::utf32_access access(*this);
+        auto trimmed_start = access.begin();
+        auto last = access.end();
         for( ; ; ++trimmed_start)
         {
             if (trimmed_start == last)
@@ -190,9 +190,9 @@ namespace sysstr
     inline
     auto sys_string_t<Storage>::rtrim(Pred pred) const -> sys_string_t<Storage>
     {
-        sys_string_t<Storage>::utf32_view view(*this);
-        auto trimmed_end = view.rbegin();
-        auto last = view.rend();
+        sys_string_t<Storage>::utf32_access access(*this);
+        auto trimmed_end = access.rbegin();
+        auto last = access.rend();
         for( ; ; ++trimmed_end)
         {
             if (trimmed_end == last)
@@ -210,10 +210,10 @@ namespace sysstr
     template<class Search, class OutIt>
     auto sys_string_t<Storage>::split(OutIt dest, Search search) const -> OutIt
     requires(std::output_iterator<OutIt, sys_string_t> &&
-             std::is_invocable_v<Search, typename sys_string_t::utf32_view::iterator, std::default_sentinel_t>)
+             std::is_invocable_v<Search, typename sys_string_t::utf32_access::iterator, std::default_sentinel_t>)
     {
-        utf32_view view(*this);
-        return util::split<sys_string_t<Storage>>(view.begin(), view.end(), dest, search);
+        utf32_access access(*this);
+        return util::split<sys_string_t<Storage>>(access.begin(), access.end(), dest, search);
     }
 
     template<class Storage>

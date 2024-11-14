@@ -45,16 +45,6 @@ namespace sysstr
 
 namespace sysstr::util
 {
-    struct char_access_data_detector
-    {
-        template<class CharAccess>
-        auto operator()(const CharAccess * access) noexcept(noexcept(access->data())) -> decltype(access->data());
-    };
-
-    template<class CharAccess>
-    constexpr bool has_contiguous_data =
-            std::is_nothrow_invocable_r_v<const typename CharAccess::value_type *,char_access_data_detector, const CharAccess *>;
-
     template<class Storage, class First, class Second>
     class addition;
     

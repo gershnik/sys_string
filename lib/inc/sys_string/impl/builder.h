@@ -161,7 +161,7 @@ namespace sysstr
             { append_many(m_impl, str, std::char_traits<Char>::length(str)); return *this; }
 
         sys_string_builder_t & append(const sys_string_t<Storage> & str)
-            { append_access(typename sys_string_t<Storage>::char_access(str)); return *this; }
+            { append_range(typename sys_string_t<Storage>::char_access(str)); return *this; }
 
         sys_string_t<Storage> build() noexcept
             { return util::build<Storage>(m_impl); }
@@ -188,8 +188,8 @@ namespace sysstr
         template<has_utf_encoding Char>
         static typename impl_type::iterator insert_many(impl_type & impl, typename impl_type::iterator pos, const Char * str, size_t len);
         
-        template<class Access>
-        void append_access(const Access & access);
+        template<std::ranges::input_range Range>
+        void append_range(const Range & range);
         
         auto storage_begin() const 
             { return std::begin(m_impl); }
@@ -271,20 +271,19 @@ namespace sysstr
     }
 
     template<class Storage>
-    template<class Access>
-    inline void sys_string_builder_t<Storage>::append_access(const Access & access)
+    template<std::ranges::input_range Range>
+    inline void sys_string_builder_t<Storage>::append_range(const Range & range)
     {
-        if constexpr (util::has_contiguous_data<Access>)
+        static_assert(std::is_same_v<std::ranges::range_value_t<Range>, storage_type>);
+        
+        if constexpr (std::ranges::contiguous_range<Range>)
         {
-            m_impl.append(access.data(), access.size());
+            m_impl.append(std::data(range), std::size(range));
         }
         else
         {
-            for(typename Access::size_type i = 0, count = access.size(); i < count; ++i)
-            {
-                auto c = access[i];
+            for(storage_type c: range)
                 m_impl.push_back(c);
-            }
         }
     }
 

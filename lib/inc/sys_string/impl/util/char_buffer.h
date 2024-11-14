@@ -124,13 +124,13 @@ namespace sysstr::util
             { return this->begin()[idx]; }
     
         iterator begin() const noexcept
-            { return this->m_storage.buffer(); }
+            { return this->m_storage.data(); }
         iterator end() const noexcept
-            { return this->m_storage.buffer() + this->m_size; }
+            { return this->m_storage.data() + this->m_size; }
         const_iterator cbegin() const noexcept
-            { return this->m_storage.buffer(); }
+            { return this->m_storage.data(); }
         const_iterator cend() const noexcept
-            { return this->m_storage.buffer() + this->m_size; }
+            { return this->m_storage.data() + this->m_size; }
         reverse_iterator rbegin() const noexcept
             { return reverse_iterator(end()); }
         reverse_iterator rend() const noexcept

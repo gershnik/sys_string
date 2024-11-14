@@ -25,12 +25,12 @@ namespace sysstr::util
     };
 
     template<size_t N>
-    using static_buffer     = generic::static_buffer<android_traits::storage_type, android_traits::size_type, N>;
-    using dynamic_buffer    = generic::dynamic_buffer<android_traits::storage_type, android_traits::size_type>;
+    using static_string     = generic::static_string<android_traits::storage_type, android_traits::size_type, N>;
+    using dynamic_string    = generic::dynamic_string<android_traits::storage_type, android_traits::size_type>;
 
-    using buffer            = generic::buffer<android_traits::storage_type, android_traits::size_type>;
+    using any_string        = generic::any_string<android_traits::storage_type, android_traits::size_type>;
 
-    using builder_impl      = generic::buffer_builder<android_traits::storage_type, android_traits::size_type>;
+    using builder_impl      = generic::any_string_builder<android_traits::storage_type, android_traits::size_type>;
 
     using char_access       = generic::char_access<android_traits::storage_type, android_traits::size_type>;
 
@@ -101,19 +101,19 @@ namespace sysstr
             throw std::runtime_error(desc);
         }
         
-        static buffer create_buffer(JNIEnv * env, jstring str)
+        static any_string create_buffer(JNIEnv * env, jstring str)
         {
             if (!str)
-                return buffer(nullptr);
+                return any_string(nullptr);
             
             jsize length = str ? env->GetStringLength(str) : 0;
             if (length < 0)
                 raise_exception_on_jni_error(env, "GetStringLength failed");
             
             if (length == 0)
-                return buffer();
+                return any_string();
 
-            buffer ret(length);
+            any_string ret(length);
             env->GetStringRegion(str, 0, length, reinterpret_cast<jchar *>(ret.data()));
             return ret;
         }
@@ -143,8 +143,8 @@ namespace sysstr
 
 #define SYS_STRING_STATIC_ANDROID(x) ([] () noexcept -> ::sysstr::sys_string_android { \
         constexpr ::size_t size = sizeof(u##x) / sizeof(char16_t); \
-        static const ::sysstr::util::static_buffer<size> sbuf{0, true, u##x}; \
-        ::sysstr::util::buffer buf((::sysstr::util::dynamic_buffer *)&sbuf, size - 1, 0); \
+        static const ::sysstr::util::static_string<size> sbuf{0, true, u##x}; \
+        ::sysstr::util::any_string buf((::sysstr::util::dynamic_string *)&sbuf, size - 1, 0); \
         return *reinterpret_cast<::sysstr::sys_string_android *>(&buf); \
     }())
 

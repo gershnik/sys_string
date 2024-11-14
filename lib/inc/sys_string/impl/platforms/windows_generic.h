@@ -25,12 +25,12 @@ namespace sysstr::util
     };
 
     template<size_t N> 
-    using win_generic_static_buffer     = generic::static_buffer<win_generic_traits::storage_type, win_generic_traits::size_type, N>;
-    using win_generic_dynamic_buffer    = generic::dynamic_buffer<win_generic_traits::storage_type, win_generic_traits::size_type>;
+    using win_generic_static_string     = generic::static_string<win_generic_traits::storage_type, win_generic_traits::size_type, N>;
+    using win_generic_dynamic_string    = generic::dynamic_string<win_generic_traits::storage_type, win_generic_traits::size_type>;
 
-    using win_generic_buffer            = generic::buffer<win_generic_traits::storage_type, win_generic_traits::size_type>;
+    using win_generic_any_string        = generic::any_string<win_generic_traits::storage_type, win_generic_traits::size_type>;
 
-    using win_generic_builder_impl      = generic::buffer_builder<win_generic_traits::storage_type, win_generic_traits::size_type>;
+    using win_generic_builder_impl      = generic::any_string_builder<win_generic_traits::storage_type, win_generic_traits::size_type>;
 
     using win_generic_char_access       = generic::char_access<win_generic_traits::storage_type, win_generic_traits::size_type>;
     
@@ -112,8 +112,8 @@ namespace sysstr
 
 #define SYS_STRING_STATIC_WIN_GENERIC(x) ([] () noexcept -> ::sysstr::sys_string_win_generic { \
         constexpr ::size_t size = sizeof(u##x) / sizeof(char16_t); \
-        static const ::sysstr::util::win_generic_static_buffer<size> sbuf{0, true, u##x}; \
-        ::sysstr::util::win_generic_buffer buf((::sysstr::util::win_generic_dynamic_buffer *)&sbuf, size - 1, 0); \
+        static const ::sysstr::util::win_generic_static_string<size> sbuf{0, true, u##x}; \
+        ::sysstr::util::win_generic_any_string buf((::sysstr::util::win_generic_dynamic_string *)&sbuf, size - 1, 0); \
         return *reinterpret_cast<::sysstr::sys_string_win_generic *>(&buf); \
     }())
 

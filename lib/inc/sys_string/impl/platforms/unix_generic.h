@@ -16,7 +16,6 @@
 
 namespace sysstr::util
 {
-
     struct generic_traits
     {
         using storage_type = char;
@@ -27,12 +26,12 @@ namespace sysstr::util
     };
 
     template<size_t N> 
-    using generic_static_buffer     = generic::static_buffer<generic_traits::storage_type, generic_traits::size_type, N>;
-    using generic_dynamic_buffer    = generic::dynamic_buffer<generic_traits::storage_type, generic_traits::size_type>;
+    using generic_static_string     = generic::static_string<generic_traits::storage_type, generic_traits::size_type, N>;
+    using generic_dynamic_string    = generic::dynamic_string<generic_traits::storage_type, generic_traits::size_type>;
 
-    using generic_buffer            = generic::buffer<generic_traits::storage_type, generic_traits::size_type>;
+    using generic_any_string        = generic::any_string<generic_traits::storage_type, generic_traits::size_type>;
 
-    using generic_builder_impl      = generic::buffer_builder<generic_traits::storage_type, generic_traits::size_type>;
+    using generic_builder_impl      = generic::any_string_builder<generic_traits::storage_type, generic_traits::size_type>;
 
     using generic_char_access       = generic::char_access<generic_traits::storage_type, generic_traits::size_type>;
     
@@ -117,8 +116,8 @@ namespace sysstr
 
 #define SYS_STRING_STATIC_GENERIC(x) ([] () noexcept -> ::sysstr::sys_string_generic { \
         constexpr ::size_t size = sizeof(x) / sizeof(char); \
-        static const ::sysstr::util::generic_static_buffer<size> sbuf{0, true, x}; \
-        ::sysstr::util::generic_buffer buf((::sysstr::util::generic_dynamic_buffer *)&sbuf, size - 1, 0); \
+        static const ::sysstr::util::generic_static_string<size> sbuf{0, true, x}; \
+        ::sysstr::util::generic_any_string buf((::sysstr::util::generic_dynamic_string *)&sbuf, size - 1, 0); \
         return *reinterpret_cast<::sysstr::sys_string_generic *>(&buf); \
     }())
 

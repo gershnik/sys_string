@@ -119,7 +119,7 @@ namespace sysstr::util
     public:
         constexpr size_type capacity() const noexcept
             { return m_capacity; }
-        constexpr value_type * buffer() const noexcept
+        constexpr value_type * data() const noexcept
         {
             return std::visit([](const auto & val) {
                 return const_cast<value_type *>(val.data());

@@ -480,7 +480,7 @@ namespace sysstr::util
 
         constexpr size_type capacity() const noexcept
             { return m_capacity; }
-        value_type * buffer() const noexcept
+        value_type * data() const noexcept
             { return m_buf.chars(); }
         static constexpr size_type max_size() noexcept
             { return bstr_traits::max_size; }

@@ -24,12 +24,12 @@ namespace sysstr::util
     };
 
     template<size_t N>
-    using emscripten_static_buffer     = generic::static_buffer<emscripten_traits::storage_type, emscripten_traits::size_type, N>;
-    using emscripten_dynamic_buffer    = generic::dynamic_buffer<emscripten_traits::storage_type, emscripten_traits::size_type>;
+    using emscripten_static_string     = generic::static_string<emscripten_traits::storage_type, emscripten_traits::size_type, N>;
+    using emscripten_dynamic_string    = generic::dynamic_string<emscripten_traits::storage_type, emscripten_traits::size_type>;
 
-    using emscripten_buffer            = generic::buffer<emscripten_traits::storage_type, emscripten_traits::size_type>;
+    using emscripten_any_string        = generic::any_string<emscripten_traits::storage_type, emscripten_traits::size_type>;
 
-    using emscripten_builder_impl      = generic::buffer_builder<emscripten_traits::storage_type, emscripten_traits::size_type>;
+    using emscripten_builder_impl      = generic::any_string_builder<emscripten_traits::storage_type, emscripten_traits::size_type>;
 
     using emscripten_char_access       = generic::char_access<emscripten_traits::storage_type, emscripten_traits::size_type>;
 
@@ -114,7 +114,7 @@ namespace sysstr
             { super::swap(other); }
 
     private:
-        static auto create_buffer(emscripten::EM_VAL js_str) -> buffer
+        static auto create_buffer(emscripten::EM_VAL js_str) -> any_string
         {
             #pragma clang diagnostic push
             #pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
@@ -125,9 +125,9 @@ namespace sysstr
             }, js_str);
             
             if (length == 0)
-                return buffer();
+                return any_string();
 
-            buffer ret(length);
+            any_string ret(length);
             EM_ASM({
                 let str = Emval.toValue($0);
                 let ptr = $1;
@@ -167,8 +167,8 @@ namespace sysstr
 
 #define SYS_STRING_STATIC_EMSCRIPTEN(x) ([] () noexcept -> ::sysstr::sys_string_emscripten { \
         constexpr ::size_t size = sizeof(u##x) / sizeof(char16_t); \
-        static const ::sysstr::util::emscripten_static_buffer<size> sbuf{0, true, u##x}; \
-        ::sysstr::util::emscripten_buffer buf((::sysstr::util::emscripten_dynamic_buffer *)&sbuf, size - 1, 0); \
+        static const ::sysstr::util::emscripten_static_string<size> sbuf{0, true, u##x}; \
+        ::sysstr::util::emscripten_any_string buf((::sysstr::util::emscripten_dynamic_string *)&sbuf, size - 1, 0); \
         return *reinterpret_cast<::sysstr::sys_string_emscripten *>(&buf); \
     }())
 

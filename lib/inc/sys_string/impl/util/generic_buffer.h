@@ -21,22 +21,22 @@
 namespace sysstr::util::generic
 {
     template<class CharT, class SizeT>
-    class dynamic_buffer
+    class dynamic_string
     {
     public:
         using size_type = SizeT;
         using value_type = CharT;
     public:
-        static dynamic_buffer * create(SizeT len)
-            { return new (len) dynamic_buffer(); }
+        static dynamic_string * create(SizeT len)
+            { return new (len) dynamic_string(); }
         
-        static dynamic_buffer * reallocate(dynamic_buffer * original, SizeT len)
+        static dynamic_string * reallocate(dynamic_string * original, SizeT len)
         {
-            dynamic_buffer * new_ptr = (dynamic_buffer *)realloc(original, sizeof(dynamic_buffer) + len * sizeof(CharT));
+            dynamic_string * new_ptr = (dynamic_string *)realloc(original, sizeof(dynamic_string) + len * sizeof(CharT));
             if (!new_ptr)
                 throw std::bad_alloc();
             if (!original)
-                new (new_ptr) dynamic_buffer();
+                new (new_ptr) dynamic_string();
             return new_ptr;
         }
 
@@ -64,10 +64,10 @@ namespace sysstr::util::generic
             { return this->m_chars; }
         
     private:
-        dynamic_buffer() noexcept = default;
-        dynamic_buffer(const dynamic_buffer &) = delete;
-        dynamic_buffer & operator=(const dynamic_buffer &) = delete;
-        ~dynamic_buffer() = default;
+        dynamic_string() noexcept = default;
+        dynamic_string(const dynamic_string &) = delete;
+        dynamic_string & operator=(const dynamic_string &) = delete;
+        ~dynamic_string() = default;
         
         static void * operator new(size_t length, SizeT str_length)
         { 
@@ -91,9 +91,9 @@ namespace sysstr::util::generic
         CharT m_chars[1]; //this accounts for null terminator
     };
 
-    //this needs to be layout compatible with dynamic_buffer
+    //this needs to be layout compatible with dynamic_string
     template<class CharT, class SizeT, size_t N>
-    struct static_buffer
+    struct static_string
     {
         int32_t not_a_ref_count;
         bool is_static;
@@ -101,27 +101,27 @@ namespace sysstr::util::generic
     };
 
     template<class CharT, class SizeT>
-    class buffer
+    class any_string
     {
     private:
         static constexpr uintptr_t dynamic_flag = 0b01;
-        using dynamic_type = dynamic_buffer<CharT, SizeT>;
+        using dynamic_type = dynamic_string<CharT, SizeT>;
     public:
         static constexpr SizeT max_size = SizeT(std::numeric_limits<std::make_signed_t<SizeT>>::max() - sizeof(dynamic_type)) / sizeof(CharT);
     public:
-        buffer() noexcept
+        any_string() noexcept
         {
             this->set_empty();
         }
-        buffer(std::nullptr_t) noexcept
+        any_string(std::nullptr_t) noexcept
         {
             this->set_dynamic(nullptr, 0);
         }
-        buffer(dynamic_type * buf, SizeT size, int) noexcept
+        any_string(dynamic_type * buf, SizeT size, int) noexcept
         {
             this->set_dynamic(buf, size);
         }
-        buffer(SizeT length) 
+        any_string(SizeT length) 
         {
             if (length <= max_small_length)
             {
@@ -135,11 +135,11 @@ namespace sysstr::util::generic
         }
 
         template<class Char>
-        buffer(const Char * str, size_t length)
+        any_string(const Char * str, size_t length)
         {
             if constexpr (utf_encoding_of<Char> == utf_encoding_of<CharT>)
             {
-                SizeT our_size = buffer::ensure_valid_size(length);
+                SizeT our_size = any_string::ensure_valid_size(length);
                 CharT * data;
                 if (our_size <= max_small_length)
                 {
@@ -158,7 +158,7 @@ namespace sysstr::util::generic
             else
             {
                 using converter = utf_converter<utf_encoding_of<Char>, utf_encoding_of<CharT>>;
-                SizeT our_size = buffer::ensure_valid_size(converter::converted_length(str, str + length));
+                SizeT our_size = any_string::ensure_valid_size(converter::converted_length(str, str + length));
                 CharT * data;
                 if (our_size <= max_small_length)
                 {
@@ -208,18 +208,18 @@ namespace sysstr::util::generic
         }
 
 
-        ~buffer() noexcept
+        ~any_string() noexcept
         { 
             if (auto buf = (this->is_dynamic() ? this->get_dynamic() : nullptr))
                 buf->sub_ref();
         }
-        buffer(const buffer & src) noexcept
+        any_string(const any_string & src) noexcept
         { 
             memcpy(&m_data, &src.m_data, sizeof(m_data));
             if (auto buf = (this->is_dynamic() ? this->get_dynamic() : nullptr))
                 buf->add_ref();
         }
-        buffer(buffer && src) noexcept
+        any_string(any_string && src) noexcept
         { 
             //Good boy GCC 12! src.m_data is indeed not necessarily fully initialized
             #if defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 12
@@ -232,19 +232,19 @@ namespace sysstr::util::generic
             #endif
             src.set_empty();
         }
-        buffer & operator=(const buffer & rhs) noexcept
+        any_string & operator=(const any_string & rhs) noexcept
         {
-            buffer temp(rhs);
+            any_string temp(rhs);
             return *this = std::move(temp);
         }
-        buffer & operator=(buffer && rhs) noexcept
+        any_string & operator=(any_string && rhs) noexcept
         {
-            this->~buffer();
-            new (this) buffer(std::move(rhs));
+            this->~any_string();
+            new (this) any_string(std::move(rhs));
             return *this;
         }
 
-        void swap(buffer & other) noexcept
+        void swap(any_string & other) noexcept
         {
             decltype(m_data) temp;
             memcpy(&temp, &other.m_data, sizeof(m_data));
@@ -265,7 +265,7 @@ namespace sysstr::util::generic
         }
 
         CharT * data() noexcept
-            { return const_cast<CharT *>(const_cast<const buffer *>(this)->data()); }
+            { return const_cast<CharT *>(const_cast<const any_string *>(this)->data()); }
 
         SizeT size() const noexcept
             {  return this->is_dynamic() ? this->get_dynamic_size() : this->get_static_size(); }
@@ -292,15 +292,15 @@ namespace sysstr::util::generic
         {
             this->marker_byte() = std::byte(0);
         }
-        void set_dynamic(dynamic_type * buffer, SizeT size) noexcept
+        void set_dynamic(dynamic_type * any_string, SizeT size) noexcept
         {
-            this->dynamic_ptr_value() = (uintptr_t(buffer) | buffer::dynamic_flag);
+            this->dynamic_ptr_value() = (uintptr_t(any_string) | any_string::dynamic_flag);
             this->dynamic_size_value() = size;
         }
         bool is_dynamic() const noexcept
-            { return this->dynamic_ptr_value() & buffer::dynamic_flag; }
+            { return this->dynamic_ptr_value() & any_string::dynamic_flag; }
         dynamic_type * get_dynamic() const noexcept
-            { return reinterpret_cast<dynamic_type *>(this->dynamic_ptr_value() & ~buffer::dynamic_flag); }
+            { return reinterpret_cast<dynamic_type *>(this->dynamic_ptr_value() & ~any_string::dynamic_flag); }
         SizeT get_dynamic_size() const noexcept
             { return this->dynamic_size_value(); }
         void set_dynamic_size(SizeT size) noexcept
@@ -314,7 +314,7 @@ namespace sysstr::util::generic
         
         static SizeT ensure_valid_size(size_t len)
         {
-            if (len > buffer::max_size)
+            if (len > any_string::max_size)
                 throw std::bad_alloc();
             return SizeT(len);
         }
@@ -337,7 +337,7 @@ namespace sysstr::util::generic
                 return *(reinterpret_cast<const uintptr_t *>(&this->m_data[data_size]) - 1);
         }
         uintptr_t & dynamic_ptr_value() noexcept
-            { return const_cast<uintptr_t &>(const_cast<const buffer *>(this)->dynamic_ptr_value()); }
+            { return const_cast<uintptr_t &>(const_cast<const any_string *>(this)->dynamic_ptr_value()); }
 
         const uintptr_t & dynamic_size_value() const noexcept
         {
@@ -347,7 +347,7 @@ namespace sysstr::util::generic
                 return *(reinterpret_cast<const uintptr_t *>(&this->m_data[data_size]) - 2);
         }
         uintptr_t & dynamic_size_value() noexcept
-            { return const_cast<uintptr_t &>(const_cast<const buffer *>(this)->dynamic_size_value()); }
+            { return const_cast<uintptr_t &>(const_cast<const any_string *>(this)->dynamic_size_value()); }
 
         const CharT * get_static_data() const noexcept
         {
@@ -357,7 +357,7 @@ namespace sysstr::util::generic
                 return reinterpret_cast<const CharT *>(&this->m_data[0]);
         }
         CharT * get_static_data() noexcept
-            { return const_cast<CharT *>(const_cast<const buffer *>(this)->get_static_data()); }
+            { return const_cast<CharT *>(const_cast<const any_string *>(this)->get_static_data()); }
 
         const std::byte & marker_byte() const noexcept
         {
@@ -367,7 +367,7 @@ namespace sysstr::util::generic
                 return this->m_data[data_size - 1]; 
         }
         std::byte & marker_byte() noexcept
-            { return const_cast<std::byte &>(const_cast<const buffer *>(this)->marker_byte()); }
+            { return const_cast<std::byte &>(const_cast<const any_string *>(this)->marker_byte()); }
     };
 
     
@@ -395,9 +395,9 @@ namespace sysstr::util::generic
         using const_reverse_iterator = reverse_iterator;
         
     public:
-        char_access(const buffer<CharT, SizeT> & buffer) noexcept:
-            m_chars(buffer.data()),
-            m_size(buffer.size())
+        char_access(const any_string<CharT, SizeT> & storage) noexcept:
+            m_chars(storage.data()),
+            m_size(storage.size())
         {
         }
         template<class Storage>
@@ -461,7 +461,7 @@ namespace sysstr::util::generic
     class builder_storage
     {
     private:
-        using buffer_t = generic::buffer<CharT, SizeT>;
+        using buffer_t = generic::any_string<CharT, SizeT>;
     public:
         using value_type = CharT;
         using size_type = SizeT;
@@ -486,7 +486,7 @@ namespace sysstr::util::generic
 
         constexpr size_type capacity() const noexcept
             { return this->m_capacity; }
-        constexpr value_type * buffer() const noexcept
+        constexpr value_type * data() const noexcept
             { return this->m_buf.data(); }
         static constexpr size_type max_size() noexcept
             { return buffer_t::max_size; }
@@ -509,10 +509,10 @@ namespace sysstr::util::generic
     };
 
     template<class CharT, class SizeT>
-    using buffer_builder= char_buffer<builder_storage<CharT, SizeT>>;
+    using any_string_builder= char_buffer<builder_storage<CharT, SizeT>>;
 
     template<class CharT, class SizeT>
-    inline buffer<CharT, SizeT> convert_to_string(buffer_builder<CharT, SizeT> & builder) noexcept
+    inline any_string<CharT, SizeT> convert_to_string(any_string_builder<CharT, SizeT> & builder) noexcept
     {
         auto size = builder.size();
         auto buf = builder.release();
@@ -525,7 +525,7 @@ namespace sysstr::util::generic
     {
     friend generic::char_access<CharT, SizeT>;
     protected:
-        using buffer = generic::buffer<CharT, SizeT>;
+        using buffer = generic::any_string<CharT, SizeT>;
         using char_access = generic::char_access<CharT, SizeT>;
     public:
         using size_type = SizeT;
@@ -571,7 +571,7 @@ namespace sysstr::util::generic
             { return m_buffer.size(); }
 
         auto operator[](SizeT idx) const noexcept -> CharT
-            { return m_buffer.buffer()[idx]; }
+            { return m_buffer.data()[idx]; }
 
         auto swap(storage & other) noexcept -> void
             { m_buffer.swap(other.m_buffer); }

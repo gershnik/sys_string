@@ -93,7 +93,7 @@ namespace sysstr::util
 
         constexpr size_type capacity() const noexcept
             { return m_capacity; }
-        constexpr value_type * buffer() const noexcept
+        constexpr value_type * data() const noexcept
             { return m_buffer; }
         static constexpr size_type max_size() noexcept
             { return hstring_traits::max_size; }

@@ -140,13 +140,15 @@ def parse_properties(line):
             whitespaces.append(char)
 
 def parse_derived_properties(line):
-    (char_range, prop) = line[:line.index('# ')].split('; ')
+    (char_range, props) = line[:line.index('# ')].split('; ', 1)
     char_range = char_range.strip()
-    prop = prop.strip()
-    prop_val = prop_values.get(prop)
-    if not prop_val is None:
-        start, end = parse_char_range(char_range)
-        prop_builder.add_chars(start, end, prop_val)
+    props = props.split('; ')
+    for prop in props:
+        prop = prop.strip()
+        prop_val = prop_values.get(prop)
+        if not prop_val is None:
+            start, end = parse_char_range(char_range)
+            prop_builder.add_chars(start, end, prop_val)
             
 
 def make_source_chars(char_info):

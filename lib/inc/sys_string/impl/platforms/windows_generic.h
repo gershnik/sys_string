@@ -30,7 +30,7 @@ namespace sysstr::util
 
     using win_generic_any_string        = generic::any_string<win_generic_traits::storage_type, win_generic_traits::size_type>;
 
-    using win_generic_builder_impl      = generic::any_string_builder<win_generic_traits::storage_type, win_generic_traits::size_type>;
+    using win_generic_builder_impl      = generic::builder_impl<win_generic_traits::storage_type, win_generic_traits::size_type>;
 
     using win_generic_char_access       = generic::char_access<win_generic_traits::storage_type, win_generic_traits::size_type>;
     

@@ -509,10 +509,10 @@ namespace sysstr::util::generic
     };
 
     template<class CharT, class SizeT>
-    using any_string_builder= char_vector<builder_storage<CharT, SizeT>>;
+    using builder_impl= char_vector<builder_storage<CharT, SizeT>>;
 
     template<class CharT, class SizeT>
-    inline any_string<CharT, SizeT> convert_to_string(any_string_builder<CharT, SizeT> & builder) noexcept
+    inline any_string<CharT, SizeT> convert_to_string(builder_impl<CharT, SizeT> & builder) noexcept
     {
         auto size = builder.size();
         auto buf = builder.release();

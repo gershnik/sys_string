@@ -31,7 +31,7 @@ namespace sysstr::util
 
     using generic_any_string        = generic::any_string<generic_traits::storage_type, generic_traits::size_type>;
 
-    using generic_builder_impl      = generic::any_string_builder<generic_traits::storage_type, generic_traits::size_type>;
+    using generic_builder_impl      = generic::builder_impl<generic_traits::storage_type, generic_traits::size_type>;
 
     using generic_char_access       = generic::char_access<generic_traits::storage_type, generic_traits::size_type>;
     

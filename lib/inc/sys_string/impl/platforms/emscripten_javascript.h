@@ -29,7 +29,7 @@ namespace sysstr::util
 
     using emscripten_any_string        = generic::any_string<emscripten_traits::storage_type, emscripten_traits::size_type>;
 
-    using emscripten_builder_impl      = generic::any_string_builder<emscripten_traits::storage_type, emscripten_traits::size_type>;
+    using emscripten_builder_impl      = generic::builder_impl<emscripten_traits::storage_type, emscripten_traits::size_type>;
 
     using emscripten_char_access       = generic::char_access<emscripten_traits::storage_type, emscripten_traits::size_type>;
 

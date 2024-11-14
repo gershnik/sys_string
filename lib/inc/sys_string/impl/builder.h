@@ -12,13 +12,21 @@
 
 namespace sysstr
 {
+    template<class Storage> struct utf_access_traits_for<sys_string_builder_t<Storage>>
+        { using type = typename sys_string_builder_t<Storage>::utf_view_traits; };
+
     template<class Storage>
     class sys_string_builder_t
     {
     private:
         using impl_type = typename Storage::builder_impl;
         
-        struct view_traits
+    public:
+        using size_type = typename impl_type::size_type;
+        using storage_type = typename impl_type::value_type;
+        
+
+        struct utf_view_traits
         {
             using stored_reference = const impl_type *;
             
@@ -30,12 +38,9 @@ namespace sysstr
             static const impl_type & access(stored_reference ptr) noexcept
                 { return *ptr; }
         };
-    public:
-        using size_type = typename impl_type::size_type;
-        using storage_type = typename impl_type::value_type;
-        
+
         template<utf_encoding Enc>
-        using utf_view = utf_view<Enc, sys_string_builder_t, view_traits>;
+        using utf_view = utf_view<Enc, sys_string_builder_t>;
 
         using utf8_view  = utf_view<utf8>;
         using utf16_view = utf_view<utf16>;

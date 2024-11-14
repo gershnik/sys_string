@@ -20,6 +20,29 @@ using namespace std::literals;
 [[maybe_unused]] static std::u32string clang_string_workaround(const char32_t* a, const char32_t* b) { return {a, b}; }
 #endif
 
+static_assert(std::ranges::forward_range<utf_view<utf8, std::vector<char>>>);
+static_assert(!std::ranges::bidirectional_range<utf_view<utf8, std::vector<char>>>);
+static_assert(!std::ranges::common_range<utf_view<utf8, std::vector<char>>>);
+static_assert(std::ranges::view<utf_view<utf8, std::vector<char>>>);
+static_assert(std::ranges::borrowed_range<utf_view<utf8, std::vector<char>>>);
+static_assert(std::ranges::viewable_range<utf_view<utf8, std::vector<char>>>);
+static_assert(ranges::custom_reverse_traversable_range<utf_view<utf8, std::vector<char>>>);
+
+static_assert(std::ranges::forward_range<utf_view<utf16, std::vector<char>>>);
+static_assert(!std::ranges::bidirectional_range<utf_view<utf16, std::vector<char>>>);
+static_assert(!std::ranges::common_range<utf_view<utf16, std::vector<char>>>);
+static_assert(std::ranges::view<utf_view<utf16, std::vector<char>>>);
+static_assert(std::ranges::borrowed_range<utf_view<utf16, std::vector<char>>>);
+static_assert(std::ranges::viewable_range<utf_view<utf16, std::vector<char>>>);
+static_assert(ranges::custom_reverse_traversable_range<utf_view<utf16, std::vector<char>>>);
+
+static_assert(std::ranges::forward_range<utf_view<utf32, std::vector<char>>>);
+static_assert(!std::ranges::bidirectional_range<utf_view<utf32, std::vector<char>>>);
+static_assert(!std::ranges::common_range<utf_view<utf32, std::vector<char>>>);
+static_assert(std::ranges::view<utf_view<utf32, std::vector<char>>>);
+static_assert(std::ranges::borrowed_range<utf_view<utf32, std::vector<char>>>);
+static_assert(std::ranges::viewable_range<utf_view<utf32, std::vector<char>>>);
+static_assert(ranges::custom_reverse_traversable_range<utf_view<utf32, std::vector<char>>>);
 
 namespace
 {

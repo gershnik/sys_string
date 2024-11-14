@@ -25,6 +25,7 @@ static_assert(!std::ranges::common_range<sys_string_builder::utf32_view>);
 static_assert(std::ranges::view<sys_string_builder::utf32_view>);
 static_assert(std::ranges::borrowed_range<sys_string_builder::utf32_view>);
 static_assert(std::ranges::viewable_range<sys_string_builder::utf32_view>);
+static_assert(ranges::custom_reverse_traversable_range<sys_string_builder::utf32_view>);
 
 static_assert(std::ranges::forward_range<sys_string_builder::utf16_view>);
 static_assert(!std::ranges::bidirectional_range<sys_string_builder::utf16_view>);
@@ -32,6 +33,7 @@ static_assert(!std::ranges::common_range<sys_string_builder::utf16_view>);
 static_assert(std::ranges::view<sys_string_builder::utf16_view>);
 static_assert(std::ranges::borrowed_range<sys_string_builder::utf16_view>);
 static_assert(std::ranges::viewable_range<sys_string_builder::utf16_view>);
+static_assert(ranges::custom_reverse_traversable_range<sys_string_builder::utf16_view>);
 
 static_assert(std::ranges::forward_range<sys_string_builder::utf8_view>);
 static_assert(!std::ranges::bidirectional_range<sys_string_builder::utf8_view>);
@@ -39,6 +41,7 @@ static_assert(!std::ranges::common_range<sys_string_builder::utf8_view>);
 static_assert(std::ranges::view<sys_string_builder::utf8_view>);
 static_assert(std::ranges::borrowed_range<sys_string_builder::utf8_view>);
 static_assert(std::ranges::viewable_range<sys_string_builder::utf8_view>);
+static_assert(ranges::custom_reverse_traversable_range<sys_string_builder::utf8_view>);
 
 TEST_CASE( "Builder basics", "[builder]") {
 

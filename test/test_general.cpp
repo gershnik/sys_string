@@ -31,18 +31,21 @@ static_assert(!std::ranges::bidirectional_range<sys_string::utf32_view>);
 static_assert(!std::ranges::common_range<sys_string::utf32_view>);
 static_assert(!std::ranges::view<sys_string::utf32_view>);
 static_assert(!std::ranges::borrowed_range<sys_string::utf32_view>);
+static_assert(ranges::custom_reverse_traversable_range<sys_string::utf32_view>);
 
 static_assert(std::ranges::forward_range<sys_string::utf16_view>);
 static_assert(!std::ranges::bidirectional_range<sys_string::utf16_view>);
 static_assert(!std::ranges::common_range<sys_string::utf16_view>);
 static_assert(!std::ranges::view<sys_string::utf16_view>);
 static_assert(!std::ranges::borrowed_range<sys_string::utf16_view>);
+static_assert(ranges::custom_reverse_traversable_range<sys_string::utf16_view>);
 
 static_assert(std::ranges::forward_range<sys_string::utf8_view>);
 static_assert(!std::ranges::bidirectional_range<sys_string::utf8_view>);
 static_assert(!std::ranges::common_range<sys_string::utf8_view>);
 static_assert(!std::ranges::view<sys_string::utf8_view>);
 static_assert(!std::ranges::borrowed_range<sys_string::utf8_view>);
+static_assert(ranges::custom_reverse_traversable_range<sys_string::utf8_view>);
 
 template<class T>
 bool is_eq(T val)
@@ -109,6 +112,23 @@ TEST_CASE( "Iteration", "[general]" ) {
         CHECK(converted == std::string{expected.rbegin(), expected.rend()});
 
         converted.clear();
+        std::ranges::copy(sys_string::utf8_view(str), std::back_inserter(converted));
+        CHECK(converted == expected);
+
+        converted.clear();
+        std::ranges::copy(as_utf8(sys_string::char_access(str)), std::back_inserter(converted));
+        CHECK(converted == expected);
+
+        static_assert(std::is_same_v<decltype(as_utf8(sys_string::char_access(str)))::iterator,
+                                     sys_string::utf8_view::iterator>);
+
+        bool res = std::ranges::equal(as_utf8(sys_string::char_access(str)) | std::views::take(1), std::array{'a'});
+        CHECK(res);
+
+        res = std::ranges::equal(std::views::all(view) | std::views::take(1), std::array{'a'});
+        CHECK(res);
+
+        converted.clear();
         for (char c: sys_string::utf8_view(empty))
         {
             converted.push_back(c);
@@ -129,6 +149,23 @@ TEST_CASE( "Iteration", "[general]" ) {
         sys_string::utf16_view view(str);
         std::ranges::copy(view.rbegin(), view.rend(), std::back_inserter(converted));
         CHECK(converted == std::u16string{expected.rbegin(), expected.rend()});
+
+        converted.clear();
+        std::ranges::copy(sys_string::utf16_view(str), std::back_inserter(converted));
+        CHECK(converted == expected);
+
+        converted.clear();
+        std::ranges::copy(as_utf16(sys_string::char_access(str)), std::back_inserter(converted));
+        CHECK(converted == expected);
+
+        static_assert(std::is_same_v<decltype(as_utf16(sys_string::char_access(str)))::iterator,
+                                     sys_string::utf16_view::iterator>);
+
+        bool res = std::ranges::equal(as_utf16(sys_string::char_access(str)) | std::views::take(1), std::array{'a'});
+        CHECK(res);
+
+        res = std::ranges::equal(std::views::all(view) | std::views::take(1), std::array{'a'});
+        CHECK(res);
 
         converted.clear();
         for (char16_t c: sys_string::utf16_view(empty))
@@ -152,6 +189,23 @@ TEST_CASE( "Iteration", "[general]" ) {
         sys_string::utf32_view view(str);
         std::ranges::copy(view.rbegin(), view.rend(), std::back_inserter(converted));
         CHECK(converted == std::u32string{expected.rbegin(), expected.rend()});
+
+        converted.clear();
+        std::ranges::copy(sys_string::utf32_view(str), std::back_inserter(converted));
+        CHECK(converted == expected);
+
+        converted.clear();
+        std::ranges::copy(as_utf32(sys_string::char_access(str)), std::back_inserter(converted));
+        CHECK(converted == expected);
+
+        static_assert(std::is_same_v<decltype(as_utf32(sys_string::char_access(str)))::iterator,
+                                     sys_string::utf32_view::iterator>);
+
+        bool res = std::ranges::equal(as_utf32(sys_string::char_access(str)) | std::views::take(1), std::array{'a'});
+        CHECK(res);
+
+        res = std::ranges::equal(std::views::all(view) | std::views::take(1), std::array{'a'});
+        CHECK(res);
         
         converted.clear();
         for (char32_t c: sys_string::utf16_view(empty))
@@ -593,4 +647,10 @@ TEST_CASE( "ostream", "[general]" ) {
         CHECK(stream.str() == L"a🧡bc");
     }
 #endif
+}
+
+TEST_CASE( "utf views", "[general]" ) {
+
+
+
 }

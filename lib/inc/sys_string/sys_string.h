@@ -68,6 +68,10 @@ namespace sysstr
     concept sys_string_or_char = std::is_same_v<std::remove_cvref_t<T>, sys_string_t<Storage>> ||
                                  std::is_same_v<std::remove_cvref_t<T>, char32_t>;
 
+
+    template<class Storage> struct utf_access_traits_for<sys_string_t<Storage>>
+        { using type = typename sys_string_t<Storage>::utf_view_traits; };
+
     template<class Storage>
     class sys_string_t : public Storage
     {
@@ -75,8 +79,17 @@ namespace sysstr
     friend typename Storage::char_access;
     private:
         using storage = Storage;
+
+    public:
+        using size_type = typename storage::size_type;
+        using storage_type = typename storage::storage_type;
+        using hash_type = typename storage::hash_type;
         
-        struct view_traits
+        static constexpr size_type max_size = storage::max_size;
+        
+        using char_access = typename storage::char_access;
+
+        struct utf_view_traits
         {
             using stored_reference = typename Storage::char_access;
             
@@ -88,18 +101,9 @@ namespace sysstr
             static const stored_reference & access(const stored_reference & acc) noexcept
                 { return acc; }
         };
-
-    public:
-        using size_type = typename storage::size_type;
-        using storage_type = typename storage::storage_type;
-        using hash_type = typename storage::hash_type;
-        
-        static constexpr size_type max_size = storage::max_size;
-        
-        using char_access = typename storage::char_access;
         
         template<utf_encoding Enc>
-        using utf_view = utf_view<Enc, sys_string_t, view_traits>;
+        using utf_view = utf_view<Enc, sys_string_t>;
         
         using utf8_view  = utf_view<utf8>;
         using utf16_view = utf_view<utf16>;

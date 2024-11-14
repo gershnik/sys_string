@@ -114,7 +114,7 @@ namespace sysstr
             { super::swap(other); }
 
     private:
-        static auto create_buffer(emscripten::EM_VAL js_str) -> any_string
+        static auto create_buffer(emscripten::EM_VAL js_str) -> buffer
         {
             #pragma clang diagnostic push
             #pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
@@ -125,9 +125,9 @@ namespace sysstr
             }, js_str);
             
             if (length == 0)
-                return any_string();
+                return buffer();
 
-            any_string ret(length);
+            buffer ret(length);
             EM_ASM({
                 let str = Emval.toValue($0);
                 let ptr = $1;

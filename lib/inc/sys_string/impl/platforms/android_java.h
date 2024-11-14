@@ -101,19 +101,19 @@ namespace sysstr
             throw std::runtime_error(desc);
         }
         
-        static any_string create_buffer(JNIEnv * env, jstring str)
+        static buffer create_buffer(JNIEnv * env, jstring str)
         {
             if (!str)
-                return any_string(nullptr);
+                return buffer(nullptr);
             
             jsize length = str ? env->GetStringLength(str) : 0;
             if (length < 0)
                 raise_exception_on_jni_error(env, "GetStringLength failed");
             
             if (length == 0)
-                return any_string();
+                return buffer();
 
-            any_string ret(length);
+            buffer ret(length);
             env->GetStringRegion(str, 0, length, reinterpret_cast<jchar *>(ret.data()));
             return ret;
         }

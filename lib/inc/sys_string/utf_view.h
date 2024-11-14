@@ -379,33 +379,33 @@ namespace sysstr
     private:
         stored_reference m_ref;
     };
-
+    
+    template<utf_encoding Enc>
+    struct as_utf_func 
     #if __cpp_lib_ranges >= 202202L
-
-        template<utf_encoding Enc>
-        struct as_utf_func : 
+        : 
         #if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 190000
             //libc++ lies about __cpp_lib_ranges
             public std::__range_adaptor_closure<as_utf_func<Enc>>
         #else
             public std::ranges::range_adaptor_closure<as_utf_func<Enc>>
         #endif
-        {
-            template <class Range>
-            [[nodiscard]] constexpr auto operator()(Range && range) const
-                noexcept(noexcept(utf_view<Enc, std::remove_reference_t<Range>>(std::forward<Range>(range))))
-                      -> decltype(utf_view<Enc, std::remove_reference_t<Range>>(std::forward<Range>(range))) 
-                         { return utf_view<Enc, std::remove_reference_t<Range>>(std::forward<Range>(range)); }
-
-        };
-
-        template<utf_encoding Enc>
-        inline constexpr auto as_utf = as_utf_func<Enc>{};
-        inline constexpr auto as_utf8 = as_utf_func<utf8>{};
-        inline constexpr auto as_utf16 = as_utf_func<utf16>{};
-        inline constexpr auto as_utf32 = as_utf_func<utf32>{};
-
     #endif
+    {
+        template <class Range>
+        [[nodiscard]] constexpr auto operator()(Range && range) const
+            noexcept(noexcept(utf_view<Enc, std::remove_reference_t<Range>>(std::forward<Range>(range))))
+                    -> decltype(utf_view<Enc, std::remove_reference_t<Range>>(std::forward<Range>(range))) 
+                        { return utf_view<Enc, std::remove_reference_t<Range>>(std::forward<Range>(range)); }
+
+    };
+
+    template<utf_encoding Enc>
+    inline constexpr auto as_utf = as_utf_func<Enc>{};
+    inline constexpr auto as_utf8 = as_utf_func<utf8>{};
+    inline constexpr auto as_utf16 = as_utf_func<utf16>{};
+    inline constexpr auto as_utf32 = as_utf_func<utf32>{};
+
 }
 
 namespace std::ranges {

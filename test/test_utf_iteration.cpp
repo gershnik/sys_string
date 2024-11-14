@@ -61,14 +61,14 @@ namespace
     std::string printable(const std::u16string_view & str)
     {
         std::string ret;
-        utf_converter<utf16, utf8>::convert(str.begin(), str.end(), std::back_inserter(ret));
+        utf_converter<utf16, utf8>::convert(str, std::back_inserter(ret));
         return ret;
     }
 
     std::string printable(const std::u32string_view & str)
     {
         std::string ret;
-        utf_converter<utf32, utf8>::convert(str.begin(), str.end(), std::back_inserter(ret));
+        utf_converter<utf32, utf8>::convert(str, std::back_inserter(ret));
         return ret;
     }
 }

@@ -57,10 +57,13 @@ namespace sysstr
     template<class Storage>
     inline auto sys_string_t<Storage>::compare(const sys_string_t<Storage> & lhs, const sys_string_t<Storage> & rhs) noexcept -> std::strong_ordering
     {
+        static_assert(std::ranges::contiguous_range<char_access>);
+
         char_access lhs_access(lhs);
         char_access rhs_access(rhs);
 
-        return util::compare_3way(lhs_access.data(), lhs_access.size(), rhs_access.data(), rhs_access.size());
+        using sv = std::basic_string_view<typename char_access::value_type>;
+        return sv(lhs_access.data(), lhs_access.size()) <=> sv(rhs_access.data(), rhs_access.size());
     }
 
     template<class Storage>

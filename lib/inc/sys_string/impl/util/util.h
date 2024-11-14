@@ -12,23 +12,12 @@
 
 #include <iterator>
 #include <algorithm>
-#include <string>
-#include <compare>
+#include <tuple>
 
 namespace sysstr::util
 {
     template<bool Val, class... Args>
     static constexpr bool dependent_bool = Val;
-
-    template<class Char>
-    inline constexpr auto compare_3way(const Char * lhs, size_t lhs_size, const Char * rhs, size_t rhs_size) noexcept
-    {
-        auto shortest_length = std::min(lhs_size, rhs_size);
-        int res = std::char_traits<Char>::compare(lhs, rhs, shortest_length);
-        if (auto ord = (res <=> 0); ord != 0)
-            return ord;
-        return lhs_size <=> rhs_size;
-    }
 
     template<class OutT, std::forward_iterator It, std::sentinel_for<It> Sentinel, std::output_iterator<OutT> OutIt, class Pred>
     auto split(It str_start, Sentinel str_end, OutIt dest, Pred pred) -> OutIt

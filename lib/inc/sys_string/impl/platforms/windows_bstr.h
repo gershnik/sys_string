@@ -9,8 +9,8 @@
 #error This header must not be included directly. Please include sys_string.h
 #endif
 
-#include <sys_string/impl/util/char_buffer.h>
-#include <sys_string/impl/util/generic_buffer.h>
+#include <sys_string/impl/util/char_vector.h>
+#include <sys_string/impl/util/generic_impl.h>
 
 namespace sysstr
 {
@@ -502,7 +502,7 @@ namespace sysstr::util
         UINT m_capacity{bstr_buffer::minimum_capacity()};
     };
 
-    using bstr_builder_impl = char_buffer<bstr_builder_storage>;
+    using bstr_builder_impl = char_vector<bstr_builder_storage>;
 
  }
 

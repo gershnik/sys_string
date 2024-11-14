@@ -9,8 +9,8 @@
 #error This header must not be included directly. Please include sys_string.h
 #endif
 
-#include <sys_string/impl/util/char_buffer.h>
-#include <sys_string/impl/util/generic_buffer.h>
+#include <sys_string/impl/util/char_vector.h>
+#include <sys_string/impl/util/generic_impl.h>
 
 #include <variant>
 
@@ -176,7 +176,7 @@ namespace sysstr::util
         size_type m_capacity = minimum_capacity;
     };
 
-    using cf_builder_impl = char_buffer<cf_builder_storage>;
+    using cf_builder_impl = char_vector<cf_builder_storage>;
 
     inline CFStringRef convert_to_string(cf_builder_impl & builder) noexcept
     {

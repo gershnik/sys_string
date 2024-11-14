@@ -103,8 +103,8 @@ source_group("Unicode" FILES ${UNICODE_FILES} ${SOURCES})
 set(UTIL_FILES
 
     ${SRCDIR}/inc/sys_string/impl/util/util.h
-    ${SRCDIR}/inc/sys_string/impl/util/char_buffer.h
-    ${SRCDIR}/inc/sys_string/impl/util/generic_buffer.h
+    ${SRCDIR}/inc/sys_string/impl/util/char_vector.h
+    ${SRCDIR}/inc/sys_string/impl/util/generic_impl.h
     ${SRCDIR}/inc/sys_string/impl/util/iter_util.h
     
 )

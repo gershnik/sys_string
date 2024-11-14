@@ -6,11 +6,11 @@
 // license that can be found in the LICENSE file or at
 // https://github.com/gershnik/sys_string/blob/master/LICENSE
 //
-#ifndef HEADER_SYS_STRING_GENERIC_BUFFER_H_INCLUDED
-#define HEADER_SYS_STRING_GENERIC_BUFFER_H_INCLUDED
+#ifndef HEADER_SYS_STRING_GENERIC_IMPL_H_INCLUDED
+#define HEADER_SYS_STRING_GENERIC_IMPL_H_INCLUDED
 
 #include <sys_string/impl/util/util.h>
-#include <sys_string/impl/util/char_buffer.h>
+#include <sys_string/impl/util/char_vector.h>
 
 #include <atomic>
 #include <new>
@@ -509,7 +509,7 @@ namespace sysstr::util::generic
     };
 
     template<class CharT, class SizeT>
-    using any_string_builder= char_buffer<builder_storage<CharT, SizeT>>;
+    using any_string_builder= char_vector<builder_storage<CharT, SizeT>>;
 
     template<class CharT, class SizeT>
     inline any_string<CharT, SizeT> convert_to_string(any_string_builder<CharT, SizeT> & builder) noexcept

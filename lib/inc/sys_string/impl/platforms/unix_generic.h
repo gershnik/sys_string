@@ -10,7 +10,7 @@
 #endif
 
 
-#include <sys_string/impl/util/generic_buffer.h>
+#include <sys_string/impl/util/generic_impl.h>
 
 #include <limits>
 

@@ -9,7 +9,7 @@
 #error This header must not be included directly. Please include sys_string.h
 #endif
 
-#include <sys_string/impl/util/char_buffer.h>
+#include <sys_string/impl/util/char_vector.h>
 
 #include <variant>
 
@@ -169,7 +169,7 @@ namespace sysstr::util
         size_type m_capacity = minimum_capacity;
     };
 
-    using py_builder_impl = char_buffer<py_builder_storage>;
+    using py_builder_impl = char_vector<py_builder_storage>;
 
     inline PyObject * convert_to_string(py_builder_impl & builder) noexcept
     {

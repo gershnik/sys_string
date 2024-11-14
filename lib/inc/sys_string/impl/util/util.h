@@ -17,31 +17,6 @@
 
 namespace sysstr::util
 {
-    class count_output_iterator
-    {
-    public:
-        using value_type = void;
-        using difference_type = void;
-        using pointer = void ;
-        using reference = void;
-        using iterator_category = std::output_iterator_tag;
-    public:
-        constexpr count_output_iterator(size_t & count) noexcept:
-            m_count(&count)
-        {}
-
-        template<class Value>
-        constexpr count_output_iterator & operator=(Value &&) noexcept
-            { ++(*this->m_count); return *this;}
-        
-        constexpr count_output_iterator & operator*() noexcept     {return *this;}
-        constexpr count_output_iterator & operator++() noexcept    {return *this;}
-        constexpr count_output_iterator & operator++(int) noexcept {return *this;}
-
-    private:
-        size_t * const m_count;
-    };
-
     template<bool Val, class... Args>
     static constexpr bool dependent_bool = Val;
 

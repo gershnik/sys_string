@@ -9,7 +9,7 @@
 #error This header must not be included directly. Please include sys_string.h
 #endif
 
-#include <sys_string/impl/util/char_buffer.h>
+#include <sys_string/impl/util/char_vector.h>
 
     namespace sysstr
     {
@@ -132,7 +132,7 @@ namespace sysstr::util
         size_type m_capacity = 0;
     };
 
-    using hstring_builder_impl = char_buffer<hstring_builder_storage>;
+    using hstring_builder_impl = char_vector<hstring_builder_storage>;
 
     inline HSTRING convert_to_string(hstring_builder_impl & builder) noexcept
     {

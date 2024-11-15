@@ -625,4 +625,4 @@ namespace sysstr::util
     }
 }
 
-#define SYS_STRING_STATIC_BSTR(x) :sysstr::util::make_static_sys_string_bstr<u##x>()
+#define SYS_STRING_STATIC_BSTR(x) ::sysstr::util::make_static_sys_string_bstr<u##x>()

@@ -31,11 +31,47 @@ namespace sysstr
         if (size == -1)
             return sys_string_t();
         buf.resize(size + 1);
-        const int ret = vsnprintf(&buf[0], buf.size(), format, vl);
+        const int ret = vsnprintf(buf.data(), buf.size(), format, vl);
         va_end(vl);
         if (ret <= 0)
             return sys_string_t();
         buf.resize(ret);
-        return sys_string_t<Storage>(&buf[0], buf.size());
+        return sys_string_t<Storage>(buf);
     }
+
+    #if SYS_STRING_SUPPORTS_STD_FORMAT
+
+        template<class Storage>
+        template<class... Args>
+        inline
+        auto sys_string_t<Storage>::std_format(std::format_string<Args...> fmt, Args &&... args) -> sys_string_t
+        {
+            if constexpr (std::is_same_v<typename sys_string_t<Storage>::storage_type, char>)
+            {
+                sys_string_builder_t<Storage> builder;
+                std::format_to(std::back_inserter(builder.chars()), fmt, std::forward<Args>(args)...);
+                return builder.build();
+            } 
+            else
+            {
+                return sys_string_t<Storage>(std::format(fmt, std::forward<Args>(args)...));
+            }
+        }
+
+        template<class Storage>
+        inline
+        auto sys_string_t<Storage>::std_vformat(std::string_view fmt, std::format_args args) -> sys_string_t
+        {
+            if constexpr (std::is_same_v<typename sys_string_t<Storage>::storage_type, char>)
+            {
+                sys_string_builder_t<Storage> builder;
+                std::vformat_to(std::back_inserter(builder.chars()), fmt, args);
+                return builder.build();
+            } 
+            else
+            {
+                return sys_string_t<Storage>(std::vformat(fmt, args));
+            }
+        }
+    #endif
 }

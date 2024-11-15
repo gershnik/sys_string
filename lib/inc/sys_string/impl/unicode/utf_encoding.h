@@ -62,6 +62,8 @@ namespace sysstr
     template<> struct utf_encoding_value<char32_t>      { static constexpr utf_encoding value = utf32; };
     #if SYS_STRING_WCHAR_T_IS_UTF16
     template<> struct utf_encoding_value<wchar_t>       { static constexpr utf_encoding value = utf16; };
+    #elif SYS_STRING_WCHAR_T_IS_UTF32
+    template<> struct utf_encoding_value<wchar_t>       { static constexpr utf_encoding value = utf32; };
     #endif
 
     template<class T> concept has_utf_encoding = requires {

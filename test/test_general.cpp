@@ -649,14 +649,23 @@ TEST_CASE( "ostream", "[general]" ) {
 #endif
 }
 
-#if __cpp_lib_format >= 201907L || (defined(_LIBCPP_VERSION) && __has_include(<format>))
 
-TEST_CASE( "std::format", "[general]" ) {
+
+TEST_CASE( "format", "[general]" ) {
+
+    CHECK(sys_string::format("%d", 5) == S("5"));
+
+#if SYS_STRING_SUPPORTS_STD_FORMAT
+    CHECK(sys_string::std_format("{}", 5) == S("5"));
+    int i = 5;
+    CHECK(sys_string::std_vformat("{}", std::make_format_args(i)) == S("5"));
 
     CHECK(std::format("{0}", S("a🧡bc")) == "a🧡bc");
 #if SYS_STRING_WCHAR_T_IS_UTF16 || SYS_STRING_WCHAR_T_IS_UTF32
     CHECK(std::format(L"{0}", S("a🧡bc")) == L"a🧡bc");
 #endif
-}
 
 #endif
+
+}
+

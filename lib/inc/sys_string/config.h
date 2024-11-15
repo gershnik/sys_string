@@ -103,6 +103,12 @@
     #error Your standard library does not support ranges
 #endif
 
+//See https://github.com/llvm/llvm-project/issues/77773 for the sad story of how feature test
+//macros are useless with libc++
+#if __cpp_lib_format >= 201907L || (defined(_LIBCPP_VERSION) && __has_include(<format>))
 
+    #define SYS_STRING_SUPPORTS_STD_FORMAT 1
+
+#endif
 
 #endif

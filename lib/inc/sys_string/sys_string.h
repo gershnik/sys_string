@@ -22,6 +22,10 @@
 #include <compare>
 #include <cstdarg>
 
+#if __has_include(<format>)
+    #include <format>
+#endif
+
 
 #define HEADER_SYS_STRING_H_INSIDE
 
@@ -41,6 +45,10 @@ namespace sysstr
         copy_content,
         attach_pointer
     };
+
+    template<class T, class Storage>
+    concept sys_string_or_char = std::is_same_v<std::remove_cvref_t<T>, sys_string_t<Storage>> ||
+                                 std::is_same_v<std::remove_cvref_t<T>, char32_t>;
 }
 
 namespace sysstr::util
@@ -54,11 +62,6 @@ namespace sysstr::util
 
 namespace sysstr
 {
-    template<class T, class Storage>
-    concept sys_string_or_char = std::is_same_v<std::remove_cvref_t<T>, sys_string_t<Storage>> ||
-                                 std::is_same_v<std::remove_cvref_t<T>, char32_t>;
-
-
     template<class Storage>
     class sys_string_t : public Storage
     {
@@ -66,9 +69,6 @@ namespace sysstr
     friend typename Storage::char_access;
     private:
         using storage = Storage;
-
-        static_assert(std::ranges::random_access_range<typename storage::char_access>);
-
     public:
         using size_type = typename storage::size_type;
         using storage_type = typename storage::storage_type;
@@ -77,6 +77,7 @@ namespace sysstr
         static constexpr size_type max_size = storage::max_size;
         
         using char_access = typename storage::char_access;
+        static_assert(std::ranges::random_access_range<char_access>);
 
         template<utf_encoding Enc>
         class utf_access
@@ -179,8 +180,8 @@ namespace sysstr
     
         template<std::ranges::contiguous_range Range>
         requires(has_utf_encoding<std::ranges::range_value_t<Range>>)
-        sys_string_t(Range && val) :
-            sys_string_t(std::ranges::data(std::forward<Range>(val)), std::ranges::size(std::forward<Range>(val)))
+        sys_string_t(const Range & val) :
+            sys_string_t(std::ranges::data(val), std::ranges::size(val))
         {}
 
         sys_string_t(const typename utf32_access::iterator & first, const typename utf32_access::iterator & last):
@@ -213,8 +214,23 @@ namespace sysstr
         auto empty() const noexcept -> bool
             { return storage::size() == 0; }
         
-        static auto format(const char * spec, ...) -> sys_string_t;
-        static auto formatv(const char * spec, va_list vl) -> sys_string_t;
+        static 
+    #ifdef __GNUC__
+        __attribute__((format(printf, 1, 2)))
+    #endif
+        auto format(const char * spec, ...) -> sys_string_t;
+
+        static 
+    #ifdef __GNUC__
+        __attribute__((format(printf, 1, 0)))
+    #endif
+        auto formatv(const char * spec, va_list vl) -> sys_string_t;
+
+    #if SYS_STRING_SUPPORTS_STD_FORMAT
+        template<class... Args>
+        static auto std_format(std::format_string<Args...> fmt, Args &&... args) -> sys_string_t;
+        static auto std_vformat(std::string_view fmt, std::format_args args) -> sys_string_t;
+    #endif
 
         template<class S>
         friend auto operator<<(std::ostream & str, const sys_string_t<S> & val) -> std::ostream &;

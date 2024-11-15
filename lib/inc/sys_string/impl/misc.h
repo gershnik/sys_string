@@ -11,10 +11,6 @@
 
 #include <cstdarg>
 
-#if __has_include(<format>)
-    #include <format>
-#endif
-
 namespace sysstr
 {
     namespace util 
@@ -172,9 +168,7 @@ namespace sysstr
 #endif
 }
 
-//See https://github.com/llvm/llvm-project/issues/77773 for the sad story of how feature test
-//macros are useless with libc++
-#if __cpp_lib_format >= 201907L || (defined(_LIBCPP_VERSION) && __has_include(<format>))
+#if SYS_STRING_SUPPORTS_STD_FORMAT
 
 template<class Storage> struct std::formatter<sysstr::sys_string_t<Storage>> : private std::formatter<std::string_view> 
 {

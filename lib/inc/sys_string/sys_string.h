@@ -20,7 +20,7 @@
 #include <ostream>
 #include <limits>
 #include <compare>
-#include <stdarg.h>
+#include <cstdarg>
 
 
 #define HEADER_SYS_STRING_H_INSIDE
@@ -218,7 +218,7 @@ namespace sysstr
 
         template<class S>
         friend auto operator<<(std::ostream & str, const sys_string_t<S> & val) -> std::ostream &;
-    #if defined(_WIN32) || defined(__STDC_ISO_10646__)
+    #if SYS_STRING_WCHAR_T_IS_UTF16 || SYS_STRING_WCHAR_T_IS_UTF32
         template<class S>
         friend auto operator<<(std::wostream & str, const sys_string_t<S> & val) -> std::wostream &;
     #endif

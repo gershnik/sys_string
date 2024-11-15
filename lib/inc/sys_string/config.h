@@ -71,6 +71,11 @@
     #error Please define pointer size for your platform
 #endif
 
+#if defined(__STDC_ISO_10646__) && !SYS_STRING_WCHAR_T_IS_UTF16
+    #define SYS_STRING_WCHAR_T_IS_UTF32 1
+#endif
+
+
 #if defined(_MSC_VER)
     #define SYS_STRING_FORCE_INLINE __forceinline
 #elif defined(__GNUC__)

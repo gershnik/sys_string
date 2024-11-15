@@ -628,7 +628,7 @@ TEST_CASE( "ostream", "[general]" ) {
         CHECK(stream.str() == "a🧡bc");
     }
     
-#if defined(_WIN32) || defined(__STDC_ISO_10646__)
+#if SYS_STRING_WCHAR_T_IS_UTF16 || SYS_STRING_WCHAR_T_IS_UTF32
     {
         std::wostringstream stream;
         stream << sys_string();
@@ -649,8 +649,14 @@ TEST_CASE( "ostream", "[general]" ) {
 #endif
 }
 
-TEST_CASE( "utf views", "[general]" ) {
+#if __cpp_lib_format >= 201907L || (defined(_LIBCPP_VERSION) && __has_include(<format>))
 
+TEST_CASE( "std::format", "[general]" ) {
 
-
+    CHECK(std::format("{0}", S("a🧡bc")) == "a🧡bc");
+#if SYS_STRING_WCHAR_T_IS_UTF16 || SYS_STRING_WCHAR_T_IS_UTF32
+    CHECK(std::format(L"{0}", S("a🧡bc")) == L"a🧡bc");
+#endif
 }
+
+#endif

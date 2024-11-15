@@ -218,13 +218,21 @@ namespace sysstr
     #ifdef __GNUC__
         __attribute__((format(printf, 1, 2)))
     #endif
-        auto format(const char * spec, ...) -> sys_string_t;
+        auto format(
+    #ifdef _MSC_VER
+            _Printf_format_string_
+    #endif
+            const char * spec, ...) -> sys_string_t;
 
         static 
     #ifdef __GNUC__
         __attribute__((format(printf, 1, 0)))
     #endif
-        auto formatv(const char * spec, va_list vl) -> sys_string_t;
+        auto formatv(
+    #ifdef _MSC_VER
+            _Printf_format_string_
+    #endif
+            const char * spec, va_list vl) -> sys_string_t;
 
     #if SYS_STRING_SUPPORTS_STD_FORMAT
         template<class... Args>

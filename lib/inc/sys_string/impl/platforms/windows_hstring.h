@@ -439,7 +439,8 @@ namespace sysstr::util
     template<util::ct_string Str>
     inline auto make_static_sys_string_hstring() noexcept -> sys_string_hstring
     {
-        static struct bug_workaround { const hstring_header header{1, Str.size() - 1, 0, 0, Str.chars}; } b;
+        constexpr size_t size = Str.size();
+        static struct bug_workaround { const hstring_header header{1, size - 1, 0, 0, Str.chars}; } b;
         return sys_string_hstring(HSTRING(uintptr_t(&b.header) | hstring_static_allocation_bit) , handle_retain::no);
     }
 }

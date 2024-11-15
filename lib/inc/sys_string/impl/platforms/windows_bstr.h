@@ -618,8 +618,8 @@ namespace sysstr::util
     template<util::ct_string Str>
     inline auto make_static_sys_string_bstr() noexcept -> sys_string_bstr
     {
-        constexpr ::UINT size = sizeof(Str.chars);
-        static const static_bstr<size> sbuf{size - sizeof(char16_t), Str};
+        constexpr size_t size = Str.size();
+        static const static_bstr<size> sbuf{(size - 1) * sizeof(char16_t), Str};
         bstr_buffer buf((dynamic_bstr *)&sbuf, 0);
         return *reinterpret_cast<sys_string_bstr *>(&buf);
     }

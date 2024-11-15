@@ -501,7 +501,15 @@ namespace sysstr
     using sys_string_cfstr_builder = sys_string_builder_t<cf_storage>;
 }
 
-#define SYS_STRING_STATIC_CFSTR(x) ::sysstr::sys_string_cfstr(CFSTR(x), ::sysstr::handle_retain::no)
+namespace sysstr::util 
+{
+    inline auto make_static_sys_string_cfstr(CFStringRef str) noexcept -> sys_string_cfstr
+    {
+        return sys_string_cfstr(str, handle_retain::no);
+    }
+}
+
+#define SYS_STRING_STATIC_CFSTR(x) ::sysstr::util::make_static_sys_string_cfstr(CFSTR(x))
 
 
 

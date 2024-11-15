@@ -141,12 +141,19 @@ namespace sysstr
     using sys_string_android_builder = sys_string_builder_t<android_storage>;
 }
 
-#define SYS_STRING_STATIC_ANDROID(x) ([] () noexcept -> ::sysstr::sys_string_android { \
-        constexpr ::size_t size = sizeof(u##x) / sizeof(char16_t); \
-        static const ::sysstr::util::android_static_string<size> sbuf{0, true, u##x}; \
-        ::sysstr::util::android_any_string buf((::sysstr::util::android_dynamic_string *)&sbuf, size - 1, 0); \
-        return *reinterpret_cast<::sysstr::sys_string_android *>(&buf); \
-    }())
+namespace sysstr::util 
+{
+    template<util::ct_string Str>
+    inline auto make_static_sys_string_android() noexcept -> sys_string_android
+    {
+        constexpr ::size_t size = Str.size();
+        static const android_static_string<size> sbuf{0, true, Str};
+        android_any_string buf((android_dynamic_string *)&sbuf, size - 1, 0);
+        return *reinterpret_cast<sys_string_android *>(&buf);
+    }
+}
+
+#define SYS_STRING_STATIC_ANDROID(x) ::sysstr::util::make_static_sys_string_android<u##x>()
 
 
 

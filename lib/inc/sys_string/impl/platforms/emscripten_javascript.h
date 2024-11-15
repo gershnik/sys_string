@@ -165,12 +165,19 @@ namespace sysstr
     using sys_string_emscripten_builder = sys_string_builder_t<emscripten_storage>;
 }
 
-#define SYS_STRING_STATIC_EMSCRIPTEN(x) ([] () noexcept -> ::sysstr::sys_string_emscripten { \
-        constexpr ::size_t size = sizeof(u##x) / sizeof(char16_t); \
-        static const ::sysstr::util::emscripten_static_string<size> sbuf{0, true, u##x}; \
-        ::sysstr::util::emscripten_any_string buf((::sysstr::util::emscripten_dynamic_string *)&sbuf, size - 1, 0); \
-        return *reinterpret_cast<::sysstr::sys_string_emscripten *>(&buf); \
-    }())
+namespace sysstr::util 
+{
+    template<util::ct_string Str>
+    inline auto make_static_sys_string_emscripten() noexcept -> sys_string_emscripten
+    {
+        constexpr ::size_t size = Str.size();
+        static const emscripten_static_string<size> sbuf{0, true, Str};
+        emscripten_any_string buf((emscripten_dynamic_string *)&sbuf, size - 1, 0);
+        return *reinterpret_cast<sys_string_emscripten *>(&buf);
+    }
+}
+
+#define SYS_STRING_STATIC_EMSCRIPTEN(x) ::sysstr::util::make_static_sys_string_emscripten<u##x>()
 
 
 

@@ -434,17 +434,14 @@ namespace sysstr
     using sys_string_hstring_builder = sys_string_builder_t<hstring_storage>; 
 }
 
-//#define SYS_STRING_STATIC_HSTRING(x) ([] () noexcept -> ::systr::sys_string_hstring { \
-//        constexpr ::size_t size = sizeof(u##x) / sizeof(char16_t); \
-//        using header_type = ::sysstr::util::hstring_header; \
-//        static const header_type header{1, size - 1, 0, 0, u##x}; \
-//        return ::sysstr::sys_string_hstring(HSTRING(uintptr_t(&header) | ::sysstr::util::hstring_static_allocation_bit) , handle_retain::no); \
-//    }())
+namespace sysstr::util 
+{
+    template<util::ct_string Str>
+    inline auto make_static_sys_string_hstring() noexcept -> sys_string_hstring
+    {
+        static struct bug_workaround { const hstring_header header{1, Str.size() - 1, 0, 0, Str.chars}; } b;
+        return sys_string_hstring(HSTRING(uintptr_t(&b.header) | hstring_static_allocation_bit) , handle_retain::no);
+    }
+}
 
-#define SYS_STRING_STATIC_HSTRING(x) ([] () noexcept -> ::sysstr::sys_string_hstring { \
-        constexpr ::size_t size = sizeof(u##x) / sizeof(char16_t); \
-        using header_type = ::sysstr::util::hstring_header; \
-        static struct bug_workaround { const header_type header{1, size - 1, 0, 0, u##x}; } b; \
-        return ::sysstr::sys_string_hstring(HSTRING(uintptr_t(&b.header) | ::sysstr::util::hstring_static_allocation_bit) , ::sysstr::handle_retain::no); \
-    }())
-
+#define SYS_STRING_STATIC_HSTRING(x) ::sysstr::util::make_static_sys_string_hstring<u##x>()

@@ -112,14 +112,23 @@ namespace sysstr
 {
     using sys_string_generic = sys_string_t<generic_storage>;
     using sys_string_generic_builder = sys_string_builder_t<generic_storage>;
+
+    
 }
 
-#define SYS_STRING_STATIC_GENERIC(x) ([] () noexcept -> ::sysstr::sys_string_generic { \
-        constexpr ::size_t size = sizeof(x) / sizeof(char); \
-        static const ::sysstr::util::generic_static_string<size> sbuf{0, true, x}; \
-        ::sysstr::util::generic_any_string buf((::sysstr::util::generic_dynamic_string *)&sbuf, size - 1, 0); \
-        return *reinterpret_cast<::sysstr::sys_string_generic *>(&buf); \
-    }())
+namespace sysstr::util 
+{
+    template<util::ct_string Str>
+    inline auto make_static_sys_string_generic() noexcept -> sys_string_generic
+    {
+        constexpr ::size_t size = Str.size();
+        static const generic_static_string<size> sbuf{0, true, Str};
+        generic_any_string buf((generic_dynamic_string *)&sbuf, size - 1, 0);
+        return *reinterpret_cast<sys_string_generic *>(&buf);
+    }
+}
+
+#define SYS_STRING_STATIC_GENERIC(x) ::sysstr::util::make_static_sys_string_generic<x>()
 
 
 

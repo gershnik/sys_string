@@ -110,13 +110,19 @@ namespace sysstr
     using sys_string_win_generic_builder = sys_string_builder_t<win_generic_storage>;
 }
 
-#define SYS_STRING_STATIC_WIN_GENERIC(x) ([] () noexcept -> ::sysstr::sys_string_win_generic { \
-        constexpr ::size_t size = sizeof(u##x) / sizeof(char16_t); \
-        static const ::sysstr::util::win_generic_static_string<size> sbuf{0, true, u##x}; \
-        ::sysstr::util::win_generic_any_string buf((::sysstr::util::win_generic_dynamic_string *)&sbuf, size - 1, 0); \
-        return *reinterpret_cast<::sysstr::sys_string_win_generic *>(&buf); \
-    }())
+namespace sysstr::util 
+{
+    template<util::ct_string Str>
+    inline auto make_static_sys_string_win_generic() noexcept -> sys_string_win_generic
+    {
+        constexpr ::size_t size = Str.size();
+        static const win_generic_static_string<size> sbuf{0, true, Str};
+        win_generic_any_string buf((win_generic_dynamic_string *)&sbuf, size - 1, 0);
+        return *reinterpret_cast<sys_string_win_generic *>(&buf);
+    }
+}
 
+#define SYS_STRING_STATIC_WIN_GENERIC(x) ::sysstr::util::make_static_sys_string_win_generic<u##x>()
 
 
 

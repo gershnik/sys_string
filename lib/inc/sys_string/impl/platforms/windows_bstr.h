@@ -102,7 +102,7 @@ namespace sysstr::util
     struct static_bstr
     {
         UINT m_size;
-        char16_t m_buf[N + 1];
+        ct_string<char16_t, N> m_buf;
     };
 
     class bstr_buffer
@@ -613,10 +613,16 @@ namespace sysstr
     using sys_string_bstr_builder = sys_string_builder_t<bstr_storage>; 
 }
 
-#define SYS_STRING_STATIC_BSTR(x) ([] () noexcept -> ::sysstr::sys_string_bstr { \
-        constexpr ::UINT size = sizeof(u##x); \
-        static const ::sysstr::util::static_bstr<size> sbuf{size - sizeof(char16_t), u##x}; \
-        ::sysstr::util::bstr_buffer buf((::sysstr::util::dynamic_bstr *)&sbuf, 0); \
-        return *reinterpret_cast<::sysstr::sys_string_bstr *>(&buf); \
-    }())
+namespace sysstr::util 
+{
+    template<util::ct_string Str>
+    inline auto make_static_sys_string_bstr() noexcept -> sys_string_bstr
+    {
+        constexpr ::UINT size = sizeof(Str.chars);
+        static const static_bstr<size> sbuf{size - sizeof(char16_t), Str};
+        bstr_buffer buf((dynamic_bstr *)&sbuf, 0);
+        return *reinterpret_cast<sys_string_bstr *>(&buf);
+    }
+}
 
+#define SYS_STRING_STATIC_BSTR(x) :sysstr::util::make_static_sys_string_bstr<u##x>()

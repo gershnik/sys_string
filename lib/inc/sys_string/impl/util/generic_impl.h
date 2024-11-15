@@ -97,7 +97,7 @@ namespace sysstr::util::generic
     {
         int32_t not_a_ref_count;
         bool is_static;
-        CharT chars[N + 1];
+        ct_string<CharT, N> chars;
     };
 
     template<class CharT, class SizeT>

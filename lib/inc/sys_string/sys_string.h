@@ -253,7 +253,7 @@ namespace sysstr
     #if SYS_STRING_WCHAR_T_IS_UTF16 || SYS_STRING_WCHAR_T_IS_UTF32
         friend auto operator<<(std::wostream & str, const sys_string_t & val) -> std::wostream &
         {
-            return val.wprint_with([&](auto view) -> std::ostream & {
+            return val.wprint_with([&](auto view) -> std::wostream & {
                 return str << view;
             });
         }

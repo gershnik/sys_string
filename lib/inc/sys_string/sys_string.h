@@ -67,9 +67,11 @@ namespace sysstr
     {
         friend std::hash<sys_string_t>;
         friend typename Storage::char_access;
+    #if SYS_STRING_SUPPORTS_STD_FORMAT
         friend std::formatter<sysstr::sys_string_t<Storage>>;
     #if SYS_STRING_WCHAR_T_IS_UTF16 || SYS_STRING_WCHAR_T_IS_UTF32
         friend std::formatter<sysstr::sys_string_t<Storage>, wchar_t>;
+    #endif
     #endif
     private:
         using storage = Storage;

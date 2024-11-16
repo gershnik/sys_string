@@ -80,92 +80,73 @@ namespace sysstr
         
             return std::ranges::equal(test.begin(), test.end(), access.begin(), access.begin() + test_size);
         }
+    }
 
-        template<class Storage, class Func>
+    template<class Storage>
+    template<std::invocable<std::string_view> Func>
+    inline
+    auto sys_string_t<Storage>::print_with(Func func) const -> decltype(func(std::string_view{}))
+    {
+        if constexpr (std::ranges::contiguous_range<typename sys_string_t<Storage>::char_access> &&
+                        std::is_same_v<typename sys_string_t<Storage>::storage_type, char>)
+        {
+            typename sysstr::sys_string_t<Storage>::char_access access(*this);
+            return func(std::string_view(access.data(), access.size()));
+        } 
+        else 
+        {
+            std::string out;
+            typename sysstr::sys_string_t<Storage>::utf8_access(*this).each([&out](char c) {
+                out += c;
+            });
+            return func(std::string_view(out));
+        }
+    }
+
+    #if SYS_STRING_WCHAR_T_IS_UTF16
+        template<class Storage>
+        template<std::invocable<std::wstring_view> Func>
         inline
-        decltype(auto) with_output_string(const sys_string_t<Storage> & val, Func func)
+        auto sys_string_t<Storage>::wprint_with(Func func) const -> decltype(func(std::wstring_view{}))
         {
             if constexpr (std::ranges::contiguous_range<typename sys_string_t<Storage>::char_access> &&
-                          std::is_same_v<typename sys_string_t<Storage>::storage_type, char>)
+                            std::is_same_v<typename sys_string_t<Storage>::storage_type, char16_t>)
             {
-                typename sysstr::sys_string_t<Storage>::char_access access(val);
-                return func(std::string_view(access.data(), access.size()));
+                typename sysstr::sys_string_t<Storage>::char_access access(*this);
+                return func(std::wstring_view((const wchar_t *)access.data(), access.size()));
             } 
             else 
             {
-                std::string out;
-                typename sysstr::sys_string_t<Storage>::utf8_access(val).each([&out](char c) {
-                    out += c;
+                std::wstring out;
+                typename sysstr::sys_string_t<Storage>::utf16_access(*this).each([&out](char16_t c) {
+                    out += wchar_t(c);
                 });
-                return func(std::string_view(out));
+                return func(std::wstring_view(out));
             }
         }
-
-        #if SYS_STRING_WCHAR_T_IS_UTF16
-            template<class Storage, class Func>
-            inline
-            decltype(auto) with_output_wstring(const sys_string_t<Storage> & val, Func func)
+    #elif SYS_STRING_WCHAR_T_IS_UTF32
+        template<class Storage>
+        template<std::invocable<std::wstring_view> Func>
+        inline
+        auto sys_string_t<Storage>::wprint_with(Func func) const -> decltype(func(std::wstring_view{}))
+        {
+            if constexpr (std::ranges::contiguous_range<typename sys_string_t<Storage>::char_access> &&
+                            std::is_same_v<typename sys_string_t<Storage>::storage_type, char32_t>)
             {
-                if constexpr (std::ranges::contiguous_range<typename sys_string_t<Storage>::char_access> &&
-                              std::is_same_v<typename sys_string_t<Storage>::storage_type, char16_t>)
-                {
-                    typename sysstr::sys_string_t<Storage>::char_access access(val);
-                    return func(std::wstring_view((const wchar_t *)access.data(), access.size()));
-                } 
-                else 
-                {
-                    std::wstring out;
-                    typename sysstr::sys_string_t<Storage>::utf16_access(val).each([&out](char16_t c) {
-                        out += wchar_t(c);
-                    });
-                    return func(std::wstring_view(out));
-                }
-            }
-        #elif SYS_STRING_WCHAR_T_IS_UTF32
-            template<class Storage, class Func>
-            inline
-            decltype(auto) with_output_wstring(const sys_string_t<Storage> & val, Func func)
+                typename sysstr::sys_string_t<Storage>::char_access access(*this);
+                return func(std::wstring_view((const wchar_t *)access.data(), access.size()));
+            } 
+            else 
             {
-                if constexpr (std::ranges::contiguous_range<typename sys_string_t<Storage>::char_access> &&
-                              std::is_same_v<typename sys_string_t<Storage>::storage_type, char32_t>)
-                {
-                    typename sysstr::sys_string_t<Storage>::char_access access(val);
-                    return func(std::wstring_view((const wchar_t *)access.data(), access.size()));
-                } 
-                else 
-                {
-                    std::wstring out;
-                    typename sysstr::sys_string_t<Storage>::utf32_access(val).each([&out](char32_t c) {
-                        out += wchar_t(c);
-                    });
-                    return func(std::wstring_view(out));
-                }
+                std::wstring out;
+                typename sysstr::sys_string_t<Storage>::utf32_access(*this).each([&out](char32_t c) {
+                    out += wchar_t(c);
+                });
+                return func(std::wstring_view(out));
             }
-        #endif
-    }
+        }
+    #endif
 
-
-    template<class Storage>
-    inline
-    auto operator<<(std::ostream & str, const sys_string_t<Storage> & val) -> std::ostream &
-    { 
-        return util::with_output_string(val, [&](auto view) -> std::ostream & {
-            return str << view;
-        });
-    }
-
-#if SYS_STRING_WCHAR_T_IS_UTF16 || SYS_STRING_WCHAR_T_IS_UTF32
-        
-    template<class Storage>
-    inline
-    auto operator<<(std::wostream & str, const sys_string_t<Storage> & val) -> std::wostream &
-    { 
-        return util::with_output_wstring(val, [&](auto view) -> std::wostream & {
-            return str << view;
-        });
-    }
-
-#endif
 }
 
 #if SYS_STRING_SUPPORTS_STD_FORMAT
@@ -180,7 +161,7 @@ template<class Storage> struct std::formatter<sysstr::sys_string_t<Storage>> : p
     template <typename FormatContext>
     auto format(const sysstr::sys_string_t<Storage> & str, FormatContext & ctx) const -> decltype(ctx.out()) 
     {
-        return sysstr::util::with_output_string(str, [&](auto view) {
+        return str.print_with([&](auto view) -> decltype(ctx.out()) {
             return super::format(view, ctx);
         });
     }
@@ -198,7 +179,7 @@ template<class Storage> struct std::formatter<sysstr::sys_string_t<Storage>, wch
     template <typename FormatContext>
     auto format(const sysstr::sys_string_t<Storage> & str, FormatContext & ctx) const -> decltype(ctx.out()) 
     {
-        return sysstr::util::with_output_wstring(str, [&](auto view) {
+        return str.wprint_with([&](auto view) -> decltype(ctx.out()) {
             return super::format(view, ctx);
         });
     }

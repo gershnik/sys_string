@@ -65,8 +65,12 @@ namespace sysstr
     template<class Storage>
     class sys_string_t : public Storage
     {
-    friend std::hash<sys_string_t>;
-    friend typename Storage::char_access;
+        friend std::hash<sys_string_t>;
+        friend typename Storage::char_access;
+        friend std::formatter<sysstr::sys_string_t<Storage>>;
+    #if SYS_STRING_WCHAR_T_IS_UTF16 || SYS_STRING_WCHAR_T_IS_UTF32
+        friend std::formatter<sysstr::sys_string_t<Storage>, wchar_t>;
+    #endif
     private:
         using storage = Storage;
     public:
@@ -240,11 +244,19 @@ namespace sysstr
         static auto std_vformat(std::string_view fmt, std::format_args args) -> sys_string_t;
     #endif
 
-        template<class S>
-        friend auto operator<<(std::ostream & str, const sys_string_t<S> & val) -> std::ostream &;
+        friend auto operator<<(std::ostream & str, const sys_string_t & val) -> std::ostream &
+        {
+            return val.print_with([&](auto view) -> std::ostream & {
+                return str << view;
+            });
+        }
     #if SYS_STRING_WCHAR_T_IS_UTF16 || SYS_STRING_WCHAR_T_IS_UTF32
-        template<class S>
-        friend auto operator<<(std::wostream & str, const sys_string_t<S> & val) -> std::wostream &;
+        friend auto operator<<(std::wostream & str, const sys_string_t & val) -> std::wostream &
+        {
+            return val.wprint_with([&](auto view) -> std::ostream & {
+                return str << view;
+            });
+        }
     #endif
 
         auto swap(sys_string_t & other) noexcept -> void
@@ -339,7 +351,14 @@ namespace sysstr
     private:
         static auto compare(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> std::strong_ordering;
         static auto compare_no_case(const sys_string_t lhs, const sys_string_t & rhs) noexcept -> std::strong_ordering;
-        
+
+        template <std::invocable<std::string_view> Func>
+        auto print_with(Func func) const -> decltype(func(std::string_view{}));
+
+    #if SYS_STRING_WCHAR_T_IS_UTF16 || SYS_STRING_WCHAR_T_IS_UTF32
+        template <std::invocable<std::wstring_view> Func>
+        auto wprint_with(Func func) const -> decltype(func(std::wstring_view{}));
+    #endif
     };
 
 }

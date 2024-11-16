@@ -8,7 +8,7 @@
 #include <sys_string/utf_view.h>
 
 
-#include "catch.hpp"
+#include <doctest/doctest.h>
 
 using namespace sysstr;
 using namespace std::literals;
@@ -185,8 +185,9 @@ void check_iteration(const SrcCont & src,
     do_check_iteration<SrcEnc, DstEnc>(src, expected, reverse(expected_backward), false);
 }
 
+TEST_SUITE("utf_iteration") {
 
-TEST_CASE( "UTF8 Iteration on UTF8 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF8 Iteration on UTF8 sequence" ) {
 
     constexpr auto from = utf8;
     constexpr auto to = utf8;
@@ -320,7 +321,7 @@ TEST_CASE( "UTF8 Iteration on UTF8 sequence", "[utf_iteration]") {
     check_iteration<from, to>("\xEF\xBF\xBF", "\uFFFF");
 }
 
-TEST_CASE( "UTF16 Iteration on UTF8 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF16 Iteration on UTF8 sequence" ) {
 
     constexpr auto from = utf8;
     constexpr auto to = utf16;
@@ -454,7 +455,7 @@ TEST_CASE( "UTF16 Iteration on UTF8 sequence", "[utf_iteration]") {
     check_iteration<from, to>("\xEF\xBF\xBF", u"\uFFFF");
 }
 
-TEST_CASE( "UTF32 Iteration on UTF8 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF32 Iteration on UTF8 sequence" ) {
 
     constexpr auto from = utf8;
     constexpr auto to = utf32;
@@ -588,7 +589,7 @@ TEST_CASE( "UTF32 Iteration on UTF8 sequence", "[utf_iteration]") {
     check_iteration<from, to>("\xEF\xBF\xBF", U"\uFFFF");
 }
 
-TEST_CASE( "UTF8 Iteration on UTF16 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF8 Iteration on UTF16 sequence" ) {
 
     check_iteration<utf16, utf8>(u"", "");
     check_iteration<utf16, utf8>(u"a", "a");
@@ -605,7 +606,7 @@ TEST_CASE( "UTF8 Iteration on UTF16 sequence", "[utf_iteration]") {
     check_iteration<utf16, utf8>(u"a\xDC37", "a\uFFFD"); //good + hanging trail byte
 }
 
-TEST_CASE( "UTF16 Iteration on UTF16 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF16 Iteration on UTF16 sequence" ) {
 
     check_iteration<utf16, utf16>(u"", u"");
     check_iteration<utf16, utf16>(u"a", u"a");
@@ -622,7 +623,7 @@ TEST_CASE( "UTF16 Iteration on UTF16 sequence", "[utf_iteration]") {
     check_iteration<utf16, utf16>(u"a\xDC37", u"a\uFFFD"); //good + hanging trail byte
 }
 
-TEST_CASE( "UTF32 Iteration on UTF16 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF32 Iteration on UTF16 sequence" ) {
 
     check_iteration<utf16, utf32>(u"", U"");
     check_iteration<utf16, utf32>(u"a", U"a");
@@ -640,7 +641,7 @@ TEST_CASE( "UTF32 Iteration on UTF16 sequence", "[utf_iteration]") {
 }
 
 
-TEST_CASE( "UTF8 Iteration on UTF32 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF8 Iteration on UTF32 sequence" ) {
 
     check_iteration<utf32, utf8>(U""s, ""sv);
     check_iteration<utf32, utf8>(U"a"s, "a"sv);
@@ -661,7 +662,7 @@ TEST_CASE( "UTF8 Iteration on UTF32 sequence", "[utf_iteration]") {
     check_iteration<utf32, utf8>(U"\x110000""a", "\uFFFDa"); //too large + good
 }
 
-TEST_CASE( "UTF16 Iteration on UTF32 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF16 Iteration on UTF32 sequence" ) {
 
     check_iteration<utf32, utf16>(U""s, u""sv);
     check_iteration<utf32, utf16>(U"a"s, u"a"sv);
@@ -682,7 +683,7 @@ TEST_CASE( "UTF16 Iteration on UTF32 sequence", "[utf_iteration]") {
     check_iteration<utf32, utf16>(U"\x110000""a", u"\uFFFDa"); //too large + good
 }
 
-TEST_CASE( "UTF32 Iteration on UTF32 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF32 Iteration on UTF32 sequence" ) {
 
     check_iteration<utf32, utf32>(U"", U"");
     check_iteration<utf32, utf32>(U"a", U"a");
@@ -703,9 +704,9 @@ TEST_CASE( "UTF32 Iteration on UTF32 sequence", "[utf_iteration]") {
     check_iteration<utf32, utf32>(U"\x110000""a", U"\uFFFDa"); //too large + good
 }
 
-TEST_CASE( "Ranges", "[utf_iteration]" ) {
-
 #if __cpp_lib_ranges >= 202202L
+
+TEST_CASE( "Ranges" ) {
     CHECK(std::ranges::equal(as_utf32(std::vector({'a', 'b', 'c'})), std::array{U'a', U'b', U'c'}));
     CHECK(std::ranges::equal(std::vector({'a', 'b', 'c'}) | as_utf32, std::array{U'a', U'b', U'c'}));
 
@@ -714,8 +715,8 @@ TEST_CASE( "Ranges", "[utf_iteration]" ) {
 
     CHECK(std::ranges::equal(as_utf8(std::vector({u'a', u'b', u'c'})), std::array{'a', 'b', 'c'}));
     CHECK(std::ranges::equal(std::vector({u'a', u'b', u'c'}) | as_utf8, std::array{'a', 'b', 'c'}));
-#endif
 }
 
+#endif
 
-
+}

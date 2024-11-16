@@ -7,14 +7,16 @@
 //
 #include <sys_string/sys_string.h>
 
-#include "catch.hpp"
+#include <doctest/doctest.h>
 
 using namespace sysstr;
 
 #if !SYS_STRING_USE_GENERIC && !SYS_STRING_USE_PYTHON
 
+TEST_SUITE("windows") {
+
 #if SYS_STRING_WIN_BSTR
-    TEST_CASE("Windows Empty String", "[windows]")
+    TEST_CASE("Windows Empty String" )
     {
         CHECK(sys_string().b_str() == nullptr);
         CHECK(wcscmp(sys_string().w_str(), L"") == 0);
@@ -24,7 +26,7 @@ using namespace sysstr;
         CHECK(sys_string(BSTR(nullptr), attach_pointer) == S(""));
     }
 
-    TEST_CASE("Windows Attach", "[windows]")
+    TEST_CASE("Windows Attach" )
     {
         BSTR bstr = SysAllocString(L"a水𐀀𝄞bcå🤢");
         sys_string attached(bstr, attach_pointer);
@@ -45,7 +47,7 @@ using namespace sysstr;
         SysFreeString(released);
     }
 
-    TEST_CASE("Windows Copy", "[windows]")
+    TEST_CASE("Windows Copy" )
     {
         BSTR bstr = S("a水𐀀𝄞bcå🤢").b_str();
         CHECK(bstr);
@@ -62,7 +64,7 @@ using namespace sysstr;
         SysFreeString(bstr1);
     }
 
-    TEST_CASE("Windows Static and embedded", "[windows]")
+    TEST_CASE("Windows Static and embedded" )
     {
 
         CHECK(SysStringLen(S("").b_str()) == 0);
@@ -89,7 +91,7 @@ using namespace sysstr;
     }
 #elif SYS_STRING_WIN_HSTRING
 
-    TEST_CASE( "Windows Conversions", "[windows]") {
+    TEST_CASE( "Windows Conversions" ) {
 
         CHECK(sys_string().h_str() == nullptr);
         CHECK(wcscmp(sys_string().w_str(), L"") == 0);
@@ -114,7 +116,7 @@ using namespace sysstr;
 
 #else
 
-    TEST_CASE( "Windows Conversions", "[windows]") {
+    TEST_CASE( "Windows Conversions" ) {
 
         REQUIRE(sys_string().w_str());
         CHECK(wcscmp(sys_string().w_str(), L"") == 0);
@@ -132,4 +134,7 @@ using namespace sysstr;
     }
 
 #endif
+
+}
+
 #endif

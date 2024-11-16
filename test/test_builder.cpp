@@ -8,7 +8,7 @@
 #include <sys_string/sys_string.h>
 
 
-#include "catch.hpp"
+#include <doctest/doctest.h>
 
 using namespace sysstr;
 
@@ -43,7 +43,9 @@ static_assert(std::ranges::borrowed_range<sys_string_builder::utf8_view>);
 static_assert(std::ranges::viewable_range<sys_string_builder::utf8_view>);
 static_assert(ranges::custom_reverse_traversable_range<sys_string_builder::utf8_view>);
 
-TEST_CASE( "Builder basics", "[builder]") {
+TEST_SUITE("builder") {
+
+TEST_CASE( "Builder basics" ) {
 
     CHECK(sys_string_builder().build() == S(""));
     CHECK(sys_string_builder().append(U'🟣').build() == S("🟣"));
@@ -70,7 +72,7 @@ TEST_CASE( "Builder basics", "[builder]") {
     CHECK(builder.build() == S("🪀"));
 }
 
-TEST_CASE( "Builder iteration", "[builder]") {
+TEST_CASE( "Builder iteration" ) {
     
     sys_string_builder builder;
     CHECK(builder.begin() == builder.end());
@@ -102,7 +104,7 @@ TEST_CASE( "Builder iteration", "[builder]") {
 
 }
 
-TEST_CASE( "Builder insert", "[builder]") {
+TEST_CASE( "Builder insert" ) {
     
     sys_string_builder builder;
     sys_string_builder::iterator it;
@@ -150,7 +152,7 @@ TEST_CASE( "Builder insert", "[builder]") {
     CHECK(builder.build() == S("🪀🟫🩳�𐊃𐜃𐤈🀁"));
 }
 
-TEST_CASE( "Builder erase", "[builder]") {
+TEST_CASE( "Builder erase" ) {
     
     sys_string_builder builder;
     sys_string_builder::iterator it;
@@ -180,4 +182,6 @@ TEST_CASE( "Builder erase", "[builder]") {
     CHECK(it == ++builder.begin());
     CHECK(builder.build() == S("🪀�𐊃𐜃𐤈🀁"));
     
+}
+
 }

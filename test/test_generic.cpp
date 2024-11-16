@@ -8,13 +8,15 @@
 #include <sys_string/sys_string.h>
 
 
-#include "catch.hpp"
+#include <doctest/doctest.h>
 
 using namespace sysstr;
 
 #if SYS_STRING_USE_GENERIC
 
-TEST_CASE( "Generic Conversions", "[generic]") {
+TEST_SUITE("generic") {
+
+TEST_CASE( "Generic Conversions") {
 
     REQUIRE(sys_string().c_str());
     CHECK(strcmp(sys_string().c_str(), "") == 0);
@@ -29,6 +31,8 @@ TEST_CASE( "Generic Conversions", "[generic]") {
     CHECK(strcmp(sys_string((const char*)nullptr).c_str(), "") == 0);
 
     CHECK(strcmp(sys_string("a水𐀀𝄞bcå🤢").c_str(), "a水𐀀𝄞bcå🤢") == 0);
+}
+
 }
 
 #endif

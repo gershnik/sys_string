@@ -8,13 +8,15 @@
 #include <sys_string/sys_string.h>
 
 
-#include "catch.hpp"
+#include <doctest/doctest.h>
 
 using namespace sysstr;
 
 #if SYS_STRING_USE_PYTHON
 
-TEST_CASE( "Python Conversions", "[python]") {
+TEST_SUITE("python") {
+
+TEST_CASE( "Python Conversions" ) {
 
     auto str = sys_string();
     REQUIRE(str.py_str());
@@ -34,6 +36,8 @@ TEST_CASE( "Python Conversions", "[python]") {
     REQUIRE(raw);
     CHECK(sys_string(raw) == sys_string(u"�"));
     Py_DECREF(raw);
+}
+
 }
 
 #endif

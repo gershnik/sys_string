@@ -5,6 +5,8 @@
 // license that can be found in the LICENSE file or at
 // https://github.com/gershnik/sys_string/blob/master/LICENSE
 //
+// _🪦🐮🐌_
+
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <doctest/doctest.h>
 

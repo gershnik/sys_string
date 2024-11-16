@@ -13,6 +13,7 @@
 #include <vector>
 #include <string>
 #include <string_view>
+#include <ostream>
 
 using namespace sysstr;
 using namespace std::literals;

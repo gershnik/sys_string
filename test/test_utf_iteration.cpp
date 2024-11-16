@@ -10,6 +10,10 @@
 
 #include <doctest/doctest.h>
 
+#include <vector>
+#include <string>
+#include <string_view>
+
 using namespace sysstr;
 using namespace std::literals;
 

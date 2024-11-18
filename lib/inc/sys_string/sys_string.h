@@ -165,9 +165,12 @@ namespace sysstr
         sys_string_t & operator=(const sys_string_t &) noexcept = default;
         sys_string_t & operator=(sys_string_t &&) noexcept = default;
         ~sys_string_t() noexcept = default;
+
+        //Inherit any storage specific constructors
         
         using storage::storage;
      
+        //Constructors from raw strings and character ranges
 
         template<has_utf_encoding Char>
         sys_string_t(const Char * str, size_t len) :
@@ -190,13 +193,41 @@ namespace sysstr
             sys_string_t(std::ranges::data(val), std::ranges::size(val))
         {}
 
+        //Slice constructors from utf32_access::iterators
+
         sys_string_t(const typename utf32_access::iterator & first, const typename utf32_access::iterator & last):
+            sys_string_t(first.storage_current(), last.storage_current())
+        {}
+
+        sys_string_t(const typename utf32_access::reverse_iterator & first, const typename utf32_access::reverse_iterator & last):
             sys_string_t(first.storage_current(), last.storage_current())
         {}
 
         sys_string_t(const typename utf32_access::iterator & first, std::default_sentinel_t):
             sys_string_t(first.storage_current(), first.storage_last())
         {}
+
+        sys_string_t(const typename utf32_access::reverse_iterator & first, std::default_sentinel_t):
+            sys_string_t(first.storage_current(), first.storage_last())
+        {}
+
+        template<std::ranges::range Range>
+        requires(std::is_same_v<std::ranges::iterator_t<Range>, typename utf32_access::iterator> &&
+                 (std::is_same_v<std::ranges::sentinel_t<Range>, typename utf32_access::iterator> ||
+                  std::is_same_v<std::ranges::sentinel_t<Range>, std::default_sentinel_t>))
+        sys_string_t(const Range & range):
+            sys_string_t(std::begin(range), std::end(range))
+        {}
+
+        template<std::ranges::range Range>
+        requires(std::is_same_v<std::ranges::iterator_t<Range>, typename utf32_access::reverse_iterator> &&
+                 (std::is_same_v<std::ranges::sentinel_t<Range>, typename utf32_access::reverse_iterator> ||
+                  std::is_same_v<std::ranges::sentinel_t<Range>, std::default_sentinel_t>))
+        sys_string_t(const Range & range):
+            sys_string_t(std::begin(range), std::end(range))
+        {}
+
+        //Slice constructors from char_access::iterators
         
         template<std::sized_sentinel_for<typename char_access::iterator> EndIt>
         sys_string_t(const typename char_access::iterator & first, const EndIt & last):
@@ -207,6 +238,23 @@ namespace sysstr
         sys_string_t(const typename char_access::reverse_iterator & first, const EndIt & last):
             sys_string_t(first.base() - (last - first), first.base())
         {}
+
+        template<std::ranges::range Range>
+        requires(std::is_same_v<std::ranges::iterator_t<Range>, typename char_access::iterator> &&
+                 std::sized_sentinel_for<std::ranges::sentinel_t<Range>, typename char_access::iterator> &&
+                 (!std::ranges::contiguous_range<Range> || !has_utf_encoding<std::ranges::range_value_t<Range>>))
+        sys_string_t(const Range & range):
+            sys_string_t(std::begin(range), std::end(range))
+        {}
+
+        template<std::ranges::range Range>
+        requires(std::is_same_v<std::ranges::iterator_t<Range>, typename char_access::reverse_iterator> &&
+                 std::sized_sentinel_for<std::ranges::sentinel_t<Range>, typename char_access::reverse_iterator>)
+        sys_string_t(const Range & range):
+            sys_string_t(std::begin(range), std::end(range))
+        {}
+
+        // Construct moving from underlying storage
 
         explicit sys_string_t(storage && st) noexcept : storage(std::move(st))
         {}

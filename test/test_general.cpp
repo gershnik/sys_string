@@ -97,6 +97,46 @@ TEST_CASE( "Creation" ) {
     CHECK(from_long_char == S("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"));
 }
 
+TEST_CASE( "Slicing" ) {
+    {
+        sys_string str = S("a水𐀀𝄞");
+        sys_string::utf32_access access(str);
+
+        auto first = std::begin(access);
+        ++first;
+        CHECK(sys_string(first, std::end(access)) == S("水𐀀𝄞"));
+        auto last = first;
+        ++last;
+        CHECK(sys_string(first, last) == S("水"));
+        CHECK(sys_string(std::ranges::subrange(first, last)) == S("水"));
+
+        auto rfirst = ranges::make_reverse_iterator(access, last);
+        CHECK(sys_string(rfirst, std::rend(access)) == S("a水"));
+        auto rlast = ranges::make_reverse_iterator(access, first);
+        CHECK(sys_string(rfirst, rlast) == S("水"));
+        CHECK(sys_string(std::ranges::subrange(rfirst, rlast)) == S("水"));
+    }
+
+    {
+        sys_string str = S("abc");
+        sys_string::char_access access(str);
+
+        auto first = std::begin(access);
+        ++first;
+        CHECK(sys_string(first, std::end(access)) == S("bc"));
+        auto last = first;
+        ++last;
+        CHECK(sys_string(first, last) == S("b"));
+        CHECK(sys_string(std::ranges::subrange(first, last)) == S("b"));
+
+        auto rfirst = ranges::make_reverse_iterator(access, last);
+        CHECK(sys_string(rfirst, std::rend(access)) == S("ab"));
+        auto rlast = ranges::make_reverse_iterator(access, first);
+        CHECK(sys_string(rfirst, rlast) == S("b"));
+        CHECK(sys_string(std::ranges::subrange(rfirst, rlast)) == S("b"));
+    }
+}
+
 TEST_CASE( "Iteration" ) {
     sys_string str = S("a水𐀀𝄞");
     sys_string empty = S("");

@@ -71,6 +71,7 @@ set(MAIN_CODE
     ${SRCDIR}/inc/sys_string/impl/builder.h
     ${SRCDIR}/inc/sys_string/impl/misc.h
     ${SRCDIR}/inc/sys_string/impl/format.h
+    ${SRCDIR}/inc/sys_string/impl/print.h
     ${SRCDIR}/inc/sys_string/impl/platform.h
 )
 source_group("Main Code" FILES ${MAIN_CODE})

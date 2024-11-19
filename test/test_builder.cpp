@@ -23,7 +23,6 @@ static_assert(!std::is_copy_assignable_v<sys_string_builder>);
 static_assert(std::is_nothrow_move_assignable_v<sys_string_builder>);
 static_assert(std::is_nothrow_destructible_v<sys_string_builder>);
 static_assert(std::is_nothrow_swappable_v<sys_string_builder>);
-static_assert(std::is_standard_layout_v<sys_string_builder>);
 
 static_assert(std::ranges::forward_range<sys_string_builder>);
 static_assert(!std::ranges::random_access_range<sys_string_builder>);

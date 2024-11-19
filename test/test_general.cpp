@@ -700,7 +700,7 @@ TEST_CASE( "ostream" ) {
 
     {
         std::wostringstream stream;
-        stream << std::setw(15) << std::setfill(' ') << S("a🧡bc");
+        stream << std::setw(15) << std::setfill(L' ') << S(L"a🧡bc");
         CHECK(stream.str() == L"a🧡bc");
     }
 #endif

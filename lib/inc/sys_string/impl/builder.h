@@ -110,6 +110,20 @@ namespace sysstr
             auto res = insert_one(m_impl, std::ranges::end(m_impl), c);
             return iterator(res, std::ranges::end(m_impl));
         }
+
+        template<has_utf_encoding Char>
+        iterator insert(iterator where, const Char * str)
+        {
+            auto res = insert_many(m_impl, where.storage_current(), str, std::char_traits<Char>::length(str));
+            return iterator(res, std::ranges::end(m_impl));
+        }
+
+        template<has_utf_encoding Char>
+        iterator insert(std::default_sentinel_t, const Char * str)
+        {
+            auto res = insert_many(m_impl, std::ranges::end(m_impl), str, std::char_traits<Char>::length(str));
+            return iterator(res, std::ranges::end(m_impl));
+        }
         
         template<has_utf_encoding Char>
         iterator insert(iterator where, const Char * str, size_t len)
@@ -122,6 +136,22 @@ namespace sysstr
         iterator insert(std::default_sentinel_t, const Char * str, size_t len)
         {
             auto res = insert_many(m_impl, std::ranges::end(m_impl), str, len);
+            return iterator(res, std::ranges::end(m_impl));
+        }
+
+        template<std::ranges::contiguous_range Range>
+        requires(has_utf_encoding<std::ranges::range_value_t<Range>>)
+        iterator insert(iterator where, const Range & range)
+        {
+            auto res = insert_many(m_impl, where.storage_current(), std::ranges::data(range), std::ranges::size(range));
+            return iterator(res, std::ranges::end(m_impl));
+        }
+
+        template<std::ranges::contiguous_range Range>
+        requires(has_utf_encoding<std::ranges::range_value_t<Range>>)
+        iterator insert(std::default_sentinel_t, const Range & range)
+        {
+            auto res = insert_many(m_impl, std::ranges::end(m_impl), std::ranges::data(range), std::ranges::size(range));
             return iterator(res, std::ranges::end(m_impl));
         }
         
@@ -149,9 +179,15 @@ namespace sysstr
         template<has_utf_encoding Char>
         sys_string_builder_t & append(const Char * str, size_t len)
             { append_many(m_impl, str, len); return *this; }
+        
         template<has_utf_encoding Char>
         sys_string_builder_t & append(const Char * str)
             { append_many(m_impl, str, std::char_traits<Char>::length(str)); return *this; }
+
+        template<std::ranges::contiguous_range Range>
+        requires(has_utf_encoding<std::ranges::range_value_t<Range>>)
+        sys_string_builder_t & append(const Range & range)
+            { append_many(m_impl, std::ranges::data(range), std::ranges::size(range)); return *this; }
 
         sys_string_builder_t & append(const sys_string_t<Storage> & str)
             { append_range(typename sys_string_t<Storage>::char_access(str)); return *this; }
@@ -271,7 +307,7 @@ namespace sysstr
 
         if constexpr (std::ranges::contiguous_range<Range>)
         {
-            m_impl.append(std::data(range), std::size(range));
+            m_impl.append(std::ranges::data(range), std::ranges::size(range));
         }
         else
         {

@@ -14,6 +14,17 @@
 
 using namespace sysstr;
 
+using namespace std::literals;
+
+static_assert(std::is_nothrow_default_constructible_v<sys_string_builder>);
+static_assert(!std::is_copy_constructible_v<sys_string_builder>);
+static_assert(std::is_nothrow_move_constructible_v<sys_string_builder>);
+static_assert(!std::is_copy_assignable_v<sys_string_builder>);
+static_assert(std::is_nothrow_move_assignable_v<sys_string_builder>);
+static_assert(std::is_nothrow_destructible_v<sys_string_builder>);
+static_assert(std::is_nothrow_swappable_v<sys_string_builder>);
+static_assert(std::is_standard_layout_v<sys_string_builder>);
+
 static_assert(std::ranges::forward_range<sys_string_builder>);
 static_assert(!std::ranges::random_access_range<sys_string_builder>);
 static_assert(!std::ranges::common_range<sys_string_builder>);
@@ -116,7 +127,18 @@ TEST_CASE( "Builder insert" ) {
     CHECK(builder.build() == S("🟫"));
     it = builder.insert(builder.begin(), "🟫", std::size("🟫") - 1);
     CHECK(it == builder.begin());
+    CHECK(*it == U'🟫');
     CHECK(builder.build() == S("🟫"));
+    CHECK(builder.empty());
+
+    it = builder.insert(builder.begin(), "🔺");
+    CHECK(it == builder.begin());
+    CHECK(builder.build() == S("🔺"));
+    CHECK(builder.empty());
+
+    it = builder.insert(builder.begin(), "🔺"s);
+    CHECK(it == builder.begin());
+    CHECK(builder.build() == S("🔺"));
     CHECK(builder.empty());
     
     it = builder.insert(builder.end(), U'🟦');
@@ -124,7 +146,18 @@ TEST_CASE( "Builder insert" ) {
     CHECK(builder.build() == S("🟦"));
     it = builder.insert(builder.end(), u"🟦", std::size(u"🟦") - 1);
     CHECK(it == builder.begin());
+    CHECK(*it == U'🟦');
     CHECK(builder.build() == S("🟦"));
+
+    it = builder.insert(builder.end(), "🔺");
+    CHECK(it == builder.begin());
+    CHECK(builder.build() == S("🔺"));
+    CHECK(builder.empty());
+
+    it = builder.insert(builder.end(), "🔺"s);
+    CHECK(it == builder.begin());
+    CHECK(builder.build() == S("🔺"));
+    CHECK(builder.empty());
     
     builder.append(u"🪀🩳�𐊃𐜃𐤈🀁");
     it = builder.insert(builder.begin(), U'🟫');
@@ -152,6 +185,10 @@ TEST_CASE( "Builder insert" ) {
     it = builder.insert(++builder.begin(), u"🟫", std::size(u"🟫") - 1);
     CHECK(it == ++builder.begin());
     CHECK(builder.build() == S("🪀🟫🩳�𐊃𐜃𐤈🀁"));
+
+    builder.append(std::array{U'🪀', U'🩳'});
+    CHECK(builder.build() == S("🪀🩳"));
+
 }
 
 TEST_CASE( "Builder erase" ) {

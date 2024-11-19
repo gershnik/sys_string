@@ -95,9 +95,10 @@ namespace sysstr::util
 
 
     template<class T>
-    concept indexable = requires(T & t, decltype(std::size(t)) n)
+    concept indexable = requires(T & t)
     {
-        t[n];
+        t.size();
+        t[decltype(t.size()){}];
     };
 
     template<class Container, iter_direction Direction>
@@ -112,8 +113,8 @@ namespace sysstr::util
         using container_ptr = Container *;
         
     public:
-        using size_type = decltype(std::size(std::declval<Container>()));
-        using reference = decltype(std::declval<Container>()[0]);
+        using size_type = decltype(std::declval<Container>().size());
+        using reference = decltype(std::declval<Container>()[std::declval<size_type>()]);
         using difference_type = std::make_signed_t<size_type>;
         using value_type = std::remove_cvref_t<reference>;
 
@@ -203,10 +204,10 @@ namespace sysstr::util
             { return index_iterator::is_forward ? (lhs.m_idx - rhs.m_idx) : (rhs.m_idx - lhs.m_idx); }
         
         friend constexpr difference_type operator-(const index_iterator & lhs, std::default_sentinel_t) noexcept
-            { return index_iterator::is_forward ? (lhs.m_idx - std::size(*lhs.m_cont)) : -lhs.m_idx; }
+            { return index_iterator::is_forward ? (lhs.m_idx - lhs.m_cont->size()) : -lhs.m_idx; }
 
         friend constexpr difference_type operator-(std::default_sentinel_t, const index_iterator & rhs) noexcept
-            { return index_iterator::is_forward ? (std::size(*rhs.m_cont) - rhs.m_idx) : rhs.m_idx; }
+            { return index_iterator::is_forward ? (rhs.m_cont->size() - rhs.m_idx) : rhs.m_idx; }
         
         friend constexpr index_iterator operator-(const index_iterator & lhs, difference_type rhs) noexcept
         {
@@ -221,7 +222,7 @@ namespace sysstr::util
             { return !(lhs == rhs); }
         
         friend constexpr bool operator==(const index_iterator & lhs, std::default_sentinel_t) noexcept
-            { return lhs.m_idx == (index_iterator::is_forward ? std::size(*lhs.m_cont) : 0); }
+            { return lhs.m_idx == (index_iterator::is_forward ? lhs.m_cont->size() : 0); }
         friend constexpr bool operator==(std::default_sentinel_t, const index_iterator & rhs) noexcept
             { return rhs == std::default_sentinel; }
         friend constexpr bool operator!=(const index_iterator & lhs, std::default_sentinel_t) noexcept

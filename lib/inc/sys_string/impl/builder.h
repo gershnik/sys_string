@@ -45,10 +45,10 @@ namespace sysstr
         using const_reverse_iterator = typename utf32_view::const_reverse_iterator;
         
     private:
-        using const_storage_iterator = decltype(std::begin(std::declval<const impl_type>()));
-        using const_storage_sentinel = decltype(std::end(std::declval<const impl_type>()));
-        using const_storage_reverse_iterator = decltype(std::rbegin(std::declval<const impl_type>()));
-        using const_storage_reverse_sentinel = decltype(std::rend(std::declval<const impl_type>()));
+        using const_storage_iterator = decltype(std::ranges::begin(std::declval<const impl_type &>()));
+        using const_storage_sentinel = decltype(std::ranges::end(std::declval<const impl_type &>()));
+        using const_storage_reverse_iterator = decltype(std::ranges::rbegin(std::declval<const impl_type &>()));
+        using const_storage_reverse_sentinel = decltype(std::ranges::rend(std::declval<const impl_type &>()));
 
     public:
 
@@ -68,7 +68,7 @@ namespace sysstr
             { m_impl.resize(new_size); }
         
         iterator begin() const noexcept
-            { return iterator(std::begin(m_impl), std::end(m_impl)); }
+            { return iterator(std::ranges::begin(m_impl), std::ranges::end(m_impl)); }
         std::default_sentinel_t end() const noexcept
             { return std::default_sentinel; }
         const_iterator cbegin() const noexcept
@@ -76,7 +76,7 @@ namespace sysstr
         std::default_sentinel_t cend() const noexcept
             { return end(); }
         reverse_iterator rbegin() const noexcept
-            { return reverse_iterator(std::rbegin(m_impl), std::rend(m_impl)); }
+            { return reverse_iterator(std::ranges::rbegin(m_impl), std::ranges::rend(m_impl)); }
         std::default_sentinel_t rend() const noexcept
             { return std::default_sentinel; }
         const_reverse_iterator crbegin() const noexcept
@@ -85,10 +85,10 @@ namespace sysstr
             { return rend(); }
 
         reverse_iterator reverse(iterator it) const
-            { return reverse_iterator(it, std::rend(this->m_impl)); }
+            { return reverse_iterator(it, std::ranges::rend(this->m_impl)); }
 
         iterator reverse(reverse_iterator it) const
-            { return iterator(it, std::end(this->m_impl)); }
+            { return iterator(it, std::ranges::end(this->m_impl)); }
         
 
         void push_back(char32_t c)
@@ -96,51 +96,51 @@ namespace sysstr
         void pop_back() noexcept
         {
             auto it = rbegin();
-            m_impl.erase(it.storage_next().base(), std::end(m_impl));
+            m_impl.erase(it.storage_next().base(), std::ranges::end(m_impl));
         }
         
         iterator insert(iterator where, char32_t c)
         {
             auto res = insert_one(m_impl, where.storage_current(), c);
-            return iterator(res, std::end(m_impl));
+            return iterator(res, std::ranges::end(m_impl));
         }
 
         iterator insert(std::default_sentinel_t, char32_t c)
         {
-            auto res = insert_one(m_impl, std::end(m_impl), c);
-            return iterator(res, std::end(m_impl));
+            auto res = insert_one(m_impl, std::ranges::end(m_impl), c);
+            return iterator(res, std::ranges::end(m_impl));
         }
         
         template<has_utf_encoding Char>
         iterator insert(iterator where, const Char * str, size_t len)
         {
             auto res = insert_many(m_impl, where.storage_current(), str, len);
-            return iterator(res, std::end(m_impl));
+            return iterator(res, std::ranges::end(m_impl));
         }
 
         template<has_utf_encoding Char>
         iterator insert(std::default_sentinel_t, const Char * str, size_t len)
         {
-            auto res = insert_many(m_impl, std::end(m_impl), str, len);
-            return iterator(res, std::end(m_impl));
+            auto res = insert_many(m_impl, std::ranges::end(m_impl), str, len);
+            return iterator(res, std::ranges::end(m_impl));
         }
         
         iterator erase(iterator where) noexcept
         {
             auto res = m_impl.erase(where.storage_current(), where.storage_next());
-            return iterator(res, std::end(m_impl));
+            return iterator(res, std::ranges::end(m_impl));
         }
 
         iterator erase(iterator first, iterator last) noexcept
         {
             auto res = m_impl.erase(first.storage_current(), last.storage_current());
-            return iterator(res, std::end(m_impl));
+            return iterator(res, std::ranges::end(m_impl));
         }
 
         iterator erase(iterator first, std::default_sentinel_t) noexcept
         {
-            auto res = m_impl.erase(first.storage_current(), std::end(m_impl));
-            return iterator(res, std::end(m_impl));
+            auto res = m_impl.erase(first.storage_current(), std::ranges::end(m_impl));
+            return iterator(res, std::ranges::end(m_impl));
         }
         
         sys_string_builder_t & append(char32_t c)
@@ -185,14 +185,14 @@ namespace sysstr
         void append_range(const Range & range);
         
         auto storage_begin() const 
-            { return std::begin(m_impl); }
+            { return std::ranges::begin(m_impl); }
         auto storage_end() const 
-            { return std::end(m_impl); }
+            { return std::ranges::end(m_impl); }
 
         auto storage_rbegin() const 
-            { return std::rbegin(m_impl); }
+            { return std::ranges::rbegin(m_impl); }
         auto storage_rend() const 
-            { return std::rend(m_impl); }
+            { return std::ranges::rend(m_impl); }
         
     private:
         impl_type m_impl;
@@ -223,9 +223,9 @@ namespace sysstr
         else
         {
             using converter = utf_converter<utf32, utf_encoding_of<storage_type>>;
-            auto pos = where - std::begin(impl);
+            auto pos = where - std::ranges::begin(impl);
             converter::convert(&c, &c + 1, std::inserter(impl, where));
-            return std::begin(impl) + pos;
+            return std::ranges::begin(impl) + pos;
         }
     }
 
@@ -257,9 +257,9 @@ namespace sysstr
         else
         {
             using converter = utf_converter<utf_encoding_of<Char>, utf_encoding_of<storage_type>>;
-            auto pos = where - std::begin(impl);
+            auto pos = where - std::ranges::begin(impl);
             converter::convert(str, str + len, std::inserter(impl, where));
-            return std::begin(impl) + pos;
+            return std::ranges::begin(impl) + pos;
         }
     }
 

@@ -381,13 +381,14 @@ namespace sysstr
 
 
     template<class Storage>
-    template<std::input_iterator InIt>
-    auto sys_string_t<Storage>::find_prefix(InIt first, InIt last) const -> InIt
+    template<std::input_iterator It, std::sentinel_for<It> EndIt>
+    requires(sys_string_or_char<std::iter_value_t<It>, Storage>)
+    auto sys_string_t<Storage>::find_prefix(It first, EndIt last) const -> It
     {
-        using item_type = typename std::iterator_traits<InIt>::value_type;
+        using item_type = std::iter_value_t<It>;
     
         sys_string_t<Storage>::char_access str_access(*this);
-        return std::find_if(first, last, [&str_access] (auto & item) {
+        return std::ranges::find_if(first, last, [&str_access] (auto & item) {
             return util::has_prefix(str_access, util::string_or_char32_char_access<Storage, item_type>(item));
         });
     }
@@ -423,10 +424,11 @@ namespace sysstr
     }
 
     template<class Storage>
-    template<std::input_iterator InIt>
-    auto sys_string_t<Storage>::find_suffix(InIt first, InIt last) const -> InIt
+    template<std::input_iterator It, std::sentinel_for<It> EndIt>
+    requires(sys_string_or_char<std::iter_value_t<It>, Storage>)
+    auto sys_string_t<Storage>::find_suffix(It first, EndIt last) const -> It
     {
-        using item_type = typename std::iterator_traits<InIt>::value_type;
+        using item_type = std::iter_value_t<It>;
     
         sys_string_t<Storage>::char_access str_access(*this);
         return std::find_if(first, last, [&str_access] (auto & item) {
@@ -442,10 +444,11 @@ namespace sysstr
     }
 
     template<class Storage>
-    template<std::input_iterator InIt>
-    auto sys_string_t<Storage>::find_contained(InIt first, InIt last) const -> InIt
+    template<std::input_iterator It, std::sentinel_for<It> EndIt>
+    requires(sys_string_or_char<std::iter_value_t<It>, Storage>)
+    auto sys_string_t<Storage>::find_contained(It first, EndIt last) const -> It
     {
-        using item_type = typename std::iterator_traits<InIt>::value_type;
+        using item_type = std::iter_value_t<It>;
     
         sys_string_t<Storage>::char_access str_access(*this);
         return std::find_if(first, last, [&str_access] (auto & item) {

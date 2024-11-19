@@ -21,7 +21,7 @@ namespace sysstr
         template<std::forward_iterator It, std::sentinel_for<It> EndIt>
         static void reading(It first, EndIt last) noexcept(noexcept(*first++) && noexcept(first != last));
         template<std::ranges::forward_range Range>
-        static void reading(Range && range) noexcept(noexcept(reading(std::begin(range), std::end(range))));
+        static void reading(Range && range) noexcept(noexcept(reading(std::ranges::begin(range), std::ranges::end(range))));
         template<std::output_iterator<utf_char_of<To>> OutIt>
         static void writing(OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<To>()));
         template<class Func>
@@ -82,7 +82,7 @@ namespace sysstr
         template<std::forward_iterator It, std::sentinel_for<It> EndIt>
         static void reading(It first, EndIt last) noexcept(noexcept(*first++) && noexcept(first != last));
         template<std::ranges::forward_range Range>
-        static void reading(Range && range) noexcept(noexcept(reading(std::begin(range), std::end(range))));
+        static void reading(Range && range) noexcept(noexcept(reading(std::ranges::begin(range), std::ranges::end(range))));
 
     public:
         template<std::forward_iterator It, std::sentinel_for<It> EndIt>
@@ -95,7 +95,7 @@ namespace sysstr
         SYS_STRING_FORCE_INLINE
         static Sink read(Range && range, Sink sink) noexcept(noexcept(reading(std::forward<Range>(range))) && noexcept(sink(char32_t())))
         {
-            return read(std::begin(std::forward<Range>(range)), std::end(std::forward<Range>(range)), sink);
+            return read(std::ranges::begin(std::forward<Range>(range)), std::ranges::end(std::forward<Range>(range)), sink);
         }
         
         template<std::forward_iterator It, std::sentinel_for<It> EndIt, class Sink>

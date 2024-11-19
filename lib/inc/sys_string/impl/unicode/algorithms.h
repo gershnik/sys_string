@@ -45,10 +45,10 @@ namespace sysstr
                             std::ranges::iterator_t<Range> where) const noexcept -> char32_t
             {
                 auto reversed = ranges::make_reverse_iterator(range, where);
-                if (any_non_cased_then_cased(reversed, std::rend(range)))
+                if (any_non_cased_then_cased(reversed, std::ranges::rend(range)))
                 {
                     ++where;
-                    if (!any_non_cased_then_cased(where, std::end(range)))
+                    if (!any_non_cased_then_cased(where, std::ranges::end(range)))
                     {
                         return U'\u03C2'; //replace with ς
                     }
@@ -80,8 +80,8 @@ namespace sysstr
         {
             using namespace util::unicode;
 
-            auto first = std::begin(range);
-            auto last = std::end(range);
+            auto first = std::ranges::begin(range);
+            auto last = std::ranges::end(range);
             
             for( ; first != last; ++first)
             {
@@ -111,8 +111,8 @@ namespace sysstr
         {
             using namespace util::unicode;
             
-            auto first = std::begin(range);
-            auto last = std::end(range);
+            auto first = std::ranges::begin(range);
+            auto last = std::ranges::end(range);
             for( ; first != last; ++first)
             {
                 auto c = *first;

@@ -23,7 +23,7 @@ namespace sysstr
         SYS_STRING_FORCE_INLINE
         char32_t current_utf32(It & it, EndIt last) 
         {
-            constexpr auto encoding = utf_encoding_of<typename std::iterator_traits<It>::value_type>;
+            constexpr auto encoding = utf_encoding_of<std::iter_value_t<It>>;
             if constexpr (Direction == iter_direction::forward)
                 return utf32_input<encoding>::read(it, last);
             else
@@ -36,7 +36,7 @@ namespace sysstr
             template<utf_encoding E, std::input_iterator X, std::sentinel_for<X> EndX, iter_direction D>
             friend class utf_iterator;
         public:
-            using difference_type = typename std::iterator_traits<It>::difference_type;
+            using difference_type = std::iter_difference_t<It>;
             using size_type = std::make_unsigned_t<difference_type>;
             using value_type = utf_char_of<OutputEnc>;
             using reference = const value_type;
@@ -180,7 +180,7 @@ namespace sysstr
         class utf_iterator<utf32, It, EndIt, Direction>
         {
         public:
-            using difference_type = typename std::iterator_traits<It>::difference_type;
+            using difference_type = std::iter_difference_t<It>;
             using size_type = std::make_unsigned_t<difference_type>;
             using value_type = char32_t;
             using reference = const char32_t;
@@ -302,13 +302,13 @@ namespace sysstr
         static constexpr bool is_reversible = ranges::reverse_traversable_range<std::remove_reference_t<range>>;
         static constexpr auto source_encoding = utf_encoding_of<std::ranges::range_value_t<range>>;
         
-        using access_iterator = decltype(std::begin(*std::declval<range_pointer>()));
-        using access_sentinel = decltype(std::end(*std::declval<range_pointer>()));
+        using access_iterator = decltype(std::ranges::begin(*std::declval<range_pointer>()));
+        using access_sentinel = decltype(std::ranges::end(*std::declval<range_pointer>()));
         using access_reverse_iterator = std::conditional_t<is_reversible, 
-                                                        decltype(std::rbegin(std::declval<range>())),
+                                                        decltype(std::ranges::rbegin(std::declval<range>())),
                                                         void>;
         using access_reverse_sentinel = std::conditional_t<is_reversible, 
-                                                        decltype(std::rend(std::declval<range>())),
+                                                        decltype(std::ranges::rend(std::declval<range>())),
                                                         void>;
 
     public:
@@ -330,7 +330,7 @@ namespace sysstr
             m_ptr(adapter::adapt(src))
         {}
         SYS_STRING_FORCE_INLINE iterator begin() const
-            { return iterator(std::begin(*m_ptr), std::end(*m_ptr)); }
+            { return iterator(std::ranges::begin(*m_ptr), std::ranges::end(*m_ptr)); }
         SYS_STRING_FORCE_INLINE std::default_sentinel_t end() const
             { return std::default_sentinel; }
         SYS_STRING_FORCE_INLINE const_iterator cbegin() const
@@ -338,7 +338,7 @@ namespace sysstr
         SYS_STRING_FORCE_INLINE std::default_sentinel_t cend() const
             { return end(); }
         SYS_STRING_FORCE_INLINE reverse_iterator rbegin() const requires(is_reversible)
-            { return reverse_iterator(std::rbegin(*m_ptr), std::rend(*m_ptr)); }
+            { return reverse_iterator(std::ranges::rbegin(*m_ptr), std::ranges::rend(*m_ptr)); }
         SYS_STRING_FORCE_INLINE std::default_sentinel_t rend() const requires(is_reversible)
             { return std::default_sentinel; }
         SYS_STRING_FORCE_INLINE const_reverse_iterator crbegin() const requires(is_reversible)
@@ -347,10 +347,10 @@ namespace sysstr
             { return rend(); }
 
         reverse_iterator reverse(iterator it) const requires(is_reversible)
-            { return reverse_iterator(it, std::rend(*m_ptr)); }
+            { return reverse_iterator(it, std::ranges::rend(*m_ptr)); }
 
         iterator reverse(reverse_iterator it) const requires(is_reversible)
-            { return iterator(it, std::end(*m_ptr)); }
+            { return iterator(it, std::ranges::end(*m_ptr)); }
         
         template<class Func>
         decltype(auto) each(Func func) const

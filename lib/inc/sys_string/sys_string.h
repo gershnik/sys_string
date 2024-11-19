@@ -96,10 +96,10 @@ namespace sysstr
         private:
             static constexpr auto source_encoding = utf_encoding_of<std::ranges::range_value_t<decltype(std::declval<char_access>())>>;
             
-            using char_iterator = decltype(std::begin(std::declval<char_access>()));
-            using char_sentinel = decltype(std::end(std::declval<char_access>()));
-            using char_reverse_iterator = decltype(std::rbegin(std::declval<char_access>()));
-            using char_reverse_sentinel = decltype(std::rend(std::declval<char_access>()));
+            using char_iterator = decltype(std::ranges::begin(std::declval<char_access &>()));
+            using char_sentinel = decltype(std::ranges::end(std::declval<char_access &>()));
+            using char_reverse_iterator = decltype(std::ranges::rbegin(std::declval<char_access &>()));
+            using char_reverse_sentinel = decltype(std::ranges::rend(std::declval<char_access &>()));
         public:
             using iterator = util::utf_iterator<Enc, char_iterator, char_sentinel, util::iter_direction::forward>;
             using const_iterator = iterator;
@@ -117,7 +117,7 @@ namespace sysstr
                 m_access(src)
             {}
             SYS_STRING_FORCE_INLINE iterator begin() const
-                { return iterator(std::begin(m_access), std::end(m_access)); }
+                { return iterator(std::ranges::begin(m_access), std::ranges::end(m_access)); }
             SYS_STRING_FORCE_INLINE std::default_sentinel_t end() const
                 { return std::default_sentinel; }
             SYS_STRING_FORCE_INLINE const_iterator cbegin() const
@@ -125,7 +125,7 @@ namespace sysstr
             SYS_STRING_FORCE_INLINE std::default_sentinel_t cend() const
                 { return end(); }
             SYS_STRING_FORCE_INLINE reverse_iterator rbegin() const 
-                { return reverse_iterator(std::rbegin(m_access), std::rend(m_access)); }
+                { return reverse_iterator(std::ranges::rbegin(m_access), std::ranges::rend(m_access)); }
             SYS_STRING_FORCE_INLINE std::default_sentinel_t rend() const 
                 { return std::default_sentinel; }
             SYS_STRING_FORCE_INLINE const_reverse_iterator crbegin() const 
@@ -134,10 +134,10 @@ namespace sysstr
                 { return rend(); }
 
             reverse_iterator reverse(iterator it) const 
-                { return reverse_iterator(it, std::rend(m_access)); }
+                { return reverse_iterator(it, std::ranges::rend(m_access)); }
 
             iterator reverse(reverse_iterator it) const 
-                { return iterator(it, std::end(m_access)); }
+                { return iterator(it, std::ranges::end(m_access)); }
             
             template<class Func>
             decltype(auto) each(Func func) const
@@ -221,7 +221,7 @@ namespace sysstr
                  (std::is_same_v<std::ranges::sentinel_t<Range>, typename utf32_access::iterator> ||
                   std::is_same_v<std::ranges::sentinel_t<Range>, std::default_sentinel_t>))
         sys_string_t(const Range & range):
-            sys_string_t(std::begin(range), std::end(range))
+            sys_string_t(std::ranges::begin(range), std::ranges::end(range))
         {}
 
         template<std::ranges::range Range>
@@ -229,7 +229,7 @@ namespace sysstr
                  (std::is_same_v<std::ranges::sentinel_t<Range>, typename utf32_access::reverse_iterator> ||
                   std::is_same_v<std::ranges::sentinel_t<Range>, std::default_sentinel_t>))
         sys_string_t(const Range & range):
-            sys_string_t(std::begin(range), std::end(range))
+            sys_string_t(std::ranges::begin(range), std::ranges::end(range))
         {}
 
         //Slice constructors from char_access::iterators
@@ -249,14 +249,14 @@ namespace sysstr
                  std::sized_sentinel_for<std::ranges::sentinel_t<Range>, typename char_access::iterator> &&
                  (!std::ranges::contiguous_range<Range> || !has_utf_encoding<std::ranges::range_value_t<Range>>))
         sys_string_t(const Range & range):
-            sys_string_t(std::begin(range), std::end(range))
+            sys_string_t(std::ranges::begin(range), std::ranges::end(range))
         {}
 
         template<std::ranges::range Range>
         requires(std::is_same_v<std::ranges::iterator_t<Range>, typename char_access::reverse_iterator> &&
                  std::sized_sentinel_for<std::ranges::sentinel_t<Range>, typename char_access::reverse_iterator>)
         sys_string_t(const Range & range):
-            sys_string_t(std::begin(range), std::end(range))
+            sys_string_t(std::ranges::begin(range), std::ranges::end(range))
         {}
 
         // Construct moving from underlying storage
@@ -367,13 +367,19 @@ namespace sysstr
         template<std::ranges::input_range Range>
         requires(builder_appendable<std::ranges::range_value_t<Range>, Storage>)
         auto join(const Range & range) const -> sys_string_t
-            { return join(std::begin(range), std::end(range)); }
+            { return this->join(std::ranges::begin(range), std::ranges::end(range)); }
 
         template<sys_string_or_char<Storage> StringOrChar>
         auto starts_with(const StringOrChar & prefix) const -> bool;
 
-        template<std::input_iterator InIt>
-        auto find_prefix(InIt first, InIt last) const -> InIt;
+        template<std::input_iterator It, std::sentinel_for<It> EndIt>
+        requires(sys_string_or_char<std::iter_value_t<It>, Storage>)
+        auto find_prefix(It first, EndIt last) const -> It;
+
+        template<std::ranges::input_range Range>
+        requires(sys_string_or_char<std::ranges::range_value_t<Range>, Storage>)
+        auto find_prefix(Range && range) const -> std::ranges::borrowed_iterator_t<Range>
+            { return this->find_prefix(std::ranges::begin(range), std::ranges::end(range)); }
 
         template<sys_string_or_char<Storage> StringOrChar>
         auto remove_prefix(const StringOrChar & prefix) const -> sys_string_t;
@@ -381,8 +387,14 @@ namespace sysstr
         template<sys_string_or_char<Storage> StringOrChar>
         auto ends_with(const StringOrChar & suffix) const -> bool;
         
-        template<std::input_iterator InIt>
-        auto find_suffix(InIt first, InIt last) const -> InIt;
+        template<std::input_iterator It, std::sentinel_for<It> EndIt>
+        requires(sys_string_or_char<std::iter_value_t<It>, Storage>)
+        auto find_suffix(It first, EndIt last) const -> It;
+
+        template<std::ranges::input_range Range>
+        requires(sys_string_or_char<std::ranges::range_value_t<Range>, Storage>)
+        auto find_suffix(Range && range) const -> std::ranges::borrowed_iterator_t<Range>
+            { return this->find_suffix(std::ranges::begin(range), std::ranges::end(range)); }
 
         template<sys_string_or_char<Storage> StringOrChar>
         auto remove_suffix(const StringOrChar & prefix) const -> sys_string_t;
@@ -390,8 +402,14 @@ namespace sysstr
         template<sys_string_or_char<Storage> StringOrChar>
         auto contains(const StringOrChar & inner) const -> bool;
 
-        template<std::input_iterator InIt>
-        auto find_contained(InIt first, InIt last) const -> InIt;
+        template<std::input_iterator It, std::sentinel_for<It> EndIt>
+        requires(sys_string_or_char<std::iter_value_t<It>, Storage>)
+        auto find_contained(It first, EndIt last) const -> It;
+
+        template<std::ranges::input_range Range>
+        requires(sys_string_or_char<std::ranges::range_value_t<Range>, Storage>)
+        auto find_contained(Range && range) const -> std::ranges::borrowed_iterator_t<Range>
+            { return this->find_contained(std::ranges::begin(range), std::ranges::end(range)); }
 
         template<sys_string_or_char<Storage> StringOrChar1, sys_string_or_char<Storage> StringOrChar2>
         auto replace(const StringOrChar1 & old, const StringOrChar2 & new_,

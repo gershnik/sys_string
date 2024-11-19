@@ -484,7 +484,11 @@ TEST_CASE( "Prefix" ) {
     
     std::array prefixes = {S("a"), S("b"), S("c")};
     CHECK(S("").find_prefix(prefixes.begin(), prefixes.end()) == prefixes.end());
+    CHECK(S("").find_prefix(prefixes) == prefixes.end());
     CHECK(S("cd").find_prefix(prefixes.begin(), prefixes.end()) == prefixes.end() - 1);
+    CHECK(S("cd").find_prefix(prefixes) == prefixes.end() - 1);
+
+    static_assert(std::is_same_v<decltype(S("cd").find_prefix(std::array{S("a"), S("b"), S("c")})), std::ranges::dangling>);
     
     CHECK(S("").remove_prefix(S("")) == S(""));
     CHECK(S("").remove_prefix(S("a")) == S(""));
@@ -516,7 +520,11 @@ TEST_CASE( "Suffix" ) {
     
     std::array suffixes = {S("a"), S("b"), S("c")};
     CHECK(S("").find_suffix(suffixes.begin(), suffixes.end()) == suffixes.end());
+    CHECK(S("").find_suffix(suffixes) == suffixes.end());
     CHECK(S("dc").find_suffix(suffixes.begin(), suffixes.end()) == suffixes.end() - 1);
+    CHECK(S("dc").find_suffix(suffixes) == suffixes.end() - 1);
+
+    static_assert(std::is_same_v<decltype(S("cd").find_suffix(std::array{S("a"), S("b"), S("c")})), std::ranges::dangling>);
     
     CHECK(S("").remove_suffix(S("")) == S(""));
     CHECK(S("").remove_suffix(S("a")) == S(""));
@@ -550,8 +558,13 @@ TEST_CASE( "Contains" ) {
     
     std::array infixes = {S("a"), S("b"), S("c")};
     CHECK(S("").find_contained(infixes.begin(), infixes.end()) == infixes.end());
+    CHECK(S("").find_contained(infixes) == infixes.end());
     CHECK(S("dc").find_contained(infixes.begin(), infixes.end()) == infixes.end() - 1);
+    CHECK(S("dc").find_contained(infixes) == infixes.end() - 1);
     CHECK(S("dbn").find_contained(infixes.begin(), infixes.end()) == infixes.end() - 2);
+    CHECK(S("dbn").find_contained(infixes) == infixes.end() - 2);
+
+    static_assert(std::is_same_v<decltype(S("cd").find_contained(std::array{S("a"), S("b"), S("c")})), std::ranges::dangling>);
 }
 
 TEST_CASE( "Replace" ) {

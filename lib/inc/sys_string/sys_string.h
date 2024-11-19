@@ -296,16 +296,18 @@ namespace sysstr
 
         friend auto operator<<(std::ostream & str, const sys_string_t & val) -> std::ostream &
         {
-            return val.print_with([&](auto view) -> std::ostream & {
-                return str << view;
+            val.print_with([&](const auto & view) {
+                std::ranges::copy(view, std::ostreambuf_iterator<char>(str));
             });
+            return str;
         }
     #if SYS_STRING_WCHAR_T_IS_UTF16 || SYS_STRING_WCHAR_T_IS_UTF32
         friend auto operator<<(std::wostream & str, const sys_string_t & val) -> std::wostream &
         {
-            return val.wprint_with([&](auto view) -> std::wostream & {
-                return str << view;
+            val.print_with([&](const auto & view) {
+                std::ranges::copy(view, std::ostreambuf_iterator<wchar_t>(str));
             });
+            return str;
         }
     #endif
 

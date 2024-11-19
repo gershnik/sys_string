@@ -10,6 +10,7 @@
 #include <sys_string/sys_string.h>
 
 #include <sstream>
+#include <iomanip>
 
 #include <doctest/doctest.h>
 
@@ -671,6 +672,12 @@ TEST_CASE( "ostream" ) {
         stream << S("a🧡bc");
         CHECK(stream.str() == "a🧡bc");
     }
+
+    {
+        std::ostringstream stream;
+        stream << std::setw(15) << std::setfill(' ') << S("a🧡bc");
+        CHECK(stream.str() == "a🧡bc");
+    }
     
 #if SYS_STRING_WCHAR_T_IS_UTF16 || SYS_STRING_WCHAR_T_IS_UTF32
     {
@@ -688,6 +695,12 @@ TEST_CASE( "ostream" ) {
     {
         std::wostringstream stream;
         stream << S("a🧡bc");
+        CHECK(stream.str() == L"a🧡bc");
+    }
+
+    {
+        std::wostringstream stream;
+        stream << std::setw(15) << std::setfill(' ') << S("a🧡bc");
         CHECK(stream.str() == L"a🧡bc");
     }
 #endif

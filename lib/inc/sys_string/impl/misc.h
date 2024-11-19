@@ -95,11 +95,7 @@ namespace sysstr
         } 
         else 
         {
-            std::string out;
-            typename sysstr::sys_string_t<Storage>::utf8_access(*this).each([&out](char c) {
-                out += c;
-            });
-            return func(std::string_view(out));
+            return func(sysstr::sys_string_t<Storage>::utf8_access(*this));
         }
     }
 
@@ -117,11 +113,7 @@ namespace sysstr
             } 
             else 
             {
-                std::wstring out;
-                typename sysstr::sys_string_t<Storage>::utf16_access(*this).each([&out](char16_t c) {
-                    out += wchar_t(c);
-                });
-                return func(std::wstring_view(out));
+                return func(sysstr::sys_string_t<Storage>::utf16_access(*this));
             }
         }
     #elif SYS_STRING_WCHAR_T_IS_UTF32
@@ -138,11 +130,7 @@ namespace sysstr
             } 
             else 
             {
-                std::wstring out;
-                typename sysstr::sys_string_t<Storage>::utf32_access(*this).each([&out](char32_t c) {
-                    out += wchar_t(c);
-                });
-                return func(std::wstring_view(out));
+                return func(sysstr::sys_string_t<Storage>::utf32_access(*this));
             }
         }
     #endif
@@ -151,36 +139,46 @@ namespace sysstr
 
 #if SYS_STRING_SUPPORTS_STD_FORMAT
 
-template<class Storage> struct std::formatter<sysstr::sys_string_t<Storage>> : private std::formatter<std::string_view> 
+template<class Storage> struct std::formatter<sysstr::sys_string_t<Storage>> 
 {
-    using super = std::formatter<std::string_view>;
-
-    using super::formatter;
-    using super::parse;
+    template<class ParseContext>
+    constexpr auto parse(ParseContext & ctx) -> ParseContext::iterator
+    {
+        auto it = ctx.begin();
+        if (it != ctx.end() && *it != '}')
+            throw std::format_error("Invalid format args");
+ 
+        return it;
+    }
 
     template <typename FormatContext>
     auto format(const sysstr::sys_string_t<Storage> & str, FormatContext & ctx) const -> decltype(ctx.out()) 
     {
-        return str.print_with([&](auto view) -> decltype(ctx.out()) {
-            return super::format(view, ctx);
+        return str.print_with([&](const auto & view) -> decltype(ctx.out()) {
+            return std::ranges::copy(view, ctx.out()).out;
         });
     }
 };
 
 #if SYS_STRING_WCHAR_T_IS_UTF16 || SYS_STRING_WCHAR_T_IS_UTF32
 
-template<class Storage> struct std::formatter<sysstr::sys_string_t<Storage>, wchar_t> : private std::formatter<std::wstring_view, wchar_t> 
+template<class Storage> struct std::formatter<sysstr::sys_string_t<Storage>, wchar_t> 
 {
-    using super = std::formatter<std::wstring_view, wchar_t>;
-
-    using super::formatter;
-    using super::parse;
+    template<class ParseContext>
+    constexpr auto parse(ParseContext & ctx) -> ParseContext::iterator
+    {
+        auto it = ctx.begin();
+        if (it != ctx.end() && *it != L'}')
+            throw std::format_error("Invalid format args");
+ 
+        return it;
+    }
 
     template <typename FormatContext>
     auto format(const sysstr::sys_string_t<Storage> & str, FormatContext & ctx) const -> decltype(ctx.out()) 
     {
-        return str.wprint_with([&](auto view) -> decltype(ctx.out()) {
-            return super::format(view, ctx);
+        return str.print_with([&](const auto & view) -> decltype(ctx.out()) {
+            return std::ranges::copy(view, ctx.out()).out;
         });
     }
 };

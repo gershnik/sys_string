@@ -177,7 +177,7 @@ template<class Storage> struct std::formatter<sysstr::sys_string_t<Storage>, wch
     template <typename FormatContext>
     auto format(const sysstr::sys_string_t<Storage> & str, FormatContext & ctx) const -> decltype(ctx.out()) 
     {
-        return str.print_with([&](const auto & view) -> decltype(ctx.out()) {
+        return str.wprint_with([&](const auto & view) -> decltype(ctx.out()) {
             return std::ranges::copy(view, ctx.out()).out;
         });
     }

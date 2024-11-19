@@ -8,5 +8,5 @@ out/
 
 *.pyc
 
-
+CMakeSettings.json
 test/android

@@ -304,7 +304,7 @@ namespace sysstr
     #if SYS_STRING_WCHAR_T_IS_UTF16 || SYS_STRING_WCHAR_T_IS_UTF32
         friend auto operator<<(std::wostream & str, const sys_string_t & val) -> std::wostream &
         {
-            val.print_with([&](const auto & view) {
+            val.wprint_with([&](const auto & view) {
                 std::ranges::copy(view, std::ostreambuf_iterator<wchar_t>(str));
             });
             return str;

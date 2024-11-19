@@ -322,8 +322,9 @@ namespace sysstr
     }
 
     template<class Storage>
-    template<std::forward_iterator FwdIt>
-    auto sys_string_t<Storage>::join(FwdIt first, FwdIt last) const -> sys_string_t<Storage>
+    template<std::input_iterator It, std::sentinel_for<It> EndIt>
+    requires(builder_appendable<std::iter_value_t<It>, Storage>)
+    auto sys_string_t<Storage>::join(It first, EndIt last) const -> sys_string_t<Storage>
     {
         sys_string_builder_t<Storage> builder;
         bool has_one = false;

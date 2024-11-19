@@ -49,6 +49,11 @@ namespace sysstr
     template<class T, class Storage>
     concept sys_string_or_char = std::is_same_v<std::remove_cvref_t<T>, sys_string_t<Storage>> ||
                                  std::is_same_v<std::remove_cvref_t<T>, char32_t>;
+
+    template<class T, class Storage>
+    concept builder_appendable = requires(sys_string_builder_t<Storage> builder, T t) {
+        builder.append(t);
+    };
 }
 
 namespace sysstr::util
@@ -355,8 +360,14 @@ namespace sysstr
         auto split(OutIt dest, const StringOrChar & sep, size_t max_split = std::numeric_limits<size_t>::max()) const -> OutIt
         requires(std::output_iterator<OutIt, sys_string_t>);
 
-        template<std::forward_iterator FwdIt>
-        auto join(FwdIt first, FwdIt last) const -> sys_string_t;
+        template<std::input_iterator It, std::sentinel_for<It> EndIt>
+        requires(builder_appendable<std::iter_value_t<It>, Storage>)
+        auto join(It first, EndIt last) const -> sys_string_t;
+
+        template<std::ranges::input_range Range>
+        requires(builder_appendable<std::ranges::range_value_t<Range>, Storage>)
+        auto join(const Range & range) const -> sys_string_t
+            { return join(std::begin(range), std::end(range)); }
 
         template<sys_string_or_char<Storage> StringOrChar>
         auto starts_with(const StringOrChar & prefix) const -> bool;

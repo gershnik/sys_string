@@ -453,12 +453,18 @@ TEST_CASE( "Join" ) {
     std::vector<sys_string> two = {S("Q"), S("R")};
     
     CHECK(S("").join(empty.begin(), empty.end()) == S(""));
+    CHECK(S("").join(empty) == S(""));
     CHECK(S("").join(one.begin(), one.end()) == S("Q"));
+    CHECK(S("").join(one) == S("Q"));
     CHECK(S("").join(two.begin(), two.end()) == S("QR"));
+    CHECK(S("").join(two) == S("QR"));
     
     CHECK(S("A").join(empty.begin(), empty.end()) == S(""));
+    CHECK(S("A").join(empty) == S(""));
     CHECK(S("A").join(one.begin(), one.end()) == S("Q"));
+    CHECK(S("A").join(one) == S("Q"));
     CHECK(S("A").join(two.begin(), two.end()) == S("QAR"));
+    CHECK(S("A").join(two) == S("QAR"));
 }
 
 TEST_CASE( "Prefix" ) {

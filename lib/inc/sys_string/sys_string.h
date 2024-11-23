@@ -441,8 +441,8 @@ namespace sysstr
             using typename super::const_pointer;
             
         public:
-            builder_utf_view(const sys_string_builder_t<Storage> & src) noexcept(noexcept(super(src.m_impl))) :
-                super(src.m_impl)
+            builder_utf_view(const sys_string_builder_t<Storage> & src) noexcept(noexcept(super(src.chars()))) :
+                super(src.chars())
             {}
             builder_utf_view(sys_string_builder_t<Storage> && src) = delete;
 
@@ -651,7 +651,7 @@ namespace sysstr
             { return m_impl; }
         impl_type & chars()
             { return m_impl; }
-        
+
     private:
         static size_type limit_size(size_t len)
         {
@@ -676,6 +676,14 @@ namespace sysstr
         impl_type m_impl;
     };
 
+    template<utf_encoding Enc, class Storage>
+    struct utf_view_traits<Enc, sys_string_builder_t<Storage>>
+    {
+        static auto as_utf(const sys_string_builder_t<Storage> & builder) -> typename sys_string_builder_t<Storage>::template utf_view<Enc>
+            { return typename sys_string_builder_t<Storage>::template utf_view<Enc>(builder); }
+
+        static auto as_utf(sys_string_builder_t<Storage> && builder) -> typename sys_string_builder_t<Storage>::template utf_view<Enc> = delete;
+    };
 }
 
 

@@ -391,6 +391,9 @@ namespace sysstr
     template<std::ranges::input_range Range>
     using utf32_owning_view = utf_owning_view<utf32, Range>;
 
+    template<utf_encoding Enc, class T> struct utf_view_traits;
+
+
     template<utf_encoding Enc>
     struct as_utf_func 
     #if __cpp_lib_ranges >= 202202L
@@ -403,8 +406,20 @@ namespace sysstr
         #endif
     #endif
     {
+        template <class X>
+        requires(
+            requires(X && x) { utf_view_traits<Enc, std::remove_cvref_t<X>>::as_utf(std::forward<X>(x)); }
+        )
+        [[nodiscard]] constexpr auto operator()(X && x) const
+            noexcept(noexcept(utf_view_traits<Enc, std::remove_cvref_t<X>>::as_utf(std::forward<X>(x))))
+                  -> decltype(utf_view_traits<Enc, std::remove_cvref_t<X>>::as_utf(std::forward<X>(x))) 
+                     { return utf_view_traits<Enc, std::remove_cvref_t<X>>::as_utf(std::forward<X>(x)); }
+
         template <class Range>
-        requires std::ranges::view<std::remove_cvref_t<Range>>
+        requires(
+            !requires(Range && range) { utf_view_traits<Enc, std::remove_cvref_t<Range>>::as_utf(std::forward<Range>(range)); } &&
+            std::ranges::view<std::remove_cvref_t<Range>>
+        )
         [[nodiscard]] constexpr auto operator()(Range && range) const
             noexcept(noexcept(util::utf_view<Enc, std::remove_cvref_t<Range>, util::byval>(std::forward<Range>(range))))
                   -> decltype(util::utf_view<Enc, std::remove_cvref_t<Range>, util::byval>(std::forward<Range>(range))) 
@@ -412,6 +427,7 @@ namespace sysstr
 
         template <class Range>
         requires( 
+            !requires(Range && range) { utf_view_traits<Enc, std::remove_cvref_t<Range>>::as_utf(std::forward<Range>(range)); } &&
             !std::ranges::view<std::remove_cvref_t<Range>> &&
             requires(Range && range) { util::utf_view<Enc, std::remove_cvref_t<Range>, util::byref>(std::forward<Range>(range)); }
         )
@@ -423,6 +439,7 @@ namespace sysstr
 
         template <class Range>
         requires( 
+            !requires(Range && range) { utf_view_traits<Enc, std::remove_cvref_t<Range>>::as_utf(std::forward<Range>(range)); } &&
             !std::ranges::view<std::remove_cvref_t<Range>> &&
             !requires(Range && range) { util::utf_view<Enc, std::remove_cvref_t<Range>, util::byref>(std::forward<Range>(range)); }
         )
@@ -438,7 +455,6 @@ namespace sysstr
     inline constexpr auto as_utf8 = as_utf_func<utf8>{};
     inline constexpr auto as_utf16 = as_utf_func<utf16>{};
     inline constexpr auto as_utf32 = as_utf_func<utf32>{};
-
 }
 
 namespace std::ranges {

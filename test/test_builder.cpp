@@ -110,10 +110,52 @@ TEST_CASE( "Builder iteration" ) {
     CHECK(builder.reverse(builder.rbegin()) == last);
     CHECK(builder.reverse(rlast) == builder.begin());
     CHECK(builder.begin() == builder.cbegin());
-    //CHECK(builder.end() == builder.cend());
+    //CHECK(builder.end() == builder.cend());  sentinels cannot be compared with each other
     CHECK(builder.rbegin() == builder.crbegin());
-    //CHECK(builder.rend() == builder.crend());
+    //CHECK(builder.rend() == builder.crend()); sentinels cannot be compared with each other
 
+}
+
+TEST_CASE( "Builder UTF iteration" ) {
+    sys_string_builder builder;
+    builder.append(u"🪀🩳�𐊃𐜃𐤈🀁");
+
+    {
+        static_assert(std::is_same_v<decltype(as_utf8(builder)), decltype((sys_string_builder::utf8_view(builder)))>);
+
+        std::string buf1;
+        std::ranges::copy(as_utf8(builder), std::back_inserter(buf1));
+
+        std::string buf2;
+        std::ranges::copy(sys_string_builder::utf8_view(builder), std::back_inserter(buf2));
+
+        CHECK(buf1 == buf2);
+        CHECK(buf1 == (const char *)u8"🪀🩳�𐊃𐜃𐤈🀁");
+    }
+    {
+        static_assert(std::is_same_v<decltype(as_utf16(builder)), decltype((sys_string_builder::utf16_view(builder)))>);
+
+        std::u16string buf1;
+        std::ranges::copy(as_utf16(builder), std::back_inserter(buf1));
+
+        std::u16string buf2;
+        std::ranges::copy(sys_string_builder::utf16_view(builder), std::back_inserter(buf2));
+
+        CHECK(buf1 == buf2);
+        CHECK(buf1 == u"🪀🩳�𐊃𐜃𐤈🀁");
+    }
+    {
+        static_assert(std::is_same_v<decltype(as_utf32(builder)), decltype((sys_string_builder::utf32_view(builder)))>);
+
+        std::u32string buf1;
+        std::ranges::copy(as_utf32(builder), std::back_inserter(buf1));
+
+        std::u32string buf2;
+        std::ranges::copy(sys_string_builder::utf32_view(builder), std::back_inserter(buf2));
+
+        CHECK(buf1 == buf2);
+        CHECK(buf1 == U"🪀🩳�𐊃𐜃𐤈🀁");
+    }
 }
 
 TEST_CASE( "Builder insert" ) {

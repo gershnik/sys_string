@@ -161,13 +161,14 @@ TEST_CASE( "Iteration" ) {
         CHECK(converted == expected);
 
         converted.clear();
-        std::ranges::copy(as_utf8(sys_string::char_access(str)), std::back_inserter(converted));
+        sys_string::char_access access(str);
+        std::ranges::copy(as_utf8(access), std::back_inserter(converted));
         CHECK(converted == expected);
 
-        static_assert(std::is_same_v<decltype(as_utf8(sys_string::char_access(str)))::iterator,
+        static_assert(std::is_same_v<decltype(as_utf8(access))::iterator,
                                      sys_string::utf8_access::iterator>);
 
-        bool res = std::ranges::equal(as_utf8(sys_string::char_access(str)) | std::views::take(1), std::array{'a'});
+        bool res = std::ranges::equal(as_utf8(access) | std::views::take(1), std::array{'a'});
         CHECK(res);
 
         res = std::ranges::equal(std::views::all(view) | std::views::take(1), std::array{'a'});
@@ -200,13 +201,14 @@ TEST_CASE( "Iteration" ) {
         CHECK(converted == expected);
 
         converted.clear();
-        std::ranges::copy(as_utf16(sys_string::char_access(str)), std::back_inserter(converted));
+        sys_string::char_access access(str);
+        std::ranges::copy(as_utf16(access), std::back_inserter(converted));
         CHECK(converted == expected);
 
-        static_assert(std::is_same_v<decltype(as_utf16(sys_string::char_access(str)))::iterator,
+        static_assert(std::is_same_v<decltype(as_utf16(access))::iterator,
                                      sys_string::utf16_access::iterator>);
 
-        bool res = std::ranges::equal(as_utf16(sys_string::char_access(str)) | std::views::take(1), std::array{'a'});
+        bool res = std::ranges::equal(as_utf16(access) | std::views::take(1), std::array{'a'});
         CHECK(res);
 
         res = std::ranges::equal(std::views::all(view) | std::views::take(1), std::array{'a'});
@@ -240,13 +242,14 @@ TEST_CASE( "Iteration" ) {
         CHECK(converted == expected);
 
         converted.clear();
-        std::ranges::copy(as_utf32(sys_string::char_access(str)), std::back_inserter(converted));
+        sys_string::char_access access(str);
+        std::ranges::copy(as_utf32(access), std::back_inserter(converted));
         CHECK(converted == expected);
 
-        static_assert(std::is_same_v<decltype(as_utf32(sys_string::char_access(str)))::iterator,
+        static_assert(std::is_same_v<decltype(as_utf32(access))::iterator,
                                      sys_string::utf32_access::iterator>);
 
-        bool res = std::ranges::equal(as_utf32(sys_string::char_access(str)) | std::views::take(1), std::array{'a'});
+        bool res = std::ranges::equal(as_utf32(access) | std::views::take(1), std::array{'a'});
         CHECK(res);
 
         res = std::ranges::equal(std::views::all(view) | std::views::take(1), std::array{'a'});

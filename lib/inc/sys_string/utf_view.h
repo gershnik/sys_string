@@ -270,97 +270,126 @@ namespace sysstr
             [[no_unique_address]] EndIt m_last{};
             value_type m_value = 0;
         };
+    
+        enum utf_view_type
+        {
+            byref,
+            byval
+        };
+
+        template<utf_encoding Enc, std::ranges::input_range Range, utf_view_type ViewType>
+        class utf_view
+        {
+        private:
+            using range = std::remove_cvref_t<Range>;
+            using stored_type = std::conditional_t<ViewType == byval, range, const range *>;
+
+            SYS_STRING_FORCE_INLINE static auto range_ref(const range & src) -> const range &
+                { return src; }
+            SYS_STRING_FORCE_INLINE static auto range_ref(const range * src) -> const range &
+                { return *src; }
+
+            static constexpr bool is_reversible = ranges::reverse_traversable_range<std::remove_reference_t<range>>;
+            static constexpr auto source_encoding = utf_encoding_of<std::ranges::range_value_t<range>>;
+            
+            using access_iterator = decltype(std::ranges::begin(range_ref(std::declval<stored_type>())));
+            using access_sentinel = decltype(std::ranges::end(range_ref(std::declval<stored_type>())));
+            using access_reverse_iterator = std::conditional_t<is_reversible, 
+                                                            decltype(std::ranges::rbegin(range_ref(std::declval<stored_type>()))),
+                                                            void>;
+            using access_reverse_sentinel = std::conditional_t<is_reversible, 
+                                                            decltype(std::ranges::rend(range_ref(std::declval<stored_type>()))),
+                                                            void>;
+
+        public:
+            using iterator = utf_iterator<Enc, access_iterator, access_sentinel, iter_direction::forward>;
+            using const_iterator = iterator;
+            using reverse_iterator = std::conditional_t<is_reversible, 
+                                                        utf_iterator<Enc, access_reverse_iterator, access_reverse_sentinel, iter_direction::backward>,
+                                                        void>;
+            using const_reverse_iterator = reverse_iterator;
+            
+            using value_type = typename iterator::value_type;
+            using reference = typename iterator::reference;
+            using const_reference = reference;
+            using pointer = typename iterator::pointer;
+            using const_pointer = pointer;
+
+            static const bool borrowed = (ViewType == byref) || 
+                                         (ViewType == byval && std::ranges::borrowed_range<range>);
+            
+        public:
+            utf_view(const Range & src) noexcept requires(ViewType == byref) :
+                m_src(&src)
+            {}
+
+            utf_view(Range && src) noexcept requires(ViewType == byref) = delete;
+
+            utf_view(const Range & src) noexcept(noexcept(stored_type(src))) 
+            requires(ViewType == byval && std::is_copy_constructible_v<stored_type>) :
+                m_src(src)
+            {}
+            utf_view(Range && src) noexcept(noexcept(stored_type(std::move(src)))) 
+            requires(ViewType == byval && std::is_move_constructible_v<stored_type>) :
+                m_src(std::move(src))
+            {}
+
+            template<class... Args>
+            utf_view(Args && ...args) noexcept(noexcept(stored_type(std::forward<Args>(args)...))) 
+            requires(ViewType == byval && std::is_constructible_v<stored_type, Args...>) :
+                m_src(std::forward<Args>(args)...)
+            {}
+
+
+            SYS_STRING_FORCE_INLINE iterator begin() const
+                { return iterator(std::ranges::begin(range_ref(m_src)), std::ranges::end(range_ref(m_src))); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t end() const
+                { return std::default_sentinel; }
+            SYS_STRING_FORCE_INLINE const_iterator cbegin() const
+                { return begin(); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t cend() const
+                { return end(); }
+            SYS_STRING_FORCE_INLINE reverse_iterator rbegin() const requires(is_reversible)
+                { return reverse_iterator(std::ranges::rbegin(range_ref(m_src)), std::ranges::rend(range_ref(m_src))); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t rend() const requires(is_reversible)
+                { return std::default_sentinel; }
+            SYS_STRING_FORCE_INLINE const_reverse_iterator crbegin() const requires(is_reversible)
+                { return rbegin(); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t crend() const requires(is_reversible)
+                { return rend(); }
+
+            reverse_iterator reverse(iterator it) const requires(is_reversible)
+                { return reverse_iterator(it, std::ranges::rend(range_ref(m_src))); }
+
+            iterator reverse(reverse_iterator it) const requires(is_reversible)
+                { return iterator(it, std::ranges::end(range_ref(m_src))); }
+            
+            template<class Func>
+            decltype(auto) each(Func func) const
+                { return utf_converter<source_encoding, Enc>::for_each_converted(range_ref(), func); }
+            
+        private:
+            stored_type m_src;
+        };
     }
 
-    template<class T, class Container>
-    concept utf_view_adapter = requires(const Container & cont)
-    {
-        { T::adapt(cont) } -> std::semiregular;
-        { *T::adapt(cont) } -> std::ranges::input_range;
-    };
-
+    template<utf_encoding Enc, std::ranges::input_range Range>
+    using utf_ref_view = util::utf_view<Enc, Range, util::byref>;
     template<std::ranges::input_range Range>
-    struct range_utf_view_adapter
-    {
-        static auto adapt(const std::add_const_t<std::remove_reference_t<Range>> & src) noexcept
-            { return std::addressof(src); }
-    };
+    using utf8_ref_view = utf_ref_view<utf8, Range>;
+    template<std::ranges::input_range Range>
+    using utf16_ref_view = utf_ref_view<utf16, Range>;
+    template<std::ranges::input_range Range>
+    using utf32_ref_view = utf_ref_view<utf32, Range>;
 
-    template<class T> struct utf_view_adapter_for 
-        { using type = range_utf_view_adapter<T>; };
-
-    template<utf_encoding Enc, class Container>
-    class utf_view
-    {
-    private:
-        using adapter = typename utf_view_adapter_for<Container>::type;
-        static_assert(utf_view_adapter<adapter, Container>);
-        
-        using range_pointer = decltype(adapter::adapt(std::declval<const Container &>()));
-        using range = decltype(*std::declval<range_pointer>());
-
-        static constexpr bool is_reversible = ranges::reverse_traversable_range<std::remove_reference_t<range>>;
-        static constexpr auto source_encoding = utf_encoding_of<std::ranges::range_value_t<range>>;
-        
-        using access_iterator = decltype(std::ranges::begin(*std::declval<range_pointer>()));
-        using access_sentinel = decltype(std::ranges::end(*std::declval<range_pointer>()));
-        using access_reverse_iterator = std::conditional_t<is_reversible, 
-                                                        decltype(std::ranges::rbegin(std::declval<range>())),
-                                                        void>;
-        using access_reverse_sentinel = std::conditional_t<is_reversible, 
-                                                        decltype(std::ranges::rend(std::declval<range>())),
-                                                        void>;
-
-    public:
-        using iterator = util::utf_iterator<Enc, access_iterator, access_sentinel, util::iter_direction::forward>;
-        using const_iterator = iterator;
-        using reverse_iterator = std::conditional_t<is_reversible, 
-                                                    util::utf_iterator<Enc, access_reverse_iterator, access_reverse_sentinel, util::iter_direction::backward>,
-                                                    void>;
-        using const_reverse_iterator = reverse_iterator;
-        
-        using value_type = typename iterator::value_type;
-        using reference = typename iterator::reference;
-        using const_reference = reference;
-        using pointer = typename iterator::pointer;
-        using const_pointer = pointer;
-        
-    public:
-        utf_view(const Container & src) noexcept(noexcept(range_pointer(adapter::adapt(src)))) :
-            m_ptr(adapter::adapt(src))
-        {}
-        SYS_STRING_FORCE_INLINE iterator begin() const
-            { return iterator(std::ranges::begin(*m_ptr), std::ranges::end(*m_ptr)); }
-        SYS_STRING_FORCE_INLINE std::default_sentinel_t end() const
-            { return std::default_sentinel; }
-        SYS_STRING_FORCE_INLINE const_iterator cbegin() const
-            { return begin(); }
-        SYS_STRING_FORCE_INLINE std::default_sentinel_t cend() const
-            { return end(); }
-        SYS_STRING_FORCE_INLINE reverse_iterator rbegin() const requires(is_reversible)
-            { return reverse_iterator(std::ranges::rbegin(*m_ptr), std::ranges::rend(*m_ptr)); }
-        SYS_STRING_FORCE_INLINE std::default_sentinel_t rend() const requires(is_reversible)
-            { return std::default_sentinel; }
-        SYS_STRING_FORCE_INLINE const_reverse_iterator crbegin() const requires(is_reversible)
-            { return rbegin(); }
-        SYS_STRING_FORCE_INLINE std::default_sentinel_t crend() const requires(is_reversible)
-            { return rend(); }
-
-        reverse_iterator reverse(iterator it) const requires(is_reversible)
-            { return reverse_iterator(it, std::ranges::rend(*m_ptr)); }
-
-        iterator reverse(reverse_iterator it) const requires(is_reversible)
-            { return iterator(it, std::ranges::end(*m_ptr)); }
-        
-        template<class Func>
-        decltype(auto) each(Func func) const
-        {
-            return utf_converter<source_encoding, Enc>::for_each_converted(*m_ptr, func);
-        }
-        
-    private:
-        range_pointer m_ptr;
-    };
+    template<utf_encoding Enc, std::ranges::input_range Range>
+    using utf_owning_view = util::utf_view<Enc, Range, util::byval>;
+    template<std::ranges::input_range Range>
+    using utf8_owning_view = utf_owning_view<utf8, Range>;
+    template<std::ranges::input_range Range>
+    using utf16_owning_view = utf_owning_view<utf16, Range>;
+    template<std::ranges::input_range Range>
+    using utf32_owning_view = utf_owning_view<utf32, Range>;
 
     template<utf_encoding Enc>
     struct as_utf_func 
@@ -375,10 +404,32 @@ namespace sysstr
     #endif
     {
         template <class Range>
+        requires std::ranges::view<std::remove_cvref_t<Range>>
         [[nodiscard]] constexpr auto operator()(Range && range) const
-            noexcept(noexcept(utf_view<Enc, std::remove_reference_t<Range>>(std::forward<Range>(range))))
-                    -> decltype(utf_view<Enc, std::remove_reference_t<Range>>(std::forward<Range>(range))) 
-                        { return utf_view<Enc, std::remove_reference_t<Range>>(std::forward<Range>(range)); }
+            noexcept(noexcept(util::utf_view<Enc, std::remove_cvref_t<Range>, util::byval>(std::forward<Range>(range))))
+                  -> decltype(util::utf_view<Enc, std::remove_cvref_t<Range>, util::byval>(std::forward<Range>(range))) 
+                     { return util::utf_view<Enc, std::remove_cvref_t<Range>, util::byval>(std::forward<Range>(range)); }
+
+        template <class Range>
+        requires( 
+            !std::ranges::view<std::remove_cvref_t<Range>> &&
+            requires(Range && range) { util::utf_view<Enc, std::remove_cvref_t<Range>, util::byref>(std::forward<Range>(range)); }
+        )
+        [[nodiscard]] constexpr auto operator()(Range && range) const
+            noexcept(noexcept(util::utf_view<Enc, std::remove_cvref_t<Range>, util::byref>(std::forward<Range>(range))))
+                  -> decltype(util::utf_view<Enc, std::remove_cvref_t<Range>, util::byref>(std::forward<Range>(range))) 
+                     { return util::utf_view<Enc, std::remove_cvref_t<Range>, util::byref>(std::forward<Range>(range)); }
+
+
+        template <class Range>
+        requires( 
+            !std::ranges::view<std::remove_cvref_t<Range>> &&
+            !requires(Range && range) { util::utf_view<Enc, std::remove_cvref_t<Range>, util::byref>(std::forward<Range>(range)); }
+        )
+        [[nodiscard]] constexpr auto operator()(Range && range) const
+            noexcept(noexcept(util::utf_view<Enc, std::remove_cvref_t<Range>, util::byval>(std::forward<Range>(range))))
+                  -> decltype(util::utf_view<Enc, std::remove_cvref_t<Range>, util::byval>(std::forward<Range>(range))) 
+                     { return util::utf_view<Enc, std::remove_cvref_t<Range>, util::byval>(std::forward<Range>(range)); }
 
     };
 
@@ -391,11 +442,11 @@ namespace sysstr
 }
 
 namespace std::ranges {
-    template<sysstr::utf_encoding Enc, class Container>
-    constexpr bool enable_view<sysstr::utf_view<Enc, Container>> = true;
+    template<sysstr::utf_encoding Enc, class Range, sysstr::util::utf_view_type ViewType>
+    constexpr bool enable_view<sysstr::util::utf_view<Enc, Range, ViewType>> = true;
     
-    template<sysstr::utf_encoding Enc, class Container>
-    constexpr bool enable_borrowed_range<sysstr::utf_view<Enc, Container>> = true;
+    template<sysstr::utf_encoding Enc, class Range, sysstr::util::utf_view_type ViewType>
+    constexpr bool enable_borrowed_range<sysstr::util::utf_view<Enc, Range, ViewType>> = sysstr::util::utf_view<Enc, Range, ViewType>::borrowed;
 }
 
 

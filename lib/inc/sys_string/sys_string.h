@@ -91,60 +91,38 @@ namespace sysstr
         static_assert(std::ranges::random_access_range<char_access>);
 
         template<utf_encoding Enc>
-        class utf_access
+        class utf_access : private util::utf_view<Enc, char_access, util::byval>
         {
         private:
-            static constexpr auto source_encoding = utf_encoding_of<std::ranges::range_value_t<decltype(std::declval<char_access>())>>;
-            
-            using char_iterator = decltype(std::ranges::begin(std::declval<char_access &>()));
-            using char_sentinel = decltype(std::ranges::end(std::declval<char_access &>()));
-            using char_reverse_iterator = decltype(std::ranges::rbegin(std::declval<char_access &>()));
-            using char_reverse_sentinel = decltype(std::ranges::rend(std::declval<char_access &>()));
+            using super = util::utf_view<Enc, char_access, util::byval>;
         public:
-            using iterator = util::utf_iterator<Enc, char_iterator, char_sentinel, util::iter_direction::forward>;
-            using const_iterator = iterator;
-            using reverse_iterator = util::utf_iterator<Enc, char_reverse_iterator, char_reverse_sentinel, util::iter_direction::backward>;
-            using const_reverse_iterator = reverse_iterator;
+            using typename super::iterator;
+            using typename super::const_iterator;
+            using typename super::reverse_iterator;
+            using typename super::const_reverse_iterator;
             
-            using value_type = typename iterator::value_type;
-            using reference = typename iterator::reference;
-            using const_reference = reference;
-            using pointer = typename iterator::pointer;
-            using const_pointer = pointer;
+            using typename super::value_type;
+            using typename super::reference;
+            using typename super::const_reference;
+            using typename super::pointer;
+            using typename super::const_pointer;
             
         public:
-            utf_access(const sys_string_t & src) noexcept(noexcept(char_access(src))) :
-                m_access(src)
+            utf_access(const sys_string_t & src) noexcept(noexcept(super(src))) :
+                super(src)
             {}
-            SYS_STRING_FORCE_INLINE iterator begin() const
-                { return iterator(std::ranges::begin(m_access), std::ranges::end(m_access)); }
-            SYS_STRING_FORCE_INLINE std::default_sentinel_t end() const
-                { return std::default_sentinel; }
-            SYS_STRING_FORCE_INLINE const_iterator cbegin() const
-                { return begin(); }
-            SYS_STRING_FORCE_INLINE std::default_sentinel_t cend() const
-                { return end(); }
-            SYS_STRING_FORCE_INLINE reverse_iterator rbegin() const 
-                { return reverse_iterator(std::ranges::rbegin(m_access), std::ranges::rend(m_access)); }
-            SYS_STRING_FORCE_INLINE std::default_sentinel_t rend() const 
-                { return std::default_sentinel; }
-            SYS_STRING_FORCE_INLINE const_reverse_iterator crbegin() const 
-                { return rbegin(); }
-            SYS_STRING_FORCE_INLINE std::default_sentinel_t crend() const 
-                { return rend(); }
 
-            reverse_iterator reverse(iterator it) const 
-                { return reverse_iterator(it, std::ranges::rend(m_access)); }
-
-            iterator reverse(reverse_iterator it) const 
-                { return iterator(it, std::ranges::end(m_access)); }
+            using super::begin;
+            using super::end;
+            using super::cbegin;
+            using super::cend;
+            using super::rbegin;
+            using super::rend;
+            using super::crbegin;
+            using super::crend;
             
-            template<class Func>
-            decltype(auto) each(Func func) const
-                { return utf_converter<source_encoding, Enc>::for_each_converted(m_access, func); }
-            
-        private:
-            char_access m_access;
+            using super::reverse;
+            using super::each;
         };
         using utf8_access  = utf_access<utf8>;
         using utf16_access = utf_access<utf16>;
@@ -442,28 +420,72 @@ namespace sysstr
     #endif
     };
 
-    template<class Storage> struct utf_view_adapter_for<sys_string_builder_t<Storage>>
-        { using type = typename sys_string_builder_t<Storage>::utf_view_adapter; };
+    namespace util 
+    {
+
+        template<utf_encoding Enc, class Storage>
+        class builder_utf_view : private util::utf_view<Enc, typename Storage::builder_impl, util::byref>
+        {
+        private:
+            using super = util::utf_view<Enc, typename Storage::builder_impl, util::byref>;
+        public:
+            using typename super::iterator;
+            using typename super::const_iterator;
+            using typename super::reverse_iterator;
+            using typename super::const_reverse_iterator;
+            
+            using typename super::value_type;
+            using typename super::reference;
+            using typename super::const_reference;
+            using typename super::pointer;
+            using typename super::const_pointer;
+            
+        public:
+            builder_utf_view(const sys_string_builder_t<Storage> & src) noexcept(noexcept(super(src.m_impl))) :
+                super(src.m_impl)
+            {}
+            builder_utf_view(sys_string_builder_t<Storage> && src) = delete;
+
+            using super::begin;
+            using super::end;
+            using super::cbegin;
+            using super::cend;
+            using super::rbegin;
+            using super::rend;
+            using super::crbegin;
+            using super::crend;
+            
+            using super::reverse;
+            using super::each;
+        };
+    }
+}
+
+namespace std::ranges {
+    template<sysstr::utf_encoding Enc, class Storage>
+    constexpr bool enable_view<sysstr::util::builder_utf_view<Enc, Storage>> = true;
+
+    template<sysstr::utf_encoding Enc, class Storage>
+    constexpr bool enable_borrowed_range<sysstr::util::builder_utf_view<Enc, Storage>> = true;
+}
+
+
+namespace sysstr 
+{
 
     template<class Storage>
     class sys_string_builder_t
     {
     private:
         using impl_type = typename Storage::builder_impl;
+        static_assert(std::ranges::random_access_range<impl_type>);
         
     public:
         using size_type = typename impl_type::size_type;
         using storage_type = typename impl_type::value_type;
-        
-
-        struct utf_view_adapter
-        {
-            static constexpr const impl_type * adapt(const sys_string_builder_t & builder) noexcept
-                { return &builder.m_impl; }
-        };
 
         template<utf_encoding Enc>
-        using utf_view = utf_view<Enc, sys_string_builder_t>;
+        using utf_view = util::builder_utf_view<Enc, Storage>;
 
         using utf8_view  = utf_view<utf8>;
         using utf16_view = utf_view<utf16>;

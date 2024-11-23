@@ -27,29 +27,38 @@ using namespace std::literals;
 [[maybe_unused]] static std::u32string clang_string_workaround(const char32_t* a, const char32_t* b) { return {a, b}; }
 #endif
 
-static_assert(std::ranges::forward_range<utf_view<utf8, std::vector<char>>>);
-static_assert(!std::ranges::bidirectional_range<utf_view<utf8, std::vector<char>>>);
-static_assert(!std::ranges::common_range<utf_view<utf8, std::vector<char>>>);
-static_assert(std::ranges::view<utf_view<utf8, std::vector<char>>>);
-static_assert(std::ranges::borrowed_range<utf_view<utf8, std::vector<char>>>);
-static_assert(std::ranges::viewable_range<utf_view<utf8, std::vector<char>>>);
-static_assert(ranges::custom_reverse_traversable_range<utf_view<utf8, std::vector<char>>>);
+namespace 
+{
+    template<utf_encoding Enc>
+    struct static_check
+    {
+        static_assert(std::ranges::forward_range<utf_ref_view<Enc, std::vector<char>>>);
+        static_assert(std::ranges::forward_range<utf_owning_view<Enc, std::vector<char>>>);
 
-static_assert(std::ranges::forward_range<utf_view<utf16, std::vector<char>>>);
-static_assert(!std::ranges::bidirectional_range<utf_view<utf16, std::vector<char>>>);
-static_assert(!std::ranges::common_range<utf_view<utf16, std::vector<char>>>);
-static_assert(std::ranges::view<utf_view<utf16, std::vector<char>>>);
-static_assert(std::ranges::borrowed_range<utf_view<utf16, std::vector<char>>>);
-static_assert(std::ranges::viewable_range<utf_view<utf16, std::vector<char>>>);
-static_assert(ranges::custom_reverse_traversable_range<utf_view<utf16, std::vector<char>>>);
+        static_assert(!std::ranges::bidirectional_range<utf_ref_view<Enc, std::vector<char>>>);
+        static_assert(!std::ranges::bidirectional_range<utf_owning_view<Enc, std::vector<char>>>);
 
-static_assert(std::ranges::forward_range<utf_view<utf32, std::vector<char>>>);
-static_assert(!std::ranges::bidirectional_range<utf_view<utf32, std::vector<char>>>);
-static_assert(!std::ranges::common_range<utf_view<utf32, std::vector<char>>>);
-static_assert(std::ranges::view<utf_view<utf32, std::vector<char>>>);
-static_assert(std::ranges::borrowed_range<utf_view<utf32, std::vector<char>>>);
-static_assert(std::ranges::viewable_range<utf_view<utf32, std::vector<char>>>);
-static_assert(ranges::custom_reverse_traversable_range<utf_view<utf32, std::vector<char>>>);
+        static_assert(!std::ranges::common_range<utf_ref_view<Enc, std::vector<char>>>);
+        static_assert(!std::ranges::common_range<utf_owning_view<Enc, std::vector<char>>>);
+
+        static_assert(std::ranges::view<utf_ref_view<Enc, std::vector<char>>>);
+        static_assert(std::ranges::view<utf_owning_view<Enc, std::vector<char>>>);
+
+        static_assert(std::ranges::borrowed_range<utf_ref_view<Enc, std::vector<char>>>);
+        static_assert(!std::ranges::borrowed_range<utf_owning_view<Enc, std::vector<char>>>);
+
+        static_assert(std::ranges::viewable_range<utf_ref_view<Enc, std::vector<char>>>);
+        static_assert(std::ranges::viewable_range<utf_owning_view<Enc, std::vector<char>>>);
+
+        static_assert(ranges::custom_reverse_traversable_range<utf_ref_view<Enc, std::vector<char>>>);
+        static_assert(ranges::custom_reverse_traversable_range<utf_owning_view<Enc, std::vector<char>>>);
+    };
+}
+
+[[maybe_unused]] static_check<utf8> s8;
+[[maybe_unused]] static_check<utf16> s16;
+[[maybe_unused]] static_check<utf32> s32;
+
 
 namespace
 {
@@ -115,7 +124,7 @@ void do_check_iteration(const SrcCont & src,
 {
     INFO( "From: utf" << SrcEnc << " to: utf" << DstEnc << " src: `" << printable(src) << '`');
 
-    using view_type = utf_view<DstEnc, const SrcCont>;
+    using view_type = utf_ref_view<DstEnc, const SrcCont>;
     
     view_type view(src);
     

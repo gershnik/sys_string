@@ -14,6 +14,7 @@
 #include <ranges>
 #include <algorithm>
 #include <tuple>
+#include <cstdarg>
 
 namespace sysstr::util
 {

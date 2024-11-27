@@ -123,8 +123,8 @@ namespace sysstr
             {
                 utf_codepoint_encoder<To, false> encoder;
                 encoder.put(value);
-                for(auto first = encoder.begin(), last = encoder.end(); first != last; ++first)
-                    sink(*first);
+                for(auto c: encoder)
+                    sink(c);
             }
             else 
             {

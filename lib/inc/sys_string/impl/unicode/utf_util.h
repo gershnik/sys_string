@@ -161,63 +161,68 @@ namespace sysstr
         template<class Char>
         requires(utf_encoding_of<Char> == From)
         SYS_STRING_FORCE_INLINE
-        void put(Char c) noexcept(noexcept(output(char32_t{})))
+        void put(Char c) noexcept(noexcept(output(char32_t{}))) requires(From == utf8)
         {
-            if constexpr (From == utf8)
+            uint8_t byte = uint8_t(c);
+            if (m_char_start)
             {
-                uint8_t byte = uint8_t(c);
-                if (m_char_start)
+            restart:
+                if (byte <= 0x7f)
                 {
-                restart_utf8:
-                    if (byte <= 0x7f)
-                    {
-                        output(char32_t{byte});
-                        return;
-                    }
-                }
-                
-                m_decoder.put(byte);
-                if (m_decoder.done())
-                {
-                    output(char32_t{m_decoder.value()});
+                    output(char32_t{byte});
                     return;
                 }
-                if (m_decoder.error())
-                {
-                    bool was_char_start = m_char_start;
-                    output(char32_t{U'\uFFFD'});
-                    if (was_char_start)
-                        return;
-                    goto restart_utf8;
-                }
-                m_char_start = false;
             }
-            else if constexpr (From == utf16)
+            
+            m_decoder.put(byte);
+            if (m_decoder.done())
             {
-            restart_utf16:
-                m_decoder.put(uint16_t(c));
-                if (m_decoder.done())
-                {
-                    output(char32_t{m_decoder.value()});
+                output(char32_t{m_decoder.value()});
+                return;
+            }
+            if (m_decoder.error())
+            {
+                bool was_char_start = m_char_start;
+                output(char32_t{U'\uFFFD'});
+                if (was_char_start)
                     return;
-                }
-                if (m_decoder.error())
-                {
-                    bool was_char_start = m_char_start;
-                    output(char32_t{U'\uFFFD'});
-                    if (was_char_start)
-                        return;
-                    goto restart_utf16;
-                }
-                m_char_start = false;
+                goto restart;
             }
-            else 
+            m_char_start = false;
+        }
+
+        template<class Char>
+        requires(utf_encoding_of<Char> == From)
+        SYS_STRING_FORCE_INLINE
+        void put(Char c) noexcept(noexcept(output(char32_t{}))) requires(From == utf16)
+        {
+        restart:
+            m_decoder.put(uint16_t(c));
+            if (m_decoder.done())
             {
-                if (m_decoder.put(uint32_t(c)))
-                    output(char32_t{m_decoder.value()});
-                else
-                    output(char32_t{U'\uFFFD'});
+                output(char32_t{m_decoder.value()});
+                return;
             }
+            if (m_decoder.error())
+            {
+                bool was_char_start = m_char_start;
+                output(char32_t{U'\uFFFD'});
+                if (was_char_start)
+                    return;
+                goto restart;
+            }
+            m_char_start = false;
+        }
+
+        template<class Char>
+        requires(utf_encoding_of<Char> == From)
+        SYS_STRING_FORCE_INLINE
+        void put(Char c) noexcept(noexcept(output(char32_t{}))) requires(From == utf32)
+        {
+            if (m_decoder.put(uint32_t(c)))
+                output(char32_t{m_decoder.value()});
+            else
+                output(char32_t{U'\uFFFD'});
         }
 
         SYS_STRING_FORCE_INLINE

@@ -23,20 +23,20 @@ namespace sysstr
     template<class Storage>
     auto sys_string_t<Storage>::formatv(const char * format, va_list vl) -> sys_string_t<Storage>
     {
-        std::vector<char> buf;
-        va_list try_vl;
-        va_copy(try_vl, vl);
-        const int size = vsnprintf(0, 0, format, try_vl);
-        va_end(try_vl);
-        if (size == -1)
-            return sys_string_t();
-        buf.resize(size + 1);
-        const int ret = vsnprintf(buf.data(), buf.size(), format, vl);
-        va_end(vl);
-        if (ret <= 0)
-            return sys_string_t();
-        buf.resize(ret);
-        return sys_string_t<Storage>(buf);
+        if constexpr (std::is_same_v<typename sys_string_t<Storage>::storage_type, char>)
+        {
+            sys_string_builder_t<Storage> builder;
+            if (util::vprintf_to(builder.chars(), format, vl) <= 0)
+                return sys_string_t<Storage>();
+            return builder.build();
+        }
+        else
+        {
+            std::vector<char> buf;
+            if (util::vprintf_to(buf, format, vl) <= 0)
+                return sys_string_t<Storage>();
+            return sys_string_t<Storage>(buf);
+        }
     }
 
     #if SYS_STRING_SUPPORTS_STD_FORMAT
@@ -46,32 +46,36 @@ namespace sysstr
         inline
         auto sys_string_t<Storage>::std_format(std::format_string<Args...> fmt, Args &&... args) -> sys_string_t
         {
+            sys_string_builder_t<Storage> builder;
             if constexpr (std::is_same_v<typename sys_string_t<Storage>::storage_type, char>)
             {
-                sys_string_builder_t<Storage> builder;
                 std::format_to(std::back_inserter(builder.chars()), fmt, std::forward<Args>(args)...);
-                return builder.build();
-            } 
+            }
             else
             {
-                return sys_string_t<Storage>(std::format(fmt, std::forward<Args>(args)...));
+                auto decoder = make_utf_output_decoder<utf8>(std::back_inserter(builder));
+                std::format_to(decoder.begin(), fmt, std::forward<Args>(args)...);
+                decoder.flush();
             }
+            return builder.build();
         }
 
         template<class Storage>
         inline
         auto sys_string_t<Storage>::std_vformat(std::string_view fmt, std::format_args args) -> sys_string_t
         {
+            sys_string_builder_t<Storage> builder;
             if constexpr (std::is_same_v<typename sys_string_t<Storage>::storage_type, char>)
             {
-                sys_string_builder_t<Storage> builder;
                 std::vformat_to(std::back_inserter(builder.chars()), fmt, args);
-                return builder.build();
-            } 
+            }
             else
             {
-                return sys_string_t<Storage>(std::vformat(fmt, args));
+                auto decoder = make_utf_output_decoder<utf8>(std::back_inserter(builder));
+                std::vformat_to(decoder.begin(), fmt, args);
+                decoder.flush();
             }
+            return builder.build();
         }
     #endif
 }

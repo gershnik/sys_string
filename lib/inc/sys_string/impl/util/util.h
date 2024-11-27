@@ -61,6 +61,27 @@ namespace sysstr::util
         return dest;
     }
 
+    template<std::ranges::contiguous_range Range>
+    requires(
+        std::is_same_v<std::ranges::range_value_t<Range>, char> &&
+        requires(Range & range) { range.resize(size_t(0)); }
+    )
+    int vprintf_to(Range & range, const char * format, va_list vl)
+    {
+        va_list try_vl;
+        va_copy(try_vl, vl);
+        const int size = vsnprintf(0, 0, format, try_vl);
+        va_end(try_vl);
+        if (size == -1)
+            return size;
+        range.resize(size + 1);
+        const int ret = vsnprintf(std::ranges::data(range), std::ranges::size(range), format, vl);
+        va_end(vl);
+        if (ret >= 0)
+            range.resize(ret);
+        return ret;
+    }
+
 }
 
 #endif

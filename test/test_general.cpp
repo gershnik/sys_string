@@ -735,9 +735,9 @@ TEST_CASE( "format" ) {
     CHECK(sys_string::format("%d", 5) == S("5"));
 
 #if SYS_STRING_SUPPORTS_STD_FORMAT
-    CHECK(sys_string::std_format("{}", 5) == S("5"));
+    CHECK(sys_string::std_format("{} a水𐀀𝄞", 5) == S("5 a水𐀀𝄞"));
     int i = 5;
-    CHECK(sys_string::std_vformat("{}", std::make_format_args(i)) == S("5"));
+    CHECK(sys_string::std_vformat("{} a水𐀀𝄞", std::make_format_args(i)) == S("5 a水𐀀𝄞"));
 
     CHECK(std::format("{0}", S("a🧡bc")) == "a🧡bc");
 #if SYS_STRING_WCHAR_T_IS_UTF16 || SYS_STRING_WCHAR_T_IS_UTF32

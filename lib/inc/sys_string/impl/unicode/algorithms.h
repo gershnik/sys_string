@@ -93,7 +93,7 @@ namespace sysstr
                 else
                 {
                     char32_t lc = util::sigma_tolower()(range, first);
-                    auto writer = utf32_output<OutEnc>::make_writer([&](auto value) {
+                    auto writer = make_utf32_encoder<OutEnc>([&](auto value) {
                         *dest++ = value;
                     });
                     writer(lc);

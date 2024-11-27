@@ -465,5 +465,92 @@ namespace std::ranges {
     constexpr bool enable_borrowed_range<sysstr::util::utf_view<Enc, Range, ViewType>> = sysstr::util::utf_view<Enc, Range, ViewType>::borrowed;
 }
 
+namespace sysstr
+{
+    template<utf_encoding InputEnc, std::output_iterator<char32_t> Out>
+    class utf_output_decoder
+    {
+    private:
+        struct sink
+        {
+            Out dest;
+
+            void operator()(char32_t c)
+            { 
+                *dest = c;
+                ++dest;
+            }
+        };
+
+        struct proxy
+        {
+            utf_output_decoder * decoder;
+
+            template<class Char>
+            requires(utf_encoding_of<Char> == InputEnc)
+            SYS_STRING_FORCE_INLINE
+            auto operator=(Char c) const -> const proxy &
+            {
+                decoder->put(c);
+                return *this;
+            }
+        };
+    public:
+        class iterator
+        {
+        public:
+            using difference_type = ptrdiff_t;
+            using iterator_category = std::output_iterator_tag;
+        public:
+            iterator(utf_output_decoder & decoder):
+                m_decoder(&decoder)
+            {}
+            auto operator*() -> proxy
+                { return proxy{m_decoder}; }
+            auto operator++() -> iterator &
+                { return *this; }
+            auto operator++(int) -> iterator
+                { return *this; }
+
+            
+            friend constexpr bool operator==(const iterator &, std::default_sentinel_t)
+                { return false; }
+            friend constexpr bool operator==(std::default_sentinel_t, const iterator &)
+                { return false; }
+            friend constexpr bool operator!=(const iterator &, std::default_sentinel_t)
+                { return true; }
+            friend constexpr bool operator!=(std::default_sentinel_t, const iterator &)
+                { return true; }
+        private:
+            utf_output_decoder * m_decoder;
+        };
+    public:
+        utf_output_decoder(Out dest):
+            m_impl(sink{dest})
+        {}
+
+        auto begin() -> iterator
+            { return iterator(*this); }
+        auto end() -> std::default_sentinel_t
+            { return std::default_sentinel; }
+
+        template<class Char>
+        requires(utf_encoding_of<Char> == InputEnc)
+        SYS_STRING_FORCE_INLINE
+        void put(Char c)
+            { m_impl.put(c); }
+
+        SYS_STRING_FORCE_INLINE
+        void flush()
+            { m_impl.flush(); }
+    private:
+        utf32_decoder<InputEnc, sink> m_impl;
+    };
+
+    template<utf_encoding InputEnc, std::output_iterator<char32_t> Out>
+    auto make_utf_output_decoder(Out dest)
+        { return utf_output_decoder<InputEnc, Out>(dest); }
+}
+
 
 #endif

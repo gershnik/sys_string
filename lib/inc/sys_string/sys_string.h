@@ -482,6 +482,7 @@ namespace sysstr
         
     public:
         using size_type = typename impl_type::size_type;
+        using value_type = char32_t;
         using storage_type = typename impl_type::value_type;
 
         template<utf_encoding Enc>

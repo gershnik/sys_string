@@ -52,6 +52,9 @@ namespace
 
         static_assert(ranges::custom_reverse_traversable_range<utf_ref_view<Enc, std::vector<char>>>);
         static_assert(ranges::custom_reverse_traversable_range<utf_owning_view<Enc, std::vector<char>>>);
+
+        static_assert(std::ranges::output_range<utf_output_decoder<Enc, std::back_insert_iterator<std::vector<char32_t>>>,
+                                                utf_char_of<Enc>>);
     };
 }
 
@@ -173,6 +176,15 @@ void do_check_iteration(const SrcCont & src,
     {
         check_reversibility(view, view.begin(), view.end());
         check_reversibility(view, view.rbegin(), view.rend());
+    }
+
+    if constexpr (DstEnc == utf32)
+    {
+        dest.clear();
+        auto decoder = make_utf_output_decoder<SrcEnc>(std::back_inserter(dest));
+        std::ranges::copy(src, decoder.begin());
+        decoder.flush();
+        CHECK(dest == expected_str);
     }
 }
 

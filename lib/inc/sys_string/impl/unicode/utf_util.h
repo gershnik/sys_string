@@ -108,47 +108,147 @@ namespace sysstr
         }
     };
 
-    template<utf_encoding To>
-    struct utf32_output
+    template<utf_encoding To, std::invocable<utf_char_of<To>> Sink>
+    struct utf32_encoder
     {
-        template<class Sink>
-        struct writer
-        {
-            Sink sink;
+        Sink sink;
 
-            writer(Sink s) : sink(s) {}
-            
-            SYS_STRING_FORCE_INLINE
-            constexpr void operator()(char32_t value) noexcept(noexcept(sink(utf_char_of<To>())))
-            {
-                if constexpr (To != utf32)
-                {
-                    utf_codepoint_encoder<To, false> encoder;
-                    encoder.put(value);
-                    for(auto first = encoder.begin(), last = encoder.end(); first != last; ++first)
-                        sink(*first);
-                }
-                else 
-                {
-                    sink(value);
-                }
-            }
-        };
-        //Moronic GCC refuses to accept deduction guide not on namespace level
-        //https://gcc.gnu.org/bugzilla/show_bug.cgi?id=79501
-        //template<class Sink> writer(Sink sink) -> writer<Sink>;
+        utf32_encoder(const Sink & s) : sink(s) {}
+        utf32_encoder(Sink && s) : sink(std::move(s)) {}
         
-        template<class Sink> static auto make_writer(Sink sink) -> writer<Sink>
-            { return writer<Sink>(sink); }
+        SYS_STRING_FORCE_INLINE
+        constexpr void operator()(char32_t value) noexcept(noexcept(sink(utf_char_of<To>())))
+        {
+            if constexpr (To != utf32)
+            {
+                utf_codepoint_encoder<To, false> encoder;
+                encoder.put(value);
+                for(auto first = encoder.begin(), last = encoder.end(); first != last; ++first)
+                    sink(*first);
+            }
+            else 
+            {
+                sink(value);
+            }
+        }
     };
+    
+    template<utf_encoding To, std::invocable<utf_char_of<To>> Sink> 
+    auto make_utf32_encoder(Sink sink) -> utf32_encoder<To, Sink>
+        { return utf32_encoder<To, Sink>(sink); }
 
+
+    template<utf_encoding From, std::invocable<char32_t> Sink>
+    class utf32_decoder
+    {
+    public:
+        utf32_decoder(const Sink & sink) noexcept(std::is_nothrow_copy_constructible_v<Sink>):
+            m_sink(sink)
+        {}
+
+        utf32_decoder(Sink && sink) noexcept(std::is_nothrow_move_constructible_v<Sink>):
+            m_sink(std::move(sink))
+        {}
+        
+        utf32_decoder(const utf32_decoder &) = delete;
+        utf32_decoder & operator=(const utf32_decoder &) = delete;
+        utf32_decoder(utf32_decoder && src) = delete;
+        utf32_decoder & operator=(utf32_decoder && src) = delete;
+
+        ~utf32_decoder() noexcept = default;
+        
+
+        template<class Char>
+        requires(utf_encoding_of<Char> == From)
+        SYS_STRING_FORCE_INLINE
+        void put(Char c) noexcept(noexcept(output(char32_t{})))
+        {
+            if constexpr (From == utf8)
+            {
+                uint8_t byte = uint8_t(c);
+                if (m_char_start)
+                {
+                restart_utf8:
+                    if (byte <= 0x7f)
+                    {
+                        output(char32_t{byte});
+                        return;
+                    }
+                }
+                
+                m_decoder.put(byte);
+                if (m_decoder.done())
+                {
+                    output(char32_t{m_decoder.value()});
+                    return;
+                }
+                if (m_decoder.error())
+                {
+                    bool was_char_start = m_char_start;
+                    output(char32_t{U'\uFFFD'});
+                    if (was_char_start)
+                        return;
+                    goto restart_utf8;
+                }
+                m_char_start = false;
+            }
+            else if constexpr (From == utf16)
+            {
+            restart_utf16:
+                m_decoder.put(uint16_t(c));
+                if (m_decoder.done())
+                {
+                    output(char32_t{m_decoder.value()});
+                    return;
+                }
+                if (m_decoder.error())
+                {
+                    bool was_char_start = m_char_start;
+                    output(char32_t{U'\uFFFD'});
+                    if (was_char_start)
+                        return;
+                    goto restart_utf16;
+                }
+                m_char_start = false;
+            }
+            else 
+            {
+                if (m_decoder.put(uint32_t(c)))
+                    output(char32_t{m_decoder.value()});
+                else
+                    output(char32_t{U'\uFFFD'});
+            }
+        }
+
+        SYS_STRING_FORCE_INLINE
+        void flush() noexcept(From == utf32 || noexcept(output(char32_t{})))
+        {
+            if constexpr (From != utf32)
+            {
+                if (!m_char_start)
+                    output(char32_t{U'\uFFFD'});
+            }
+        }
+    private:
+        SYS_STRING_FORCE_INLINE
+        void output(char32_t c) noexcept(noexcept(m_sink(c)))
+        {
+            m_sink(c);
+            m_char_start = true;
+        }
+    private:
+        Sink m_sink;
+        utf_codepoint_decoder<From> m_decoder;
+        bool m_char_start = true;
+    };
+    
     template<utf_encoding From, utf_encoding To>
     template<std::ranges::forward_range Range, class Func>
     SYS_STRING_FORCE_INLINE
     Func utf_converter<From, To>::for_each_converted(Range && range, Func func) 
         noexcept(noexcept(reading(std::forward<Range>(range))) && noexcept(applying(func)))
     {
-        return utf32_input<From>::read(std::forward<Range>(range), utf32_output<To>::make_writer(func)).sink;
+        return utf32_input<From>::read(std::forward<Range>(range), make_utf32_encoder<To>(func)).sink;
     }
 
 

@@ -18,6 +18,14 @@
 
 #endif
 
+#if __has_include(<langinfo.h>)
+
+#include <langinfo.h>
+
+#endif
+
+#include <locale.h>
+
 
 #if defined(__ANDROID__)
 
@@ -80,6 +88,8 @@ int main(int argc, char** argv)
         g_vm = vm;
         g_env = env;
     #endif
+    
+    setlocale(LC_ALL, "");
 
     #if defined (_WIN32)
         SetConsoleOutputCP(CP_UTF8);
@@ -87,6 +97,12 @@ int main(int argc, char** argv)
 
     #if defined(SYS_STRING_USE_PYTHON)
         Py_Initialize();
+    #endif
+    
+    #if __has_include(<langinfo.h>)
+        const char * codeset = nl_langinfo(CODESET);
+        if (strcmp(codeset, "UTF-8") != 0)
+            std::cerr << "Your locale's codeset is not UTF-8 but " << codeset << std::endl;
     #endif
 
     return doctest::Context(argc, argv).run();

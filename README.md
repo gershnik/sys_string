@@ -27,7 +27,7 @@ of characters.
     On Android and Emscripten/WebAssembly no-op conversions from C++ to native strings are impossible for technical reasons. 
     The storage for these platforms' strings still makes conversions as cheap as possible (avoiding UTF conversions for example).
 
-    The library also provides typedefs `sys_string`/`sys_string_builder` that use the "default" storage type on each platform (you can change which one it is via compilation options). Regardless of which storage is the default you can always directly use other specializations in your code if necessary.
+    The library also provides `sys_string`/`sys_string_builder` typedefs that use the "default" storage type on each platform (you can change which one it is via compilation options). Regardless of which storage is the default you can always directly use other specializations in your code if necessary.
 
 
 * **Immutability.** String instances cannot be modified. To do modifications you use a separate "builder" class. This is similar to how many other languages do it and results in improved performance and elimination of whole class of errors. 
@@ -36,7 +36,7 @@ of characters.
 
 * **Operations similar to Python or ECMAScript strings.** You can do things like `rtrim`, `split`, `join`, `starts_with` etc. on `sys_string_t` in a way proven to be natural and productive in those languages.
 
-* **Concatenation does not allocate temporaries.** You can safely do things like `result = s1 + s2 + s3`. It will result in **one** memory allocation and one `memcpy` of `s1`, `s2` and `s3` content into the final result. Not 2 allocations and 5 copies like in other languages or with `std::string`.
+* **Concatenation does not allocate temporaries.** You can safely do things like `result = s1 + s2 + s3`. It will result in **one** memory allocation and 3 calls to `memcpy` to copy each of `s1`, `s2` and `s3` content into the final result. Not 2 allocations and 5 copies like in other languages or with `std::string`.
 
 * **Bidirectional UTF-8/UTF-16/UTF-32 views**. You can view `sys_string_t` as a sequence of UTF-8/16/32 characters and iterate forward or __backward__ equally efficiently. Consider trying to find last instance of Unicode whitespace in UTF-8 data. Doing it as fast as finding the first instance is non-trivial. The views also work on any random access containers (C array, `std::array`, `std::vector`, `std::string`) of characters. Thus you can iterate in UTF-8 over `std::vector<char16_t>` etc.
 
@@ -49,9 +49,9 @@ Specifically, `std::basic_string` is an STL container of a character type that o
 
 * They foreclose any ability to efficiently interchange data with some other string type. It becomes problematic if your code needs to frequently ping-pong data between C++ and your OS string abstraction. Consider Apple's platforms (macOS, iOS). Applications written for these platforms often have to extensively interoperate with code that requires usage of `NSString *` native string type. If you have to ping-pong string data a lot and/or store the same string data on both sides, using `std::string` will mean a large performance and memory penalty. 
 
-* They make `std::basic_string` Unicode hostile. By being oblivious to difference between "storage unit" and a "character", `std::basic_string` cannot really handle encodings such as `UTF-8` or `UTF-16` where the two differ. Yes you can store data in these encodings in it but you need to be extremely careful how you use it. What will `erase(it)` do if the iterator points in the middle of 4-byte UTF-8 sequence? 
+* They make `std::basic_string` Unicode hostile. By being oblivious to difference between a "storage unit" and a "character", `std::basic_string` cannot really handle encodings such as `UTF-8` or `UTF-16` where the two differ. Yes you can store data in these encodings in it but you need to be extremely careful how you use it. What will `erase(it)` do if the iterator points in the middle of 4-byte UTF-8 sequence? 
 
-Finally, and unrelatedly to the above, `std::string` lacks some simple things that are taken for granted these days by users of pretty much all other languages. There is case insensitive comparisons, no "trim" or "split" etc. It is possible to write those yourself of course but here the Unicode-unfriendliness raises its ugly head. To do any of these correctly you need to be able to handle a string as a sequence of Unicode characters and doing so with `std::string` is cumbersome.
+Finally, and unrelatedly to the above, `std::string` lacks some simple things that are taken for granted these days by users of pretty much all other languages. There is no case insensitive comparisons, no "trim" or "split" etc. It is possible to write those yourself of course but here the Unicode-unfriendliness raises its ugly head. To do any of these correctly you need to be able to handle a string as a sequence of Unicode characters and doing so with `std::string` is cumbersome.
 
 
 ## Non-goals
@@ -60,7 +60,7 @@ The following requirements which other string classes often have are specificall
 
 * Support C++ allocators. Since `sys_string_t` is meant to interoperate with system string class/types, it necessarily has to use the same allocation mechanisms as those. 
 
-* Have an efficient `const char * c_str()` method on all platforms. The goal of the library is to provide an efficient conversion to the native string types rather than specifically `const char *`. While ability to obtain `const char *` *is* provided everywhere, it might involve additional memory allocations and other overhead. Note that on Linux `char *` is the system type so it can be obtained with 0 cost.
+* Have an efficient `const char * c_str()` method on all platforms. The goal of the library is to provide an efficient conversion to the native string types rather than specifically `const char *`. While ability to obtain `const char *` *is* provided everywhere, it might involve additional memory allocations and other overhead. Of course, when the storage of `sys_string_t` is `char` it can be obtained with 0 cost.
 
 * Make `sys_string_t` an STL container. Conceptually a string is not a container. You can **view** contents of a string as a sequence of UTF-8 or UTF-16 or UTF-32 codepoints and the library provides such views which function as STL ranges. 
 

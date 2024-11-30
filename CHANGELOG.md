@@ -5,6 +5,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+This is a major release with some breaking changes
+
+### Changed
+
+- C++20 or higher is now required for compilation. In particular, the following C++20 features must be available:
+  - Ranges support in standard library (__cpp_lib_ranges >= 201911)
+  - Three-way comparison (spaceship operator)
+  - `char8_t` type
+  - `std::endian` support in standard library (__cpp_lib_endian >= 201907)
+  - Minimal compilers known to work include: GCC 12, Clang 16, Apple Clang 15.4. 
+- The library has been _range_-ified. 
+  - All methods that used to accept iterator pairs now take iterator/sentinel pairs.
+  - All these methods now also have overloads that accept ranges
+  - Existing informal ranges (`sys_string::char_access`, `sys_string::utf_view`, etc.) are now
+    formal ranges or views.
+  - As part of the above `sys_string::utfX_view` classes has been renamed to `sys_string::utfX_access` (because they are
+    not formally views as defined by standard library). The old names have been retained for compatibility but annotated
+    as deprecated. Note that `sys_string_builder::utf_view` remains under the same name since it *is* a view.
+  - Breaking change: as part of the above change the `sys_string::utf_access` and `sys_string_builder::utf_view` now 
+    return distinct iterators and sentinels (that is they no longer satisfy `std::ranges::common_range` concept). 
+    You will need to use ranges algorithms with their iterators (e.g. `std::ranges::for_each` rather than `std::for_each`).
+  - The global `utf_view` template has been split into two: `utf_ref_view` that takes underlying range by reference (similar
+    to `std::ref_view`) and `utf_owning_view` that owns a movable underlying range (similar to `std::owning_view`). These
+    are automatically produced by `as_utf` range adapter closures (see below in Added section)
+  - Breaking change: the non-standard `Cursor` classes has been removed.
+- The library has been _concept_-ified.  
+  - Most templated library calls now have concepts checks that validate their argument types. 
+  - Primitive `std::enable_if` used before have been subsumed by these and removed.
+- Unicode data used for case folding and whitespace detection has been updated to version 16.0.0
+
+### Added
+- `sys_string_t` objects can now be formatted via `std::format` (if available in your library). On platforms 
+   where `wchar_t` is UTF-16 or UTF-32 you can also use wide character formatting.
+- `sys_string_t::std_format` method. This formats a new `sys_string_t` (similar to the existing `sys_string_t::format`) 
+  but uses `std::format` machinery and formatting string syntax.
+- Range adapter closures: `as_utf8`, `as_utf18`, `as_utf32` and generic `as_utf<encoding>` . 
+  - These can be used to create `utf_ref_view`/`utf_owning_view` from any range/view. For example `as_utf16(std::string("abc"))`
+  - If you library supports custom adapter closures (usually `__cpp_lib_ranges >= 202202L`) they can be used in 
+    view pipelines like `std::string("abc") | as_utf16 | std::views::take(2)` etc.
+
+### Fixed
+- Printing `sys_string_t` objects into `std::ostream` (and `std::wostream` if available) now functions correctly in presence 
+  of stream formatting flags. Flags are currently ignored. This might change in a future version.
+- Printing/formatting `sys_string_t` objects that use `char` storage type now does not perform sanitizing transcoding. The content
+  of the string is printed as-is. This allows faithful round-tripping and support for invalid Unicode for those scenarios. Similar
+  behavior applies to `wchar_t` on platform where it is UTF-16 or UTF-32.
+- `operator<<` no longer pollutes global namespace
+
 ## [2.14] - 2024-05-02
 
 ### Fixed

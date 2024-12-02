@@ -58,17 +58,30 @@ static_assert(ranges::custom_reverse_traversable_range<sys_string_builder::utf8_
 TEST_SUITE("builder") {
 
 TEST_CASE( "Builder basics" ) {
+    using namespace std::literals;
 
     CHECK(sys_string_builder().build() == S(""));
     CHECK(sys_string_builder().append(U'🟣').build() == S("🟣"));
     CHECK(sys_string_builder().append("￥").build() == S("￥"));
+    CHECK(sys_string_builder().append((const char *)"￥").build() == S("￥"));
     CHECK(sys_string_builder().append("￥", 6).build() == S(""));
+    CHECK(sys_string_builder().append("￥"sv).build() == S("￥"));
+
     CHECK(sys_string_builder().append(u8"￥").build() == S("￥"));
+    CHECK(sys_string_builder().append((const char8_t*)u8"￥").build() == S("￥"));
     CHECK(sys_string_builder().append(u8"￥", 3).build() == S(""));
+    CHECK(sys_string_builder().append(u8"￥"sv).build() == S("￥"));
+
     CHECK(sys_string_builder().append(u"￥").build() == S("￥"));
+    CHECK(sys_string_builder().append((const char16_t *)u"￥").build() == S("￥"));
     CHECK(sys_string_builder().append(u"￥", 1).build() == S(""));
+    CHECK(sys_string_builder().append(u"￥"sv).build() == S("￥"));
+
     CHECK(sys_string_builder().append(U"￥").build() == S("￥"));
+    CHECK(sys_string_builder().append((const char32_t *)U"￥").build() == S("￥"));
     CHECK(sys_string_builder().append(U"￥", 2).build() == S(""));
+    CHECK(sys_string_builder().append(U"￥"sv).build() == S("￥"));
+
     CHECK(sys_string_builder().append(S("�𐊃𐜃𐤈🀁")).build() == S("�𐊃𐜃𐤈🀁"));
     
     sys_string_builder builder;

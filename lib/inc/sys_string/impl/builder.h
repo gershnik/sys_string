@@ -44,54 +44,59 @@ namespace sysstr
     }
 
     template<class Storage>
-    template<has_utf_encoding Char>
-    void sys_string_builder_t<Storage>::append_many(impl_type & impl, const Char * str, size_t len)
+    template<std::ranges::input_range Range>
+    requires(has_utf_encoding<std::ranges::range_value_t<Range>>)
+    inline void sys_string_builder_t<Storage>::append_many(impl_type & impl, const Range & range)
     {
-        if constexpr (std::is_same_v<storage_type, Char>)
+        if constexpr(std::is_same_v<std::ranges::range_value_t<Range>, storage_type>)
         {
-            impl.append(str, limit_size(len));
+            if constexpr (std::ranges::contiguous_range<Range>)
+            {
+                impl.append(std::ranges::data(range), std::ranges::size(range));
+            }
+            else
+            {
+                for(storage_type c: range)
+                    impl.push_back(c);
+            }
         }
         else
         {
-            using converter = utf_converter<utf_encoding_of<Char>, utf_encoding_of<storage_type>>;
-            converter::convert(str, str + len, std::back_inserter(impl));
+            using converter = utf_converter<utf_encoding_of<std::ranges::range_value_t<Range>>, utf_encoding_of<storage_type>>;
+            converter::convert(range, std::back_inserter(impl));
         }
     }
 
 
     template<class Storage>
-    template<has_utf_encoding Char>
-    auto sys_string_builder_t<Storage>::insert_many(impl_type & impl, typename impl_type::iterator where, const Char * str, size_t len) ->
+    template<std::ranges::input_range Range>
+    requires(has_utf_encoding<std::ranges::range_value_t<Range>>)
+    auto sys_string_builder_t<Storage>::insert_many(impl_type & impl, typename impl_type::iterator where, const Range & range) ->
     typename impl_type::iterator
     {
-        if constexpr (std::is_same_v<storage_type, Char>)
+        if constexpr (std::is_same_v<storage_type, std::ranges::range_value_t<Range>>)
         {
-            return impl.insert(where, str, limit_size(len));
+            if constexpr (std::ranges::contiguous_range<Range>)
+            {
+                return impl.insert(where, std::ranges::data(range), std::ranges::size(range));
+            }
+            else
+            {
+                auto pos = where - std::ranges::begin(impl);
+                for(storage_type c: range)
+                    impl.push_back(c);
+                return std::ranges::begin(impl) + pos;
+            }
         }
         else
         {
-            using converter = utf_converter<utf_encoding_of<Char>, utf_encoding_of<storage_type>>;
+            using converter = utf_converter<utf_encoding_of<std::ranges::range_value_t<Range>>, utf_encoding_of<storage_type>>;
             auto pos = where - std::ranges::begin(impl);
-            converter::convert(str, str + len, std::inserter(impl, where));
+            converter::convert(range, std::inserter(impl, where));
             return std::ranges::begin(impl) + pos;
         }
     }
 
-    template<class Storage>
-    template<std::ranges::input_range Range>
-    inline void sys_string_builder_t<Storage>::append_range(const Range & range)
-    {
-        static_assert(std::is_same_v<std::ranges::range_value_t<Range>, storage_type>);
-
-        if constexpr (std::ranges::contiguous_range<Range>)
-        {
-            m_impl.append(std::ranges::data(range), std::ranges::size(range));
-        }
-        else
-        {
-            for(storage_type c: range)
-                m_impl.push_back(c);
-        }
-    }
+    
 
 }

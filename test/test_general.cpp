@@ -14,6 +14,8 @@
 
 #include <doctest/doctest.h>
 
+#include <list>
+
 using namespace sysstr;
 
 static_assert(std::is_nothrow_default_constructible_v<sys_string>);
@@ -643,6 +645,8 @@ TEST_CASE( "Partition" ) {
 }
 
 TEST_CASE( "Addition" ) {
+
+    using namespace std::literals;
     
     CHECK(S("") + S("") == S(""));
     
@@ -663,7 +667,16 @@ TEST_CASE( "Addition" ) {
     CHECK((S("💾") + U'💿') + S("⏰") == S("💾💿⏰"));
     
     CHECK((S("💾") + U'💿') + (U'🜇' + S("⏰")) == S("💾💿🜇⏰"));
+    CHECK((S("💾") + U'💿') + S("🧡") + (U'🜇' + S("⏰")) == S("💾💿🧡🜇⏰"));
     CHECK(((U'a' + S("b")) + (S("💾") + U'💿')) + (U'🜇' + S("⏰")) == S("ab💾💿🜇⏰"));
+
+    CHECK(S("💜") + "🧡" == S("💜🧡"));
+    CHECK("💜" + S("🧡") == S("💜🧡"));
+    CHECK(S("💜") + "🧡"s == S("💜🧡"));
+    CHECK("💜"s + S("🧡") == S("💜🧡"));
+
+    std::list<char16_t> list{u'Ю'};
+    CHECK(S("💜") + list == S("💜Ю"));
 }
 
 TEST_CASE( "c_str" ) {

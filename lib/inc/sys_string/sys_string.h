@@ -54,6 +54,12 @@ namespace sysstr
     concept builder_appendable = requires(sys_string_builder_t<Storage> builder, T t) {
         builder.append(t);
     };
+
+    template<class T, class Storage>
+    concept addable = sys_string_or_char<T, Storage> || (
+                            std::ranges::forward_range<T> &&
+                            has_utf_encoding<std::ranges::range_value_t<T>>
+                      );
 }
 
 namespace sysstr::util
@@ -315,9 +321,9 @@ namespace sysstr
         friend auto compare_no_case(const sys_string_t lhs, const sys_string_t & rhs) noexcept -> std::strong_ordering
             { return sys_string_t::compare_no_case(lhs, rhs); }
         
-        template<sys_string_or_char<Storage> StringOrChar1, sys_string_or_char<Storage> StringOrChar2>
-        friend auto operator+(const StringOrChar1 lhs, const StringOrChar2 rhs) -> util::addition<Storage, StringOrChar1, StringOrChar2>
-            { return util::addition<Storage, StringOrChar1, StringOrChar2>(std::move(lhs), std::move(rhs)); }
+        template<addable<Storage> Addend1, addable<Storage> Addend2>
+        friend auto operator+(const Addend1 & lhs, const Addend2 & rhs) -> util::addition<Storage, Addend1, Addend2>
+            { return util::addition<Storage, Addend1, Addend2>(lhs, rhs); }
         
         auto to_lower() const -> sys_string_t;
         auto to_upper() const -> sys_string_t;
@@ -567,44 +573,44 @@ namespace sysstr
         template<has_utf_encoding Char>
         iterator insert(iterator where, const Char * str)
         {
-            auto res = insert_many(m_impl, where.storage_current(), str, std::char_traits<Char>::length(str));
+            auto res = insert_many(m_impl, where.storage_current(), std::basic_string_view(str));
             return iterator(res, std::ranges::end(m_impl));
         }
 
         template<has_utf_encoding Char>
         iterator insert(std::default_sentinel_t, const Char * str)
         {
-            auto res = insert_many(m_impl, std::ranges::end(m_impl), str, std::char_traits<Char>::length(str));
+            auto res = insert_many(m_impl, std::ranges::end(m_impl), std::basic_string_view(str));
             return iterator(res, std::ranges::end(m_impl));
         }
         
         template<has_utf_encoding Char>
         iterator insert(iterator where, const Char * str, size_t len)
         {
-            auto res = insert_many(m_impl, where.storage_current(), str, len);
+            auto res = insert_many(m_impl, where.storage_current(), std::basic_string_view(str, len));
             return iterator(res, std::ranges::end(m_impl));
         }
 
         template<has_utf_encoding Char>
         iterator insert(std::default_sentinel_t, const Char * str, size_t len)
         {
-            auto res = insert_many(m_impl, std::ranges::end(m_impl), str, len);
+            auto res = insert_many(m_impl, std::ranges::end(m_impl), std::basic_string_view(str, len));
             return iterator(res, std::ranges::end(m_impl));
         }
 
-        template<std::ranges::contiguous_range Range>
+        template<std::ranges::input_range Range>
         requires(has_utf_encoding<std::ranges::range_value_t<Range>>)
         iterator insert(iterator where, const Range & range)
         {
-            auto res = insert_many(m_impl, where.storage_current(), std::ranges::data(range), std::ranges::size(range));
+            auto res = insert_many(m_impl, where.storage_current(), range);
             return iterator(res, std::ranges::end(m_impl));
         }
 
-        template<std::ranges::contiguous_range Range>
+        template<std::ranges::input_range Range>
         requires(has_utf_encoding<std::ranges::range_value_t<Range>>)
         iterator insert(std::default_sentinel_t, const Range & range)
         {
-            auto res = insert_many(m_impl, std::ranges::end(m_impl), std::ranges::data(range), std::ranges::size(range));
+            auto res = insert_many(m_impl, std::ranges::end(m_impl), range);
             return iterator(res, std::ranges::end(m_impl));
         }
         
@@ -631,19 +637,19 @@ namespace sysstr
 
         template<has_utf_encoding Char>
         sys_string_builder_t & append(const Char * str, size_t len)
-            { append_many(m_impl, str, len); return *this; }
+            { append_many(m_impl, std::basic_string_view(str, len)); return *this; }
         
         template<has_utf_encoding Char>
         sys_string_builder_t & append(const Char * str)
-            { append_many(m_impl, str, std::char_traits<Char>::length(str)); return *this; }
+            { append_many(m_impl, std::basic_string_view(str)); return *this; }
 
-        template<std::ranges::contiguous_range Range>
+        template<std::ranges::input_range Range>
         requires(has_utf_encoding<std::ranges::range_value_t<Range>>)
         sys_string_builder_t & append(const Range & range)
-            { append_many(m_impl, std::ranges::data(range), std::ranges::size(range)); return *this; }
+            { append_many(m_impl, range); return *this; }
 
         sys_string_builder_t & append(const sys_string_t<Storage> & str)
-            { append_range(typename sys_string_t<Storage>::char_access(str)); return *this; }
+            { append_many(m_impl, typename sys_string_t<Storage>::char_access(str)); return *this; }
 
         sys_string_t<Storage> build() noexcept
             { return util::build<Storage>(m_impl); }
@@ -664,14 +670,15 @@ namespace sysstr
         
         static typename impl_type::iterator insert_one(impl_type & impl, typename impl_type::iterator where, char32_t c);
         
-        template<has_utf_encoding Char>
-        static void append_many(impl_type & impl, const Char * str, size_t len);
-        
-        template<has_utf_encoding Char>
-        static typename impl_type::iterator insert_many(impl_type & impl, typename impl_type::iterator pos, const Char * str, size_t len);
+        template<std::ranges::input_range Range>
+        requires(has_utf_encoding<std::ranges::range_value_t<Range>>)
+        static void append_many(impl_type & impl, const Range & range);
         
         template<std::ranges::input_range Range>
-        void append_range(const Range & range);
+        requires(has_utf_encoding<std::ranges::range_value_t<Range>>)
+        static typename impl_type::iterator insert_many(impl_type & impl, typename impl_type::iterator where, const Range & range);
+        
+        
         
     private:
         impl_type m_impl;

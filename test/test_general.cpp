@@ -677,6 +677,10 @@ TEST_CASE( "Addition" ) {
 
     std::list<char16_t> list{u'Ю'};
     CHECK(S("💜") + list == S("💜Ю"));
+
+    CHECK((("a"sv + S("b")) + (S("💾") + "💿"s)) + ("🜇"s + S("⏰")) == S("ab💾💿🜇⏰"));
+    sys_string result = S("a") + U'b' + "cd" + "ef"s + u"gh"sv + U"ij" + std::vector{'k', 'l'};
+    CHECK(result == S("abcdefghijkl"));
 }
 
 TEST_CASE( "c_str" ) {

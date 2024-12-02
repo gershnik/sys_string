@@ -51,8 +51,38 @@ namespace sysstr::util
         utf_codepoint_encoder<utf_encoding_of<typename sys_string_t<Storage>::storage_type>, true> m_encoded;
     };
 
+    template<class Storage, class T>
+    requires(
+        std::is_pointer_v<std::decay_t<T>> &&
+        has_utf_encoding<std::remove_const_t<std::remove_pointer_t<std::decay_t<T>>>>
+    )
+    class addend<Storage, T>
+    {
+    private: 
+        using Char = std::remove_const_t<std::remove_pointer_t<std::decay_t<T>>>;
+    public:
+        addend(const Char * ptr) noexcept:
+            m_view(ptr)
+        {}
+        
+        auto storage_size() const -> typename sys_string_t<Storage>::size_type
+        { 
+            size_t count = m_view.size();
+            if (count > size_t(std::numeric_limits<typename sys_string_t<Storage>::size_type>::max()))
+                throw std::bad_alloc();
+            return static_cast<typename sys_string_t<Storage>::size_type>(count);
+        }
+        
+        auto append_to(sys_string_builder_t<Storage> & builder) const -> void
+            { builder.append(m_view); }
+    private:
+        std::basic_string_view<Char> m_view;
+    };
+
     template<class Storage, std::ranges::forward_range Range>
-    requires(has_utf_encoding<std::ranges::range_value_t<Range>>)
+    requires(
+        !std::is_pointer_v<std::decay_t<Range>> &&
+        has_utf_encoding<std::ranges::range_value_t<Range>>)
     class addend<Storage, Range>
     {
     public:

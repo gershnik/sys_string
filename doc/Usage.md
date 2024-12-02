@@ -131,13 +131,26 @@ assert(str == S("abc"));
 
 Unlike `std::string` addition of `sys_string_t` uses [expression templates](https://en.wikipedia.org/wiki/Expression_templates) to avoid creation of temporaries. This means that addition is cheap and you have no reason to avoid it. 
 
-However, you need to avoid using `auto` for the result. The result of addition is a special temporary that only performs actual concatenation when converted to `sys_string_t`. Using `auto` declares a variable of that temporary type which at beast won't work and at worst result in dangling pointers.
+You can add `sys_string_t`, single `char32_t` characters and any range of any characters this way.
+
+For example:
 
 ```cpp
-auto res = S("a") + S("b");
-std::cout << res; //error, res is not something that can be output 
-auto res1 = sys_string("abc") + sys_string("xyz"); //Bad!
+using namespace std::literals;
+
+sys_string result = S("a") + U'b' + "cd" + "ef"s + u"gh"sv + U"ij" + std::vector{'k', 'l'};
+assert(result == S("abcdefghijkl"));
+```
+
+[!WARNING]
+
+You must not use `auto` for the addition result. The result of an addition is a special temporary that only performs actual concatenation when converted to `sys_string_t`. Using `auto` declares a variable of that temporary type which will result in dangling pointers.
+
+```cpp
+auto res = sys_string("abc") + sys_string("xyz"); //Bad!
 //using res1 here is undefined behavior - it refers to already destroyed temporaries
+if (res == S("abcxyz")) 
+   ...
 ```
 
 ## Comparing Strings

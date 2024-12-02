@@ -36,6 +36,8 @@ This is a major release with some breaking changes
 - Unicode data used for case folding and whitespace detection has been updated to version 16.0.0
 
 ### Added
+- `sys_string_t` can now be `+`-ed with any forward range of any type of character (including C strings and std::string). 
+  This results in a the same optimized addition as when adding `sys_string_t` objects.
 - `sys_string_t` objects can now be formatted via `std::format` (if available in your library). On platforms 
    where `wchar_t` is UTF-16 or UTF-32 you can also use wide character formatting.
 - `sys_string_t::std_format` method. This formats a new `sys_string_t` (similar to the existing `sys_string_t::format`) 

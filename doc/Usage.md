@@ -142,9 +142,8 @@ sys_string result = S("a") + U'b' + "cd" + "ef"s + u"gh"sv + U"ij" + std::vector
 assert(result == S("abcdefghijkl"));
 ```
 
-[!WARNING]
-
-You must not use `auto` for the addition result. The result of an addition is a special temporary that only performs actual concatenation when converted to `sys_string_t`. Using `auto` declares a variable of that temporary type which will result in dangling pointers.
+> [!WARNING]
+> You must not use `auto` to declare the addition result. The result of an addition is a special temporary that only performs actual concatenation when converted to `sys_string_t`. Using `auto` declares a variable of that temporary type which will result in dangling pointers.
 
 ```cpp
 auto res = sys_string("abc") + sys_string("xyz"); //Bad!
@@ -527,8 +526,8 @@ friend auto operator<<(std::ostream & str, const sys_string & val) -> std::ostre
 
 Prints the string content **as UTF-8** into `std::ostream`. 
 
-[!WARNING] 
-Note that if your output goes somewhere that doesn't use UTF-8 encoding (Windows console or Unix terminal with non UTF-8 locale, for example) the output will be garbled.
+> [!WARNING] 
+> Note that if your output goes somewhere that doesn't use UTF-8 encoding (Windows console or Unix terminal with non UTF-8 locale, for example) the output will be garbled.
 
 On Windows or on any platform that defines `__STDC_ISO_10646__` macro there is also
 
@@ -538,9 +537,9 @@ friend auto operator<<(std::wostream & str, const sys_string & val) -> std::wost
 
 That prints out UTF-16 or UTF-32 views of the string.
 
-[!NOTE]
-The `operator<<` currently completely ignores width, precision and fill settings of the stream - the entire string
-is printed out as is. This might change in future versions.
+> [!NOTE]
+> The `operator<<` currently completely ignores width, precision and fill settings of the stream - the entire string
+> is printed out as is. This might change in future versions.
 
 ### Formatting with `std::format`
 

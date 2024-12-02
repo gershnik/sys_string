@@ -52,7 +52,7 @@ namespace sysstr
         {
             if constexpr (std::ranges::contiguous_range<Range>)
             {
-                impl.append(std::ranges::data(range), std::ranges::size(range));
+                impl.append(std::ranges::data(range), limit_size(std::ranges::size(range)));
             }
             else
             {
@@ -78,7 +78,7 @@ namespace sysstr
         {
             if constexpr (std::ranges::contiguous_range<Range>)
             {
-                return impl.insert(where, std::ranges::data(range), std::ranges::size(range));
+                return impl.insert(where, std::ranges::data(range), limit_size(std::ranges::size(range)));
             }
             else
             {

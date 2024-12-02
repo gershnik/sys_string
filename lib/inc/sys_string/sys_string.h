@@ -660,6 +660,12 @@ namespace sysstr
             { return m_impl; }
 
     private:
+        static size_type limit_size(size_t len)
+        {
+            if (len > size_t(Storage::max_size))
+                throw std::bad_alloc();
+            return size_type(len);
+        }
         static void append_one(impl_type & impl, char32_t c);
         
         static typename impl_type::iterator insert_one(impl_type & impl, typename impl_type::iterator where, char32_t c);

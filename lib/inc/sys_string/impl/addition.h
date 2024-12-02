@@ -68,7 +68,7 @@ namespace sysstr::util
         auto storage_size() const -> typename sys_string_t<Storage>::size_type
         { 
             size_t count = m_view.size();
-            if (count > size_t(std::numeric_limits<typename sys_string_t<Storage>::size_type>::max()))
+            if (count > size_t(Storage::max_size))
                 throw std::bad_alloc();
             return static_cast<typename sys_string_t<Storage>::size_type>(count);
         }
@@ -112,7 +112,7 @@ namespace sysstr::util
                                             utf_encoding_of<typename sys_string_t<Storage>::storage_type>>;
                 count = converter::converted_length(this->m_range);
             }
-            if (count > size_t(std::numeric_limits<typename sys_string_t<Storage>::size_type>::max()))
+            if (count > size_t(Storage::max_size))
                 throw std::bad_alloc();
             return static_cast<typename sys_string_t<Storage>::size_type>(count);
         }
@@ -181,7 +181,7 @@ namespace sysstr::util
         { 
             auto s1 = this->m_first.storage_size();
             auto s2 = this->m_second.storage_size();
-            if (std::numeric_limits<typename sys_string_t<Storage>::size_type>::max() - s1 < s2)
+            if (Storage::max_size - s1 < s2)
                 throw std::bad_alloc();
             return s1 + s2; 
         }

@@ -60,28 +60,31 @@ namespace sysstr::util
             m_range(range)
         {}
         
-        auto storage_size() const noexcept -> typename sys_string_t<Storage>::size_type
+        auto storage_size() const -> typename sys_string_t<Storage>::size_type
         { 
+            size_t count;
             if constexpr (std::is_same_v<std::ranges::range_value_t<Range>, typename sys_string_t<Storage>::storage_type>)
             {
                 if constexpr (std::ranges::sized_range<Range>)
                 {
-                    return std::ranges::size(this->m_range);
+                    count = std::ranges::size(this->m_range);
                 }
                 else
                 {
-                    size_t count = 0;
+                    count = 0;
                     for(auto & x: this->m_range)
                         ++count;
-                    return count;
                 }
             }
             else
             {
                 using converter = utf_converter<utf_encoding_of<std::ranges::range_value_t<Range>>, 
                                             utf_encoding_of<typename sys_string_t<Storage>::storage_type>>;
-                return converter::converted_length(this->m_range); 
+                count = converter::converted_length(this->m_range);
             }
+            if (count > size_t(std::numeric_limits<typename sys_string_t<Storage>::size_type>::max()))
+                throw std::bad_alloc();
+            return static_cast<typename sys_string_t<Storage>::size_type>(count);
         }
         
         auto append_to(sys_string_builder_t<Storage> & builder) const -> void
@@ -98,7 +101,7 @@ namespace sysstr::util
             m_val(val)
         {}
         
-        auto storage_size() const noexcept -> typename sys_string_t<Storage>::size_type
+        auto storage_size() const -> typename sys_string_t<Storage>::size_type
             { return this->m_val.storage_size(); }
         
         auto append_to(sys_string_builder_t<Storage> & builder) const -> void
@@ -144,8 +147,14 @@ namespace sysstr::util
             return builder.build();
         }
         
-        auto storage_size() const noexcept -> typename sys_string_t<Storage>::size_type
-            { return this->m_first.storage_size() + this->m_second.storage_size(); }
+        auto storage_size() const -> typename sys_string_t<Storage>::size_type
+        { 
+            auto s1 = this->m_first.storage_size();
+            auto s2 = this->m_second.storage_size();
+            if (std::numeric_limits<typename sys_string_t<Storage>::size_type>::max() - s1 < s2)
+                throw std::bad_alloc();
+            return s1 + s2; 
+        }
         
         void append_to(sys_string_builder_t<Storage> & builder) const
         {

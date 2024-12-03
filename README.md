@@ -6,7 +6,7 @@
 [![Tests](https://github.com/gershnik/sys_string/actions/workflows/test.yml/badge.svg)](https://github.com/gershnik/sys_string/actions/workflows/test.yml)
 
 This library provides a C++ string class template `sys_string_t` that is optimized for **interoperability with external native string type**. It is **immutable**, **Unicode-first** and exposes convenient **operations similar to Python or ECMAScript strings**. It uses a separate `sys_string_builder_t` class template to construct strings. It provides fast concatenation via `+` operator that **does not allocate temporary strings**. 
-The library exposes bidirectional UTF-8/UTF-16/UTF-32 views of `sys_string_t` as well as of any random access containers 
+The library exposes bidirectional UTF-8/UTF-16/UTF-32 views of `sys_string_t` as well as of any C++ input ranges of chracters. 
 of characters.
 
 ## What does it mean?
@@ -24,8 +24,8 @@ of characters.
 
     For example the storage for Apple's platforms uses `NSString *` internally, allowing zero cost conversions between C++ and native sides. 
 
-    On Android and Emscripten/WebAssembly no-op conversions from C++ to native strings are impossible for technical reasons. 
-    The storage for these platforms' strings still makes conversions as cheap as possible (avoiding UTF conversions for example).
+    On Android and Emscripten/WebAssembly no-op conversions from C++ to native strings are technically impossible. 
+    The storage implementations for these platforms still makes conversions as cheap as possible (avoiding UTF conversions for example).
 
     The library also provides `sys_string`/`sys_string_builder` typedefs that use the "default" storage type on each platform (you can change which one it is via compilation options). Regardless of which storage is the default you can always directly use other specializations in your code if necessary.
 

@@ -5,8 +5,8 @@
 // license that can be found in the LICENSE file or at
 // https://github.com/gershnik/sys_string/blob/master/LICENSE
 //
-#ifndef HEADER_SYS_STRING_CHAR_BUFFER_H_INCLUDED
-#define HEADER_SYS_STRING_CHAR_BUFFER_H_INCLUDED
+#ifndef HEADER_SYS_STRING_CHAR_VECTOR_H_INCLUDED
+#define HEADER_SYS_STRING_CHAR_VECTOR_H_INCLUDED
 
 
 #include <algorithm>
@@ -17,7 +17,7 @@ namespace sysstr::util
 { 
 
     template<class Storage>
-    class char_buffer 
+    class char_vector 
     {
     private:
         static_assert(std::is_trivially_copyable_v<typename Storage::value_type>, "Storage::value_type must be trivially copyable");
@@ -41,17 +41,17 @@ namespace sysstr::util
         static constexpr size_type growth_increment = size_type(std::max(size_t(2), std::max(size_t(16), sizeof(value_type)) / sizeof(value_type)));
     
     public:
-        constexpr char_buffer() noexcept = default;
-        ~char_buffer() noexcept = default;
-        char_buffer(const char_buffer & src) = delete;
-        char_buffer & operator=(const char_buffer & src) = delete;
-        constexpr char_buffer(char_buffer && src) noexcept:
+        constexpr char_vector() noexcept = default;
+        ~char_vector() noexcept = default;
+        char_vector(const char_vector & src) = delete;
+        char_vector & operator=(const char_vector & src) = delete;
+        constexpr char_vector(char_vector && src) noexcept:
             m_storage(std::move(src.m_storage)),
             m_size(src.m_size)
         {
             src.m_size = 0;
         }
-        constexpr char_buffer & operator=(char_buffer && src) noexcept
+        constexpr char_vector & operator=(char_vector && src) noexcept
         {
             if (this != &src)
             {
@@ -124,13 +124,13 @@ namespace sysstr::util
             { return this->begin()[idx]; }
     
         iterator begin() const noexcept
-            { return this->m_storage.buffer(); }
+            { return this->m_storage.data(); }
         iterator end() const noexcept
-            { return this->m_storage.buffer() + this->m_size; }
+            { return this->m_storage.data() + this->m_size; }
         const_iterator cbegin() const noexcept
-            { return this->m_storage.buffer(); }
+            { return this->m_storage.data(); }
         const_iterator cend() const noexcept
-            { return this->m_storage.buffer() + this->m_size; }
+            { return this->m_storage.data() + this->m_size; }
         reverse_iterator rbegin() const noexcept
             { return reverse_iterator(end()); }
         reverse_iterator rend() const noexcept

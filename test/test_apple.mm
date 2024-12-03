@@ -5,16 +5,20 @@
 // license that can be found in the LICENSE file or at
 // https://github.com/gershnik/sys_string/blob/master/LICENSE
 //
+// _🪦🐮🐌_
+
 #include <sys_string/sys_string.h>
 
 
-#include "catch.hpp"
+#include <doctest/doctest.h>
 
 using namespace sysstr;
 
 #if !SYS_STRING_USE_GENERIC && !SYS_STRING_USE_PYTHON
 
-TEST_CASE( "Apple Conversions", "[apple]") {
+TEST_SUITE("apple") {
+
+TEST_CASE( "Apple Conversions" ) {
 
     CHECK(sys_string((NSString *)nullptr) == sys_string());
     CHECK(sys_string().cf_str() == nullptr);
@@ -28,6 +32,8 @@ TEST_CASE( "Apple Conversions", "[apple]") {
     
     CHECK(sys_string(nsstr) == S("xyz"));
     CHECK(sys_string(nsstr).ns_str() == nsstr);
+
+}
 
 }
 

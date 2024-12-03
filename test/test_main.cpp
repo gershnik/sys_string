@@ -5,8 +5,11 @@
 // license that can be found in the LICENSE file or at
 // https://github.com/gershnik/sys_string/blob/master/LICENSE
 //
-#define CATCH_CONFIG_RUNNER
-#include "catch.hpp"
+// _🪦🐮🐌_
+
+#define DOCTEST_CONFIG_IMPLEMENT
+#include <doctest/doctest.h>
+
 
 #if defined(SYS_STRING_USE_PYTHON)
 
@@ -77,7 +80,7 @@ int main(int argc, char** argv)
         g_vm = vm;
         g_env = env;
     #endif
-
+    
     #if defined (_WIN32)
         SetConsoleOutputCP(CP_UTF8);
     #endif
@@ -85,8 +88,8 @@ int main(int argc, char** argv)
     #if defined(SYS_STRING_USE_PYTHON)
         Py_Initialize();
     #endif
-
-    return Catch::Session().run( argc, argv );
+    
+    return doctest::Context(argc, argv).run();
 }
 
 

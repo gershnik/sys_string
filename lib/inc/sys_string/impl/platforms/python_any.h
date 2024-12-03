@@ -9,7 +9,7 @@
 #error This header must not be included directly. Please include sys_string.h
 #endif
 
-#include <sys_string/impl/util/char_buffer.h>
+#include <sys_string/impl/util/char_vector.h>
 
 #include <variant>
 
@@ -119,7 +119,7 @@ namespace sysstr::util
     public:
         constexpr size_type capacity() const noexcept
             { return m_capacity; }
-        constexpr value_type * buffer() const noexcept
+        constexpr value_type * data() const noexcept
         {
             return std::visit([](const auto & val) {
                 return const_cast<value_type *>(val.data());
@@ -169,13 +169,13 @@ namespace sysstr::util
         size_type m_capacity = minimum_capacity;
     };
 
-    using py_builder_impl = char_buffer<py_builder_storage>;
+    using py_builder_impl = char_vector<py_builder_storage>;
 
     inline PyObject * convert_to_string(py_builder_impl & builder) noexcept
     {
         auto size = builder.size();
         return std::visit([&](auto && buf) {
-            int dumbPyPy = (endian::native != endian::little) - (endian::native == endian::little);
+            int dumbPyPy = (std::endian::native != std::endian::little) - (std::endian::native == std::endian::little);
             return size ? check_create(PyUnicode_DecodeUTF32((const char *)buf.data(), size * sizeof(char32_t), "replace", &dumbPyPy)) :
                                         nullptr;
         }, builder.release());
@@ -189,12 +189,9 @@ namespace sysstr::util
         using reference = value_type;
         using pointer = void;
         
-        using cursor = index_cursor<const py_char_access, cursor_direction::forward>;
-        using reverse_cursor = index_cursor<const py_char_access, cursor_direction::backward>;
-        
-        using iterator = cursor;
+        using iterator = index_iterator<const py_char_access, iter_direction::forward>;
         using const_iterator = iterator;
-        using reverse_iterator = reverse_cursor;
+        using reverse_iterator = index_iterator<const py_char_access, iter_direction::backward>;
         using const_reverse_iterator = reverse_iterator;
 
     public:
@@ -218,29 +215,21 @@ namespace sysstr::util
         size_type size() const noexcept
             { return m_size; }
 
-        template<cursor_direction Direction>
-        auto cursor_begin() const noexcept -> index_cursor<const py_char_access, Direction>
-            { return index_cursor<const py_char_access, Direction>(*this, bool(Direction) ? 0 : m_size); }
-
-        template<cursor_direction Direction>
-        auto cursor_end() const noexcept -> index_cursor<const py_char_access, Direction>
-            { return index_cursor<const py_char_access, Direction>(*this, bool(Direction) ? m_size : 0); }
-        
         iterator begin() const noexcept
-            { return cursor_begin<cursor_direction::forward>(); }
-        iterator end() const noexcept
-            { return cursor_end<cursor_direction::forward>(); }
+            { return iterator(*this, 0); }
+        std::default_sentinel_t end() const noexcept
+            { return std::default_sentinel; }
         const_iterator cbegin() const noexcept
             { return begin(); }
-        const_iterator cend() const noexcept
+        std::default_sentinel_t cend() const noexcept
             { return end(); }
         reverse_iterator rbegin() const noexcept
-            { return cursor_begin<cursor_direction::backward>(); }
-        reverse_iterator rend() const noexcept
-            { return cursor_end<cursor_direction::backward>(); }
+            { return reverse_iterator(*this, m_size); }
+        std::default_sentinel_t rend() const noexcept
+            { return std::default_sentinel; }
         const_reverse_iterator crbegin() const noexcept
             { return rbegin(); }
-        const_reverse_iterator crend() const noexcept
+        std::default_sentinel_t crend() const noexcept
             { return rend(); }
 
         const char * c_str() const noexcept
@@ -298,6 +287,10 @@ namespace sysstr
         template<class Char>
         py_storage(const Char * str, size_t len):
             py_storage(create_from(str, len), handle_retain::no)
+        {}
+
+        py_storage(const char_access::iterator & first, size_type length):
+            py_storage(first.container() ? first.container()->get_string() : nullptr, first.index(), first.index() + length)
         {}
         
         
@@ -394,10 +387,10 @@ namespace sysstr
             if constexpr (utf_encoding_of<Char> == utf_encoding::utf8) {
                 return util::check_create(PyUnicode_DecodeUTF8((const char *)str, len, "replace"));
             } else if constexpr (utf_encoding_of<Char> == utf_encoding::utf16) {
-                int dumbPyPy = (endian::native != endian::little) - (endian::native == endian::little);
+                int dumbPyPy = (std::endian::native != std::endian::little) - (std::endian::native == std::endian::little);
                 return util::check_create(PyUnicode_DecodeUTF16((const char *)str, len * sizeof(char16_t), "replace", &dumbPyPy));
             } else if constexpr (utf_encoding_of<Char> == utf_encoding::utf32) {
-                int dumbPyPy = (endian::native != endian::little) - (endian::native == endian::little);
+                int dumbPyPy = (std::endian::native != std::endian::little) - (std::endian::native == std::endian::little);
                 return util::check_create(PyUnicode_DecodeUTF32((const char *)str, len * sizeof(char32_t), "replace", &dumbPyPy));
             }
         }
@@ -503,37 +496,30 @@ namespace sysstr::util
 
 namespace sysstr
 {
-    template<>
-    inline sys_string_t<py_storage>::sys_string_t(const char_access::cursor & src, size_type length):
-        sys_string_t(src.container() ? src.container()->get_string() : nullptr, src.position(), src.position() + length)
-    {}
-
-    template<>
-    inline sys_string_t<py_storage>::sys_string_t(const char_access::reverse_cursor & src, size_type length):
-        sys_string_t(src.container() ? src.container()->get_string() : nullptr, src.position() - length, src.position())
-    {}
-
-    template<>
-    inline sys_string_t<py_storage>::sys_string_t(const char_access::iterator & first, const char_access::iterator & last):
-        sys_string_t(first, last.position() - first.position())
-    {}
-    
     using sys_string_pystr = sys_string_t<py_storage>;
     using sys_string_pystr_builder = sys_string_builder_t<py_storage>;
 }
 
+namespace sysstr::util 
+{
+    template<util::ct_string U32Str, util::ct_string U16Str, util::ct_string U8Str>
+    inline auto make_static_sys_string_pystr() noexcept -> sys_string_pystr
+    {
+        constexpr ::size_t size = U32Str.size();
+        constexpr auto maxChar = find_max_codepoint(U32Str.chars);
+        if constexpr (maxChar <= 0x7fu) { 
+            static PyUnicodeObject_wrapper<PyUnicode_1BYTE_KIND> str(size - 1, U8Str.chars);
+            return str.as_string();
+        } else if constexpr (maxChar <= 0xffffu) {
+            static PyUnicodeObject_wrapper<PyUnicode_2BYTE_KIND> str(size - 1, U16Str.chars);
+            return str.as_string();
+        } else {
+            static PyUnicodeObject_wrapper<PyUnicode_4BYTE_KIND> str(size - 1, U32Str.chars);
+            return str.as_string();
+        }
+    }
+}
 
-#define SYS_STRING_STATIC_PYSTR(x) ([] () noexcept -> ::sysstr::sys_string_pystr { \
-        constexpr auto size = ::std::size(U##x); \
-        constexpr auto maxChar = ::sysstr::util::find_max_codepoint(U##x); \
-        if constexpr (maxChar <= 0x7fu) { \
-            static ::sysstr::util::PyUnicodeObject_wrapper<PyUnicode_1BYTE_KIND> str(size - 1, u8##x); \
-            return str.as_string(); \
-        } else if constexpr (maxChar <= 0xffffu) { \
-            static ::sysstr::util::PyUnicodeObject_wrapper<PyUnicode_2BYTE_KIND> str(size - 1, u##x); \
-            return str.as_string(); \
-        } else { \
-            static ::sysstr::util::PyUnicodeObject_wrapper<PyUnicode_4BYTE_KIND> str(size - 1, U##x); \
-            return str.as_string(); \
-        } \
-    }())
+
+#define SYS_STRING_STATIC_PYSTR(x) ::sysstr::util::make_static_sys_string_pystr<U##x, u##x, u8##x>()
+

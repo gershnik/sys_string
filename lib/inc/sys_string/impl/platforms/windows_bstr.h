@@ -9,8 +9,8 @@
 #error This header must not be included directly. Please include sys_string.h
 #endif
 
-#include <sys_string/impl/util/char_buffer.h>
-#include <sys_string/impl/util/generic_buffer.h>
+#include <sys_string/impl/util/char_vector.h>
+#include <sys_string/impl/util/generic_impl.h>
 
 namespace sysstr
 {
@@ -102,7 +102,7 @@ namespace sysstr::util
     struct static_bstr
     {
         UINT m_size;
-        char16_t m_buf[N + 1];
+        ct_string<char16_t, N> m_buf;
     };
 
     class bstr_buffer
@@ -400,8 +400,6 @@ namespace sysstr::util
         using reverse_iterator = std::reverse_iterator<const value_type *>;
         using const_reverse_iterator = reverse_iterator;
 
-        using cursor = iter_cursor<const_iterator, const_iterator, cursor_direction::forward, size_type>;
-        using reverse_cursor = iter_cursor<const_iterator, const_iterator, cursor_direction::backward, size_type>;
     public:
         bstr_char_access(const bstr_buffer & buffer) noexcept :
             m_chars(buffer.chars()),
@@ -482,7 +480,7 @@ namespace sysstr::util
 
         constexpr size_type capacity() const noexcept
             { return m_capacity; }
-        value_type * buffer() const noexcept
+        value_type * data() const noexcept
             { return m_buf.chars(); }
         static constexpr size_type max_size() noexcept
             { return bstr_traits::max_size; }
@@ -504,7 +502,7 @@ namespace sysstr::util
         UINT m_capacity{bstr_buffer::minimum_capacity()};
     };
 
-    using bstr_builder_impl = char_buffer<bstr_builder_storage>;
+    using bstr_builder_impl = char_vector<bstr_builder_storage>;
 
  }
 
@@ -535,8 +533,8 @@ namespace sysstr::util
 
     protected:
 
-        template<class Char>
-        bstr_storage(const Char * str, size_t len, std::enable_if_t<has_utf_encoding<Char>> * = nullptr):
+        template<has_utf_encoding Char>
+        bstr_storage(const Char * str, size_t len):
             m_buffer(str, len)
         {}
 
@@ -611,29 +609,20 @@ namespace sysstr::util
 
 namespace sysstr
 {
-    template<>
-    inline sys_string_t<bstr_storage>::sys_string_t(const char_access::cursor & src, size_type length) :
-        sys_string_t(src.iterator(), length)
-    {}
-
-    template<>
-    inline sys_string_t<bstr_storage>::sys_string_t(const char_access::reverse_cursor & src, size_type length) :
-        sys_string_t(src.iterator() - length, length)
-    {}
-
-    template<>
-    inline sys_string_t<bstr_storage>::sys_string_t(const char_access::iterator & first, const char_access::iterator & last) :
-        sys_string_t(first, size_type(last - first))
-    {}
-
     using sys_string_bstr = sys_string_t<bstr_storage>; 
     using sys_string_bstr_builder = sys_string_builder_t<bstr_storage>; 
 }
 
-#define SYS_STRING_STATIC_BSTR(x) ([] () noexcept -> ::sysstr::sys_string_bstr { \
-        constexpr ::UINT size = sizeof(u##x); \
-        static const ::sysstr::util::static_bstr<size> sbuf{size - sizeof(char16_t), u##x}; \
-        ::sysstr::util::bstr_buffer buf((::sysstr::util::dynamic_bstr *)&sbuf, 0); \
-        return *reinterpret_cast<::sysstr::sys_string_bstr *>(&buf); \
-    }())
+namespace sysstr::util 
+{
+    template<util::ct_string Str>
+    inline auto make_static_sys_string_bstr() noexcept -> sys_string_bstr
+    {
+        constexpr size_t size = Str.size();
+        static const static_bstr<size> sbuf{(size - 1) * sizeof(char16_t), Str};
+        bstr_buffer buf((dynamic_bstr *)&sbuf, 0);
+        return *reinterpret_cast<sys_string_bstr *>(&buf);
+    }
+}
 
+#define SYS_STRING_STATIC_BSTR(x) ::sysstr::util::make_static_sys_string_bstr<u##x>()

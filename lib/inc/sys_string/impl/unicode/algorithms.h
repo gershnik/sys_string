@@ -10,6 +10,9 @@
 
 #include <sys_string/impl/unicode/mappings.h>
 
+#include <ranges>
+#include <iterator>
+
 namespace sysstr
 {
     struct isspace
@@ -25,7 +28,7 @@ namespace sysstr
     {
         static constexpr auto max_output_length = util::unicode::mapper::max_mapped_length;
         
-        template<class OutIt>
+        template<std::output_iterator<utf_char_of<OutEnc>> OutIt>
         auto operator()(char32_t c, OutIt dest) const noexcept(noexcept(*dest++ = utf_char_of<OutEnc>())) -> OutIt
         {
             return util::unicode::mapper::case_fold.map_char<OutEnc>(c, dest);
@@ -37,13 +40,15 @@ namespace sysstr
         class sigma_tolower
         {
         public:
-            template<class Cursor>
-            auto operator()(Cursor cursor) const noexcept -> char32_t
+            template<ranges::reversible_range Range>
+            auto operator()(const Range & range, 
+                            std::ranges::iterator_t<Range> where) const noexcept -> char32_t
             {
-                if (any_non_cased_then_cased(cursor.reverse()))
+                auto reversed = ranges::make_reverse_iterator(range, where);
+                if (any_non_cased_then_cased(reversed, std::ranges::rend(range)))
                 {
-                    ++cursor;
-                    if (!any_non_cased_then_cased(cursor))
+                    ++where;
+                    if (!any_non_cased_then_cased(where, std::ranges::end(range)))
                     {
                         return U'\u03C2'; //replace with ς
                     }
@@ -51,12 +56,12 @@ namespace sysstr
                 return U'\u03C3'; // replace with σ
             }
         private:
-            template<class Cursor>
-            auto any_non_cased_then_cased(Cursor cursor) const noexcept -> bool
+            template<std::input_iterator It, std::sentinel_for<It> Sentinel>
+            auto any_non_cased_then_cased(It first, Sentinel last) const noexcept -> bool
             {
-                for( ; cursor; ++cursor)
+                for( ; first != last; ++first)
                 {
-                    auto c = *cursor;
+                    auto c = *first;
                     auto props = unicode::get_char_prop(c);
                     if (uint8_t(props & unicode::char_prop::case_ignorable))
                         continue;
@@ -70,22 +75,25 @@ namespace sysstr
     template<utf_encoding OutEnc>
     struct tolower
     {
-        template<class Cursor, class OutIt>
-        inline auto operator()(Cursor cursor, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<OutEnc>())) -> OutIt
+        template<ranges::reversible_range Range, std::output_iterator<utf_char_of<OutEnc>> OutIt>
+        inline auto operator()(const Range & range, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<OutEnc>())) -> OutIt
         {
             using namespace util::unicode;
+
+            auto first = std::ranges::begin(range);
+            auto last = std::ranges::end(range);
             
-            for( ; cursor; ++cursor)
+            for( ; first != last; ++first)
             {
-                auto c = *cursor;
+                auto c = *first;
                 if (c != U'\u03A3') // not Σ
                 {
                     dest = mapper::to_lower_case.map_char<OutEnc>(c, dest);
                 }
                 else
                 {
-                    char32_t lc = util::sigma_tolower()(cursor);
-                    auto writer = utf32_output<OutEnc>::make_writer([&](auto value) {
+                    char32_t lc = util::sigma_tolower()(range, first);
+                    auto writer = make_utf32_encoder<OutEnc>([&](auto value) {
                         *dest++ = value;
                     });
                     writer(lc);
@@ -98,14 +106,16 @@ namespace sysstr
     template<utf_encoding OutEnc>
     struct toupper
     {
-        template<class Cursor, class OutIt>
-        inline auto operator()(Cursor cursor, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<OutEnc>())) -> OutIt
+        template<ranges::reversible_range Range, std::output_iterator<utf_char_of<OutEnc>> OutIt>
+        inline auto operator()(const Range & range, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<OutEnc>())) -> OutIt
         {
             using namespace util::unicode;
             
-            for( ; cursor; ++cursor)
+            auto first = std::ranges::begin(range);
+            auto last = std::ranges::end(range);
+            for( ; first != last; ++first)
             {
-                auto c = *cursor;
+                auto c = *first;
                 dest = mapper::to_upper_case.map_char<OutEnc>(c, dest);
             }
 

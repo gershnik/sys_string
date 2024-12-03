@@ -10,7 +10,7 @@
 #endif
 
 
-#include <sys_string/impl/util/generic_buffer.h>
+#include <sys_string/impl/util/generic_impl.h>
 
 namespace sysstr::util
 {
@@ -25,14 +25,14 @@ namespace sysstr::util
     };
 
     template<size_t N>
-    using static_buffer     = generic::static_buffer<android_traits::storage_type, android_traits::size_type, N>;
-    using dynamic_buffer    = generic::dynamic_buffer<android_traits::storage_type, android_traits::size_type>;
+    using android_static_string     = generic::static_string<android_traits::storage_type, android_traits::size_type, N>;
+    using android_dynamic_string    = generic::dynamic_string<android_traits::storage_type, android_traits::size_type>;
 
-    using buffer            = generic::buffer<android_traits::storage_type, android_traits::size_type>;
+    using android_any_string        = generic::any_string<android_traits::storage_type, android_traits::size_type>;
 
-    using builder_impl      = generic::buffer_builder<android_traits::storage_type, android_traits::size_type>;
+    using android_builder_impl      = generic::builder_impl<android_traits::storage_type, android_traits::size_type>;
 
-    using char_access       = generic::char_access<android_traits::storage_type, android_traits::size_type>;
+    using android_char_access       = generic::char_access<android_traits::storage_type, android_traits::size_type>;
 
 }
 
@@ -40,7 +40,7 @@ namespace sysstr
 {
     class android_storage : private util::generic::storage<util::android_traits::storage_type, util::android_traits::size_type>
     {
-    friend util::char_access;
+    friend util::android_char_access;
     private:
         using super = util::generic::storage<util::android_traits::storage_type, util::android_traits::size_type>;
     public:
@@ -49,8 +49,8 @@ namespace sysstr
         using native_handle_type = util::android_traits::native_handle_type;
 
         using hash_type = util::android_traits::hash_type;
-        using char_access = util::char_access;
-        using builder_impl = util::builder_impl;
+        using char_access = util::android_char_access;
+        using builder_impl = util::android_builder_impl;
 
         static constexpr auto max_size = util::android_traits::max_size;
 
@@ -124,12 +124,12 @@ namespace sysstr::util
 {
     template<>
     template<>
-    inline char_access::char_access(const sys_string_t<android_storage> & src) noexcept:
+    inline android_char_access::char_access(const sys_string_t<android_storage> & src) noexcept:
         char_access(src.get_buffer())
     {}
 
     template<>
-    inline sys_string_t<android_storage> build(builder_impl & builder) noexcept
+    inline sys_string_t<android_storage> build(android_builder_impl & builder) noexcept
     {
         return sys_string_t<android_storage>(convert_to_string(builder));
     }
@@ -137,31 +137,23 @@ namespace sysstr::util
 
 namespace sysstr
 {
-    template<>
-    inline sys_string_t<android_storage>::sys_string_t(const char_access::cursor & src, size_type length):
-        sys_string_t(src.iterator(), length)
-    {}
-
-    template<>
-    inline sys_string_t<android_storage>::sys_string_t(const char_access::reverse_cursor & src, size_type length):
-        sys_string_t(src.iterator() - length, length)
-    {}
-
-    template<>
-    inline sys_string_t<android_storage>::sys_string_t(const char_access::iterator & first, const char_access::iterator & last):
-        sys_string_t(first, last - first)
-    {}
-
     using sys_string_android = sys_string_t<android_storage>;
     using sys_string_android_builder = sys_string_builder_t<android_storage>;
 }
 
-#define SYS_STRING_STATIC_ANDROID(x) ([] () noexcept -> ::sysstr::sys_string_android { \
-        constexpr ::size_t size = sizeof(u##x) / sizeof(char16_t); \
-        static const ::sysstr::util::static_buffer<size> sbuf{0, true, u##x}; \
-        ::sysstr::util::buffer buf((::sysstr::util::dynamic_buffer *)&sbuf, size - 1, 0); \
-        return *reinterpret_cast<::sysstr::sys_string_android *>(&buf); \
-    }())
+namespace sysstr::util 
+{
+    template<util::ct_string Str>
+    inline auto make_static_sys_string_android() noexcept -> sys_string_android
+    {
+        constexpr ::size_t size = Str.size();
+        static const android_static_string<size> sbuf{0, true, Str};
+        android_any_string buf((android_dynamic_string *)&sbuf, size - 1, 0);
+        return *reinterpret_cast<sys_string_android *>(&buf);
+    }
+}
+
+#define SYS_STRING_STATIC_ANDROID(x) ::sysstr::util::make_static_sys_string_android<u##x>()
 
 
 

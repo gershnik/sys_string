@@ -10,7 +10,7 @@
 #endif
 
 
-#include <sys_string/impl/util/generic_buffer.h>
+#include <sys_string/impl/util/generic_impl.h>
 
 namespace sysstr::util
 {
@@ -20,16 +20,16 @@ namespace sysstr::util
         using size_type = size_t;
         using hash_type = unsigned;
         
-        static constexpr size_type max_size = std::numeric_limits<size_t>::max() / sizeof(char16_t);
+        static constexpr size_type max_size = std::numeric_limits<ptrdiff_t>::max() / sizeof(char16_t);
     };
 
     template<size_t N>
-    using emscripten_static_buffer     = generic::static_buffer<emscripten_traits::storage_type, emscripten_traits::size_type, N>;
-    using emscripten_dynamic_buffer    = generic::dynamic_buffer<emscripten_traits::storage_type, emscripten_traits::size_type>;
+    using emscripten_static_string     = generic::static_string<emscripten_traits::storage_type, emscripten_traits::size_type, N>;
+    using emscripten_dynamic_string    = generic::dynamic_string<emscripten_traits::storage_type, emscripten_traits::size_type>;
 
-    using emscripten_buffer            = generic::buffer<emscripten_traits::storage_type, emscripten_traits::size_type>;
+    using emscripten_any_string        = generic::any_string<emscripten_traits::storage_type, emscripten_traits::size_type>;
 
-    using emscripten_builder_impl      = generic::buffer_builder<emscripten_traits::storage_type, emscripten_traits::size_type>;
+    using emscripten_builder_impl      = generic::builder_impl<emscripten_traits::storage_type, emscripten_traits::size_type>;
 
     using emscripten_char_access       = generic::char_access<emscripten_traits::storage_type, emscripten_traits::size_type>;
 
@@ -60,8 +60,8 @@ namespace sysstr
         {}
 
 #ifdef _MSC_VER
-        template<class Char>
-        emscripten_storage(const Char * str, size_t len, std::enable_if_t<has_utf_encoding<Char>> * = nullptr):
+        template<has_utf_encoding Char>
+        emscripten_storage(const Char * str, size_t len):
             super(str, len)
         {}
 #endif
@@ -161,31 +161,23 @@ namespace sysstr::util
 
 namespace sysstr
 {
-    template<>
-    inline sys_string_t<emscripten_storage>::sys_string_t(const char_access::cursor & src, size_type length):
-        sys_string_t(src.iterator(), length)
-    {}
-
-    template<>
-    inline sys_string_t<emscripten_storage>::sys_string_t(const char_access::reverse_cursor & src, size_type length):
-        sys_string_t(src.iterator() - length, length)
-    {}
-
-    template<>
-    inline sys_string_t<emscripten_storage>::sys_string_t(const char_access::iterator & first, const char_access::iterator & last):
-        sys_string_t(first, last - first)
-    {}
-
     using sys_string_emscripten = sys_string_t<emscripten_storage>;
     using sys_string_emscripten_builder = sys_string_builder_t<emscripten_storage>;
 }
 
-#define SYS_STRING_STATIC_EMSCRIPTEN(x) ([] () noexcept -> ::sysstr::sys_string_emscripten { \
-        constexpr ::size_t size = sizeof(u##x) / sizeof(char16_t); \
-        static const ::sysstr::util::emscripten_static_buffer<size> sbuf{0, true, u##x}; \
-        ::sysstr::util::emscripten_buffer buf((::sysstr::util::emscripten_dynamic_buffer *)&sbuf, size - 1, 0); \
-        return *reinterpret_cast<::sysstr::sys_string_emscripten *>(&buf); \
-    }())
+namespace sysstr::util 
+{
+    template<util::ct_string Str>
+    inline auto make_static_sys_string_emscripten() noexcept -> sys_string_emscripten
+    {
+        constexpr ::size_t size = Str.size();
+        static const emscripten_static_string<size> sbuf{0, true, Str};
+        emscripten_any_string buf((emscripten_dynamic_string *)&sbuf, size - 1, 0);
+        return *reinterpret_cast<sys_string_emscripten *>(&buf);
+    }
+}
+
+#define SYS_STRING_STATIC_EMSCRIPTEN(x) ::sysstr::util::make_static_sys_string_emscripten<u##x>()
 
 
 

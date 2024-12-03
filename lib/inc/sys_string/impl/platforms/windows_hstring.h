@@ -9,7 +9,7 @@
 #error This header must not be included directly. Please include sys_string.h
 #endif
 
-#include <sys_string/impl/util/char_buffer.h>
+#include <sys_string/impl/util/char_vector.h>
 
     namespace sysstr
     {
@@ -93,7 +93,7 @@ namespace sysstr::util
 
         constexpr size_type capacity() const noexcept
             { return m_capacity; }
-        constexpr value_type * buffer() const noexcept
+        constexpr value_type * data() const noexcept
             { return m_buffer; }
         static constexpr size_type max_size() noexcept
             { return hstring_traits::max_size; }
@@ -132,7 +132,7 @@ namespace sysstr::util
         size_type m_capacity = 0;
     };
 
-    using hstring_builder_impl = char_buffer<hstring_builder_storage>;
+    using hstring_builder_impl = char_vector<hstring_builder_storage>;
 
     inline HSTRING convert_to_string(hstring_builder_impl & builder) noexcept
     {
@@ -167,8 +167,6 @@ namespace sysstr::util
         using reverse_iterator = std::reverse_iterator<const value_type *>;
         using const_reverse_iterator = reverse_iterator;
 
-        using cursor = iter_cursor<const_iterator, const_iterator, util::cursor_direction::forward, size_type>;
-        using reverse_cursor = iter_cursor<const_iterator, const_iterator, util::cursor_direction::backward, size_type>;
     public:
         hstring_char_access(const sys_string_t<hstring_storage> & src) noexcept;
         ~hstring_char_access() noexcept
@@ -264,12 +262,10 @@ namespace sysstr
             hstring_storage(buffer_from(str, len), handle_retain::no)
         {}
 
-#if SYS_STRING_USE_CHAR8
         template<>
         hstring_storage(const char8_t * str, size_t len):
             hstring_storage(buffer_from((const char *)str, len), handle_retain::no)
         {}
-#endif
 
         template<>
         hstring_storage(const char16_t * str, size_t len) :
@@ -434,37 +430,19 @@ namespace sysstr
 
 namespace sysstr
 {
-    template<>
-    inline sys_string_t<hstring_storage>::sys_string_t(const char_access::cursor & src, size_type length):
-        sys_string_t(src.iterator(), length)
-    {}
-
-    template<>
-    inline sys_string_t<hstring_storage>::sys_string_t(const char_access::reverse_cursor & src, size_type length):
-        sys_string_t(src.iterator() - length, length)
-    {}
-
-    template<>
-    inline sys_string_t<hstring_storage>::sys_string_t(const char_access::iterator & first, 
-                                                       const char_access::iterator & last):
-        sys_string_t(first, size_type(last - first))
-    {}
-
     using sys_string_hstring = sys_string_t<hstring_storage>; 
     using sys_string_hstring_builder = sys_string_builder_t<hstring_storage>; 
 }
 
-//#define SYS_STRING_STATIC_HSTRING(x) ([] () noexcept -> ::systr::sys_string_hstring { \
-//        constexpr ::size_t size = sizeof(u##x) / sizeof(char16_t); \
-//        using header_type = ::sysstr::util::hstring_header; \
-//        static const header_type header{1, size - 1, 0, 0, u##x}; \
-//        return ::sysstr::sys_string_hstring(HSTRING(uintptr_t(&header) | ::sysstr::util::hstring_static_allocation_bit) , handle_retain::no); \
-//    }())
+namespace sysstr::util 
+{
+    template<util::ct_string Str>
+    inline auto make_static_sys_string_hstring() noexcept -> sys_string_hstring
+    {
+        constexpr size_t size = Str.size();
+        static struct bug_workaround { const hstring_header header{1, size - 1, 0, 0, Str.chars}; } b;
+        return sys_string_hstring(HSTRING(uintptr_t(&b.header) | hstring_static_allocation_bit) , handle_retain::no);
+    }
+}
 
-#define SYS_STRING_STATIC_HSTRING(x) ([] () noexcept -> ::sysstr::sys_string_hstring { \
-        constexpr ::size_t size = sizeof(u##x) / sizeof(char16_t); \
-        using header_type = ::sysstr::util::hstring_header; \
-        static struct bug_workaround { const header_type header{1, size - 1, 0, 0, u##x}; } b; \
-        return ::sysstr::sys_string_hstring(HSTRING(uintptr_t(&b.header) | ::sysstr::util::hstring_static_allocation_bit) , ::sysstr::handle_retain::no); \
-    }())
-
+#define SYS_STRING_STATIC_HSTRING(x) ::sysstr::util::make_static_sys_string_hstring<u##x>()

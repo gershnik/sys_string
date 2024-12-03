@@ -32,7 +32,7 @@ set_target_properties(${LIBNAME} PROPERTIES
 
 target_compile_features(${LIBNAME} 
 PUBLIC 
-    cxx_std_17
+    cxx_std_20
 )
 
 target_compile_options(${LIBNAME} 
@@ -71,6 +71,7 @@ set(MAIN_CODE
     ${SRCDIR}/inc/sys_string/impl/builder.h
     ${SRCDIR}/inc/sys_string/impl/misc.h
     ${SRCDIR}/inc/sys_string/impl/format.h
+    ${SRCDIR}/inc/sys_string/impl/print.h
     ${SRCDIR}/inc/sys_string/impl/platform.h
 )
 source_group("Main Code" FILES ${MAIN_CODE})
@@ -103,9 +104,9 @@ source_group("Unicode" FILES ${UNICODE_FILES} ${SOURCES})
 set(UTIL_FILES
 
     ${SRCDIR}/inc/sys_string/impl/util/util.h
-    ${SRCDIR}/inc/sys_string/impl/util/char_buffer.h
-    ${SRCDIR}/inc/sys_string/impl/util/generic_buffer.h
-    ${SRCDIR}/inc/sys_string/impl/util/cursor.h
+    ${SRCDIR}/inc/sys_string/impl/util/char_vector.h
+    ${SRCDIR}/inc/sys_string/impl/util/generic_impl.h
+    ${SRCDIR}/inc/sys_string/impl/util/iter_util.h
     
 )
 source_group("Utils" FILES ${UTIL_FILES})

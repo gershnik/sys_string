@@ -11,118 +11,76 @@
 #include <sys_string/config.h>
 
 #include <iterator>
+#include <ranges>
 #include <algorithm>
-#include <string>
-#if SYS_STRING_USE_SPACESHIP_OPERATOR
-    #include <compare>
-#endif
+#include <tuple>
+#include <cstdarg>
 
 namespace sysstr::util
 {
-    class count_output_iterator
-    {
-    public:
-        using value_type = void;
-        using difference_type = void;
-        using pointer = void ;
-        using reference = void;
-        using iterator_category = std::output_iterator_tag;
-    public:
-        constexpr count_output_iterator(size_t & count) noexcept:
-            m_count(&count)
-        {}
-
-        template<class Value>
-        constexpr count_output_iterator & operator=(Value &&) noexcept
-            { ++(*this->m_count); return *this;}
-        
-        constexpr count_output_iterator & operator*() noexcept     {return *this;}
-        constexpr count_output_iterator & operator++() noexcept    {return *this;}
-        constexpr count_output_iterator & operator++(int) noexcept {return *this;}
-
-    private:
-        size_t * const m_count;
-    };
-
     template<bool Val, class... Args>
     static constexpr bool dependent_bool = Val;
 
-    inline constexpr auto make_compare_result(int res)
-    {
-    #if SYS_STRING_USE_SPACESHIP_OPERATOR
-        return res <=> 0;
-    #else
-        return res;
-    #endif
-    }
+    template<class Char, size_t N>
+    struct ct_string {
+        using char_type = Char;
 
-    template<class T>
-    inline constexpr auto compare_3way(T a, T b)
-    {
-    #if SYS_STRING_USE_SPACESHIP_OPERATOR
-        return a <=> b;
-    #else
-        return (a > b) - (a < b);
-    #endif
-    }
+        Char chars[N];
 
-    template<class Char>
-    inline constexpr auto compare_3way(const Char * lhs, size_t lhs_size, const Char * rhs, size_t rhs_size) noexcept
-    {
-        auto shortest_length = std::min(lhs_size, rhs_size);
-        int res = std::char_traits<Char>::compare(lhs, rhs, shortest_length);
-    #if SYS_STRING_USE_SPACESHIP_OPERATOR
-        if (res != 0)
-            return res <=> 0;
-    #else
-        if (res != 0)
-            return res;
-    #endif
-        return compare_3way(lhs_size, rhs_size);
-    }
-
-    template<class InputIt1, class InputIt2>
-    inline constexpr auto lexicographical_compare_3way(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2)
-    {
-        for ( ; (first1 != last1) && (first2 != last2); ++first1, (void) ++first2 ) 
+        constexpr ct_string(const Char (&src)[N]) noexcept
         {
-            if (auto res = compare_3way(*first1, *first2))
-                return res;
+            std::ranges::copy(src, chars);
         }
-    #if SYS_STRING_USE_SPACESHIP_OPERATOR
-        return (first2 == last2) <=> (first1 == last1);
-    #else
-        return (first2 == last2) - (first1 == last1);
-    #endif
-    }
 
-    template<class InputIt1, class InputIt2, class Compare3Way>
-    inline constexpr auto lexicographical_compare_3way(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, Compare3Way comp)
-    {
-        for ( ; (first1 != last1) && (first2 != last2); ++first1, (void) ++first2 ) 
-        {
-            if (auto res = comp(*first1, *first2); res != 0)
-                return res;
+        constexpr auto size() const -> size_t { return N; }
+
+        constexpr auto operator[](size_t i) const -> Char { return chars[i]; }
+
+        friend constexpr bool operator==(const ct_string & lhs, const ct_string & rhs) {
+            return std::ranges::equal(lhs.chars, rhs.chars);
         }
-    #if SYS_STRING_USE_SPACESHIP_OPERATOR
-        return (first2 == last2) <=> (first1 == last1);
-    #else
-        return (first2 == last2) - (first1 == last1);
-    #endif
-    }
 
-    template<class OutT, class InIt, class Pred, class OutIt>
-    auto split(InIt str_start, InIt str_end, OutIt dest, Pred pred) -> OutIt
+        constexpr auto begin() const { return chars; }
+        constexpr auto end() const { return chars + N; }
+    };
+
+    template<class Char, size_t N>
+    ct_string(const Char (&src)[N]) -> ct_string<Char, N>;
+
+    template<class OutT, std::forward_iterator It, std::sentinel_for<It> Sentinel, std::output_iterator<OutT> OutIt, class Pred>
+    auto split(It str_start, Sentinel str_end, OutIt dest, Pred pred) -> OutIt
+    requires(std::is_constructible_v<OutT, std::tuple_element_t<0, decltype(pred(str_start, str_end))>, std::tuple_element_t<1, decltype(pred(str_start, str_end))>>)
     {
         for( ; ; )
         {
             auto [found_start, found_end] = pred(str_start, str_end);
             *dest++ = OutT(str_start, found_start);
-            if (found_start == str_end)
+            if (found_start == found_end)
                 break;
             str_start = found_end;
         }
         return dest;
+    }
+
+    template<std::ranges::contiguous_range Range>
+    requires(
+        std::is_same_v<std::ranges::range_value_t<Range>, char> &&
+        requires(Range & range) { range.resize(size_t(0)); }
+    )
+    int vprintf_to(Range & range, const char * format, va_list vl)
+    {
+        va_list try_vl;
+        va_copy(try_vl, vl);
+        const int size = vsnprintf(0, 0, format, try_vl);
+        va_end(try_vl);
+        if (size == -1)
+            return size;
+        range.resize(size + 1);
+        const int ret = vsnprintf(std::ranges::data(range), std::ranges::size(range), format, vl);
+        va_end(vl);
+        if (ret >= 0)
+            range.resize(ret);
+        return ret;
     }
 
 }

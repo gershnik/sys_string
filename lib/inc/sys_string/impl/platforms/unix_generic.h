@@ -10,29 +10,28 @@
 #endif
 
 
-#include <sys_string/impl/util/generic_buffer.h>
+#include <sys_string/impl/util/generic_impl.h>
 
 #include <limits>
 
 namespace sysstr::util
 {
-
     struct generic_traits
     {
         using storage_type = char;
         using size_type = size_t;
         using hash_type = unsigned;
         
-        static constexpr size_type max_size = std::numeric_limits<size_t>::max() / sizeof(char);
+        static constexpr size_type max_size = std::numeric_limits<ptrdiff_t>::max() / sizeof(char);
     };
 
     template<size_t N> 
-    using generic_static_buffer     = generic::static_buffer<generic_traits::storage_type, generic_traits::size_type, N>;
-    using generic_dynamic_buffer    = generic::dynamic_buffer<generic_traits::storage_type, generic_traits::size_type>;
+    using generic_static_string     = generic::static_string<generic_traits::storage_type, generic_traits::size_type, N>;
+    using generic_dynamic_string    = generic::dynamic_string<generic_traits::storage_type, generic_traits::size_type>;
 
-    using generic_buffer            = generic::buffer<generic_traits::storage_type, generic_traits::size_type>;
+    using generic_any_string        = generic::any_string<generic_traits::storage_type, generic_traits::size_type>;
 
-    using generic_builder_impl      = generic::buffer_builder<generic_traits::storage_type, generic_traits::size_type>;
+    using generic_builder_impl      = generic::builder_impl<generic_traits::storage_type, generic_traits::size_type>;
 
     using generic_char_access       = generic::char_access<generic_traits::storage_type, generic_traits::size_type>;
     
@@ -59,8 +58,8 @@ namespace sysstr
         using super::super;
 
 #ifdef _MSC_VER
-        template<class Char>
-        generic_storage(const Char * str, size_t len, std::enable_if_t<has_utf_encoding<Char>> * = nullptr):
+        template<has_utf_encoding Char>
+        generic_storage(const Char * str, size_t len):
             super(str, len)
         {}
 #endif
@@ -111,34 +110,25 @@ namespace sysstr::util
 
 namespace sysstr
 {
-    template<>
-    inline 
-    sys_string_t<generic_storage>::sys_string_t(const char_access::cursor & src, size_type length):
-        sys_string_t(src.iterator(), length)
-    {}
-
-    template<>
-    inline 
-    sys_string_t<generic_storage>::sys_string_t(const char_access::reverse_cursor & src, size_type length):
-        sys_string_t(src.iterator() - length, length)
-    {}
-
-    template<>
-    inline 
-    sys_string_t<generic_storage>::sys_string_t(const char_access::iterator & first, const char_access::iterator & last):
-        sys_string_t(first, last - first)
-    {}
-
     using sys_string_generic = sys_string_t<generic_storage>;
     using sys_string_generic_builder = sys_string_builder_t<generic_storage>;
+
+    
 }
 
-#define SYS_STRING_STATIC_GENERIC(x) ([] () noexcept -> ::sysstr::sys_string_generic { \
-        constexpr ::size_t size = sizeof(x) / sizeof(char); \
-        static const ::sysstr::util::generic_static_buffer<size> sbuf{0, true, x}; \
-        ::sysstr::util::generic_buffer buf((::sysstr::util::generic_dynamic_buffer *)&sbuf, size - 1, 0); \
-        return *reinterpret_cast<::sysstr::sys_string_generic *>(&buf); \
-    }())
+namespace sysstr::util 
+{
+    template<util::ct_string Str>
+    inline auto make_static_sys_string_generic() noexcept -> sys_string_generic
+    {
+        constexpr ::size_t size = Str.size();
+        static const generic_static_string<size> sbuf{0, true, Str};
+        generic_any_string buf((generic_dynamic_string *)&sbuf, size - 1, 0);
+        return *reinterpret_cast<sys_string_generic *>(&buf);
+    }
+}
+
+#define SYS_STRING_STATIC_GENERIC(x) ::sysstr::util::make_static_sys_string_generic<x>()
 
 
 

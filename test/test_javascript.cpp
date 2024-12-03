@@ -5,10 +5,12 @@
 // license that can be found in the LICENSE file or at
 // https://github.com/gershnik/sys_string/blob/master/LICENSE
 //
+// _🪦🐮🐌_
+
 #include <sys_string/sys_string.h>
 
 
-#include "catch.hpp"
+#include <doctest/doctest.h>
 
 using namespace sysstr;
 using namespace emscripten;
@@ -18,7 +20,9 @@ using namespace emscripten;
 
 #if !SYS_STRING_USE_GENERIC && !SYS_STRING_USE_PYTHON
 
-    TEST_CASE( "Javascript Conversions", "[javascript]") {
+    TEST_SUITE("javascript") {
+
+    TEST_CASE( "Javascript Conversions" ) {
 
         EM_VAL handle = (EM_VAL)EM_ASM_PTR({
             return Emval.toHandle("");
@@ -47,6 +51,8 @@ using namespace emscripten;
             return ret;
         }, handle);
         CHECK(result);
+    }
+
     }
 
 #endif

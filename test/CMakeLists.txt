@@ -6,7 +6,17 @@
 # https://github.com/gershnik/sys_string/blob/master/LICENSE.txt
 #
 
+include(FetchContent)
+
 find_package (Python3 COMPONENTS Development)
+
+FetchContent_Declare(doctest
+    URL  https://raw.githubusercontent.com/doctest/doctest/v2.4.11/doctest/doctest.h
+    DOWNLOAD_NO_EXTRACT TRUE
+    SOURCE_DIR downloaded/doctest
+)
+
+FetchContent_MakeAvailable(doctest)
 
 if(${Python3_Development_FOUND})
     include_directories(
@@ -22,12 +32,12 @@ if(${Python3_Development_FOUND})
 endif()
 
 set (CXX_STANDARDS
-    17
     20
+    23
 )
 
-set(CXX_STANDARD_17 17)
 set(CXX_STANDARD_20 20)
+set(CXX_STANDARD_23 23)
 
 if (WIN32)
 
@@ -130,6 +140,11 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
         VISIBILITY_INLINES_HIDDEN ON
     )
 
+    target_include_directories(test-${TEST_SUFFIX}
+    PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}/downloaded
+    )
+
     target_compile_options(test-${TEST_SUFFIX} PRIVATE
         $<$<CXX_COMPILER_ID:MSVC>:/utf-8;/W4;/WX>
         $<$<CXX_COMPILER_ID:Clang>:-Wall;-Wextra;-pedantic;-Wno-self-assign-overloaded;-Wno-self-move>
@@ -176,17 +191,16 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
         "$<$<PLATFORM_ID:Windows>:test_windows.cpp>" 
         "$<$<PLATFORM_ID:Linux>:test_linux.cpp>" 
         "$<$<PLATFORM_ID:Emscripten>:test_javascript.cpp>" 
-
-        catch.hpp
     )
 
+    list(APPEND TEST_COMMAND COMMAND echo "Running test-${TEST_SUFFIX}")
     if (${CMAKE_SYSTEM_NAME} STREQUAL Android)
         list(APPEND TEST_COMMAND COMMAND ${ADB} push test-${TEST_SUFFIX} ${ANDROID_TEST_DIR})
-        list(APPEND TEST_COMMAND COMMAND ${ADB} shell LD_LIBRARY_PATH=${ANDROID_LD_LIBRARY_PATH} ${ANDROID_TEST_DIR}/test-${TEST_SUFFIX})
+        list(APPEND TEST_COMMAND COMMAND ${ADB} shell LD_LIBRARY_PATH=${ANDROID_LD_LIBRARY_PATH} ${ANDROID_TEST_DIR}/test-${TEST_SUFFIX} -ni)
     elseif (DEFINED EMSCRIPTEN)
-        list(APPEND TEST_COMMAND COMMAND node test-${TEST_SUFFIX})
+        list(APPEND TEST_COMMAND COMMAND node test-${TEST_SUFFIX} -ni)
     else()
-        list(APPEND TEST_COMMAND COMMAND test-${TEST_SUFFIX})
+        list(APPEND TEST_COMMAND COMMAND test-${TEST_SUFFIX} -ni)
     endif()
 
     list(APPEND TEST_DEPS test-${TEST_SUFFIX})

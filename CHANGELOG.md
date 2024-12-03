@@ -10,11 +10,11 @@ This is a major release with some breaking changes
 ### Changed
 
 - C++20 or higher is now required for compilation. In particular, the following C++20 features must be available:
-  - Ranges support in standard library (__cpp_lib_ranges >= 201911)
+  - Ranges support in standard library (`__cpp_lib_ranges >= 201911`)
   - Three-way comparison (spaceship operator)
   - `char8_t` type
-  - `std::endian` support in standard library (__cpp_lib_endian >= 201907)
-  - Minimal compilers known to work include: GCC 12, Clang 16, Apple Clang 15.4. 
+  - `std::endian` support in standard library (`__cpp_lib_endian >= 201907`)
+  - Minimal compilers known to work include: GCC 12, Clang 16, Apple Clang 15.4 and MSVC 17.6. 
 - The library has been _range_-ified. 
   - All methods that used to accept iterator pairs now take iterator/sentinel pairs.
   - All these methods now also have overloads that accept ranges

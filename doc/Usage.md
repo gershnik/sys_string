@@ -524,10 +524,11 @@ However, these methods are only available if your standard library supports `std
 friend auto operator<<(std::ostream & str, const sys_string & val) -> std::ostream &;
 ```
 
-Prints the string content **as UTF-8** into `std::ostream`. 
+Prints the string content **as UTF-8** into `std::ostream`. If the storage type of `sys_string` is `char` its content is printed verbatim.
+Otherwise it is first converted to UTF-8.
 
 > [!WARNING] 
-> Note that if your output goes somewhere that doesn't use UTF-8 encoding (Windows console or Unix terminal with non UTF-8 locale, for example) the output will be garbled.
+> If the output is converted to UTF-8 and goes somewhere that doesn't use UTF-8 encoding (Windows console or Unix terminal with non UTF-8 locale, for example) the output will be garbled.
 
 On Windows or on any platform that defines `__STDC_ISO_10646__` macro there is also
 
@@ -535,7 +536,7 @@ On Windows or on any platform that defines `__STDC_ISO_10646__` macro there is a
 friend auto operator<<(std::wostream & str, const sys_string & val) -> std::wostream &;
 ```
 
-That prints out UTF-16 or UTF-32 views of the string.
+that behaves similarly for `wchar_t`. 
 
 > [!NOTE]
 > The `operator<<` currently completely ignores width, precision and fill settings of the stream - the entire string

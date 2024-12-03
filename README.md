@@ -1,7 +1,7 @@
 ## SysString
 
 [![Language](https://img.shields.io/badge/language-C++-blue.svg)](https://isocpp.org/)
-[![Standard](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
+[![Standard](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
 [![License](https://img.shields.io/badge/license-BSD-brightgreen.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Tests](https://github.com/gershnik/sys_string/actions/workflows/test.yml/badge.svg)](https://github.com/gershnik/sys_string/actions/workflows/test.yml)
 
@@ -58,7 +58,7 @@ Finally, and unrelatedly to the above, `std::string` lacks some simple things th
 
 The following requirements which other string classes often have are specifically non-goals of this library. 
 
-* Support C++ allocators. Since `sys_string_t` is meant to interoperate with system string class/types, it necessarily has to use the same allocation mechanisms as those. 
+* Support C++ allocators mechanism. Since `sys_string_t` is meant to interoperate with other string class/types, it necessarily has to use the same allocation mechanisms as those. Different allocation behavior can be accomplished via a custom `Storage` class.
 
 * Have an efficient `const char * c_str()` method on all platforms. The goal of the library is to provide an efficient conversion to the native string types rather than specifically `const char *`. While ability to obtain `const char *` *is* provided everywhere, it might involve additional memory allocations and other overhead. Of course, when the storage of `sys_string_t` is `char` it can be obtained with 0 cost.
 
@@ -78,11 +78,25 @@ Another way to look at it is that `sys_string_t` sometimes trades micro-benchmar
 
 ## Compatibility
 
-This library has been tested with
-* Xcode 13 - 14 on x86_64 and arm64
-* MSVC 16.9 - 17.4 on x86_64
-* Clang 12.0.5 under Android NDK, ANDROID_PLATFORM=19 on x86, x86_64, `armeabi-v7a` and `arm64-v8a` architectures
-* GCC 9.3 - 11.3 on x86_64 Ubuntu 20.04 - 22.04
+Starting from version 3 this library requires C++20 compiler. In particular, the following C++20 features must be available:
+  - Ranges support in standard library (`__cpp_lib_ranges >= 201911`)
+  - Three-way comparison (spaceship operator)
+  - `char8_t` type
+  - `std::endian` support in standard library (`__cpp_lib_endian >= 201907`)
+
+The library is known to work with at least:
+* Xcode 15.4
+* MSVC 17.6
+* Clang 16
+* GCC 12
+* Emscripten 3.1.70
+
+Version 2 of this library was the last version supporting C++17. It is known to work at least with: 
+
+* Xcode 13
+* MSVC 16.9
+* Clang 12.0.5
+* GCC 9.3
 * Emscripten 3.1.21 
 
 ## Usage

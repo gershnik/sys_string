@@ -21,6 +21,8 @@
 using namespace sysstr;
 using namespace std::literals;
 
+static_assert(std::invocable<const sysstr::graphemes_func &, std::string>);
+
 namespace {
 
     void check_graphemes(std::u32string_view src, const std::vector<std::u32string> & expected, const char * info)
@@ -43,14 +45,38 @@ namespace {
         CHECK(res);
     }
 
-    template<std::forward_iterator It, std::sentinel_for<It> EndIt>
-    void check_graphemes(util::grapheme_iterator<It, EndIt> it, const std::vector<std::u32string> & expected, 
-                         std::source_location loc = std::source_location::current())
+    template<std::ranges::forward_range Range>
+    void check_graphemes_iter(const Range & range, const std::vector<std::u32string> & expected, 
+                              std::source_location loc = std::source_location::current())
     {
+        util::grapheme_iterator<std::ranges::iterator_t<const Range>, 
+                                std::ranges::sentinel_t<const Range>> it(
+                                    std::ranges::begin(range),
+                                    std::ranges::end(range)
+                                );
         std::vector<std::u32string> result;
         std::ranges::transform(it, std::default_sentinel, std::back_inserter(result), [](auto range) {
             return std::u32string(range.begin(), range.end());
         });
+        INFO("source: ", std::string(loc.file_name()), std::string(":"), loc.line());
+        bool res = std::ranges::equal(result, expected);
+        CHECK(res);
+    }
+
+    template<std::ranges::forward_range Range>
+    void check_graphemes_range(Range && range, const std::vector<std::u32string> & expected, 
+                               std::source_location loc = std::source_location::current())
+    {
+        std::vector<std::u32string> result;
+        #if __cpp_lib_ranges >= 202202L
+            std::ranges::transform(std::forward<Range>(range) | graphemes, std::back_inserter(result), [](auto range) {
+                return std::u32string(range.begin(), range.end());
+            });
+        #else
+            std::ranges::transform(graphemes(std::forward<Range>(range)), std::back_inserter(result), [](auto range) {
+                return std::u32string(range.begin(), range.end());
+            });
+        #endif
         INFO("source: ", std::string(loc.file_name()), std::string(":"), loc.line());
         bool res = std::ranges::equal(result, expected);
         CHECK(res);
@@ -71,9 +97,14 @@ TEST_CASE("generated") {
 
 TEST_CASE("iterators") {
 
-    std::string str("ab");
-    util::grapheme_iterator it(str.begin(), str.end());
-    check_graphemes(it, {U"a", U"b"});
+    check_graphemes_iter(""s, {});
+    check_graphemes_iter("ab"s, {U"a", U"b"});
+}
+
+TEST_CASE("ranges") {
+
+    check_graphemes_range(""s, {});
+    check_graphemes_range("ab"s, {U"a", U"b"});
 }
 
 }

@@ -447,6 +447,21 @@ namespace sysstr
         step(it, end);
     }
 
+    template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+    requires(std::is_same_v<std::iter_value_t<It>, char32_t>)
+    It find_grapheme_cluster_break(It it, const EndIt & end)
+    {
+        advance_to_grapheme_cluster_break(it, end);
+        return it;
+    }
+
+    template<std::ranges::forward_range Range>
+    requires(std::is_same_v<std::ranges::range_value_t<Range>, char32_t>)
+    std::ranges::borrowed_iterator_t<Range> find_grapheme_cluster_break(Range && range)
+    {
+        return find_grapheme_cluster_break(std::ranges::begin(std::forward<Range>(range)), std::ranges::end(std::forward<Range>(range)));
+    }
+
 }
 
 #endif

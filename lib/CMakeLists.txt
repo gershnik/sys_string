@@ -64,6 +64,7 @@ PUBLIC
 set(MAIN_CODE 
     ${SRCDIR}/inc/sys_string/config.h
     ${SRCDIR}/inc/sys_string/utf_view.h
+    ${SRCDIR}/inc/sys_string/grapheme_view.h
     ${SRCDIR}/inc/sys_string/sys_string.h
     ${SRCDIR}/inc/sys_string/impl/compare.h
     ${SRCDIR}/inc/sys_string/impl/hash.h

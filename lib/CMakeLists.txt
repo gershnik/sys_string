@@ -104,6 +104,8 @@ source_group("Unicode" FILES ${UNICODE_FILES} ${SOURCES})
 set(UTIL_FILES
 
     ${SRCDIR}/inc/sys_string/impl/util/util.h
+    ${SRCDIR}/inc/sys_string/impl/util/bitmask_enum.h
+    ${SRCDIR}/inc/sys_string/impl/util/bit_array.h
     ${SRCDIR}/inc/sys_string/impl/util/char_vector.h
     ${SRCDIR}/inc/sys_string/impl/util/generic_impl.h
     ${SRCDIR}/inc/sys_string/impl/util/iter_util.h
@@ -137,8 +139,11 @@ if(${Python3_Interpreter_FOUND})
 
     add_custom_command(
         COMMENT "Generating Unicoode mappings"
-        OUTPUT ${SRCDIR}/src/unicode_mappings.cpp
-        COMMAND ${Python3_EXECUTABLE} ${SRCDIR}/scripts/genmappings.py ${SRCDIR}/res ${SRCDIR}/src/unicode_mappings.cpp 
+        OUTPUT ${SRCDIR}/src/unicode_mappings.cpp ${SRCDIR}/inc/sys_string/impl/unicode/mappings_params.h
+        COMMAND ${Python3_EXECUTABLE} ${SRCDIR}/scripts/genmappings.py 
+                        ${SRCDIR}/res 
+                        ${SRCDIR}/src/unicode_mappings.cpp 
+                        ${SRCDIR}/inc/sys_string/impl/unicode/mappings_params.h
         DEPENDS 
             ${UNICODE_DATA} 
             ${UNICODE_SCRIPTS}

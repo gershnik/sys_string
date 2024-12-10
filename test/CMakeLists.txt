@@ -184,6 +184,8 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
         test_builder.cpp
         test_utf_iteration.cpp
         test_utf_util.cpp
+        test_grapheme.cpp
+        test_grapheme_data.h
         test_generic.cpp
         test_python.cpp
         "$<$<PLATFORM_ID:Darwin>:test_apple.mm>"

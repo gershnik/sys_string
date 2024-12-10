@@ -9,6 +9,9 @@
 #define HEADER_SYS_STRING_UNICODE_MAPPINGS_H_INCLUDED
 
 #include <sys_string/impl/unicode/utf_encoding.h>
+#include <sys_string/impl/util/bit_array.h>
+
+#include <sys_string/impl/unicode/mappings_params.h>
 
 #include <algorithm>
 #include <cstdlib>
@@ -24,11 +27,9 @@ namespace sysstr::util
             char32_t value:21;
         };
 
-        class mapper
+        class mapper : public mapper_data
         {
         public:
-            static constexpr size_t max_mapped_length = 3;
-
             static const mapper case_fold;
             static const mapper to_lower_case;
             static const mapper to_upper_case;
@@ -92,41 +93,6 @@ namespace sysstr::util
             const char16_t * m_mapped;
         };
 
-        constexpr size_t props_block_len = 256;
-        constexpr size_t props_count_per_byte = 4;
-
-        enum class char_prop : uint8_t
-        {
-            none            = 0,
-            cased           = 0b01,
-            case_ignorable  = 0b10
-        };
-        inline char_prop operator|(char_prop lhs, char_prop rhs) noexcept
-            { return char_prop(uint8_t(lhs) | uint8_t(rhs)); }
-        inline char_prop operator&(char_prop lhs, char_prop rhs) noexcept
-            { return char_prop(uint8_t(lhs) & uint8_t(rhs)); }
-        inline char_prop operator^(char_prop lhs, char_prop rhs) noexcept
-            { return char_prop(uint8_t(lhs) ^ uint8_t(rhs)); }
-        inline char_prop operator~(char_prop val) noexcept
-            { return char_prop(~uint8_t(val)); }
-
-        inline char_prop get_char_prop(char32_t c) noexcept
-        {
-            extern const uint8_t props_stage1[];
-            extern const uint8_t props_stage2[];
-            extern const char32_t max_props_char;
-
-            if (c > max_props_char)
-                return char_prop::none;
-            auto stage2_block_offset = props_stage1[c / props_block_len] * (props_block_len / props_count_per_byte);
-            auto stage2_char_idx = c % props_block_len;
-            auto byte_offset = stage2_block_offset + stage2_char_idx / props_count_per_byte;
-            auto prop_byte = props_stage2[byte_offset];
-            auto shift = ((props_count_per_byte - 1) - stage2_char_idx % props_count_per_byte) * (CHAR_BIT / props_count_per_byte);
-            auto prop_nibble = (prop_byte >> shift) /*& 0x0F*/;
-            return char_prop(prop_nibble);
-        }
-
         inline bool isspace(char32_t c) noexcept
         {
             extern const char16_t whitespaces[];
@@ -137,7 +103,30 @@ namespace sysstr::util
                     return true;
             return false;
         }
+
+        template<class Base>
+        class property_lookup : public Base
+        {
+        public:
+            using typename Base::value;
+
+            static inline value get(char32_t c) noexcept
+            {
+                if (c > Base::max_char)
+                    return value(0);
+                auto stage2_block_offset = Base::stage1[c / Base::block_len] * Base::block_len;
+                auto stage2_char_idx = c % Base::block_len;
+                if constexpr (Base::separate_values)
+                    return value(Base::values[Base::stage2[stage2_block_offset + stage2_char_idx]]);
+                else
+                    return value(Base::stage2[stage2_block_offset + stage2_char_idx]);
+            }
+        };
+
+        using case_prop = property_lookup<case_prop_data>;
+        using grapheme_cluster_break_prop = property_lookup<grapheme_cluster_break_prop_data>;
     }
 }
+
 
 #endif

@@ -126,7 +126,7 @@ namespace sysstr
         private:
             It m_current;
             It m_next;
-            [[no_unique_address]] EndIt m_last;
+            SYS_STRING_NO_UNIQUE_ADDRESS EndIt m_last;
             grapheme_cluster_break_finder m_finder;
         };
     }

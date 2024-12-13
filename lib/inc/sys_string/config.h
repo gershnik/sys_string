@@ -84,6 +84,12 @@
     #error Please define how to force inline for your compiler
 #endif
 
+#if defined(_MSC_VER)
+    #define SYS_STRING_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+#else
+    #define SYS_STRING_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#endif
+
 //GCC up to 11.3 has a weird constexpr bug in some palces
 #if __GNUC__ > 11 || (__GNUC__ == 11 && __GNUC_MINOR__ > 2)
     #define BUGGY_CONSTEXPR constexpr

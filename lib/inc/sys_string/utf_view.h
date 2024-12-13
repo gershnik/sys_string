@@ -171,7 +171,7 @@ namespace sysstr
         private:
             It m_current{};
             It m_next{};
-            [[no_unique_address]] EndIt m_last{};
+            SYS_STRING_NO_UNIQUE_ADDRESS EndIt m_last{};
             utf_codepoint_encoder<OutputEnc, false> m_encoder;
             uint8_t m_char_idx = 0;
         };
@@ -267,7 +267,7 @@ namespace sysstr
         private:
             It m_current{};
             It m_next{};
-            [[no_unique_address]] EndIt m_last{};
+            SYS_STRING_NO_UNIQUE_ADDRESS EndIt m_last{};
             value_type m_value = 0;
         };
     

@@ -132,7 +132,7 @@ namespace sysstr
         static constexpr uint16_t s_lf_offset = 7;
         static constexpr uint16_t s_cr_offset = 8;
         static constexpr uint16_t s_zwj_offset = 9;
-        static constexpr uint16_t s_special_mask = 0b0000'0011'1000'0000;
+        static constexpr uint16_t s_special_mask = 0b0000'0001'1100'0000;
 
         enum class special : uint16_t
         {
@@ -152,7 +152,7 @@ namespace sysstr
         };
 
         static constexpr uint16_t s_state_offset = 10;
-        static constexpr uint16_t s_state_mask = 0b0001'1100'0000'0000;
+        static constexpr uint16_t s_state_mask = 0b000'1110'0000'0000;
 
         static constexpr special get_special(char32_t c)
         {
@@ -164,10 +164,7 @@ namespace sysstr
         }
 
         static constexpr uint16_t pack(table::value props, special sp, state st)
-        {
-            return props | uint16_t(sp) | (uint16_t(st) << s_state_offset);
-        }
-
+            { return props | uint16_t(sp) | (uint16_t(st) << s_state_offset); }
         static constexpr table::value basic_props(table::value props)
             { return table::value(props & table::basic_mask); }
         static constexpr table::value in_cb_props(table::value  props)
@@ -283,7 +280,7 @@ namespace sysstr
                     
                     if (current_basic_props == table::extend || current_special == special::zwj || //GB9
                         current_basic_props == table::spacing_mark ||  //GB9a
-                        prev_basic_props == table::prepend)          //GB9b
+                        prev_basic_props == table::prepend)            //GB9b
                         break;
 
                     

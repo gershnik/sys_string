@@ -334,12 +334,12 @@ def make_grapheme_tests():
     ret =''
     for test in grapheme_tests:
         data, comment, source, expected = test
-        ret += f'//{comment}\ncheck_graphemes(U"{source}", {{'
+        ret += f'//{data}\n//{comment}\ncheck_graphemes(U"{source}", {{'
         for idx, exp in enumerate(expected):
             if idx != 0:
                 ret += ', '
             ret += f'U"{exp}"'
-        ret += f'}}, "{data}");\n'
+        ret += f'}});\n'
     return ret
 
 read_ucd_file(datadir/'UnicodeData.txt', parse_case_info)

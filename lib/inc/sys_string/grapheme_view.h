@@ -22,7 +22,13 @@ namespace sysstr
         class grapheme_iterator
         {
         private:
-            using iter_type = utf_iterator<utf32, It, EndIt, iter_direction::forward>;
+            template<std::input_iterator RawIt, std::sentinel_for<RawIt> RawEndIt>
+            static std::true_type detect_utf32_iterator(utf_iterator<utf32,RawIt,RawEndIt,iter_direction::forward>);
+            template<class X>
+            static std::false_type detect_utf32_iterator(X);
+            
+            static constexpr bool is_utf32_iterator_already = decltype(detect_utf32_iterator(std::declval<It>()))::value; 
+            static constexpr utf_encoding source_encoding = utf_encoding_of<std::iter_value_t<It>>;
         public:
             using difference_type = std::iter_difference_t<It>;
             using size_type = std::make_unsigned_t<difference_type>;
@@ -35,70 +41,34 @@ namespace sysstr
             grapheme_iterator() = default;
 
             grapheme_iterator(It first, EndIt last):
-                m_current(first, last),
-                m_next(first, last)
+                m_current(first),
+                m_next(first),
+                m_last(last)
             {
-                advance_to_grapheme_cluster_break(m_next, std::default_sentinel);
-            }
+                if (this->m_next == this->m_last)
+                    return;
 
-            value_type operator*() const noexcept
-                { return value_type{this->m_current.storage_current(), this->m_next.storage_current()}; }
+                if constexpr (!is_utf32_iterator_already)
+                {
+                    utf32_input<source_encoding> input;
+                    this->m_finder.reset(input.read(this->m_next, this->m_last));
+                    
+                    for (auto next = this->m_next; this->m_next != this->m_last; this->m_next = next)
+                    {
+                        if (this->m_finder(input.read(next, this->m_last)))
+                            break;
+                    }
+                }
+                else
+                {
+                    this->m_finder.reset(*this->m_next);
 
-            grapheme_iterator & operator++()
-            {
-                m_current = m_next;
-                advance_to_grapheme_cluster_break(m_next, std::default_sentinel);
-                return *this;
-            }
-
-            grapheme_iterator operator++(int)
-            {
-                grapheme_iterator ret = *this;
-                ++(*this);
-                return ret;
-            }
-
-            friend constexpr bool operator==(const grapheme_iterator & lhs, const grapheme_iterator & rhs)
-                { return lhs.m_current == rhs.m_current; }
-            friend constexpr bool operator!=(const grapheme_iterator & lhs, const grapheme_iterator & rhs)
-                { return !(lhs == rhs); }
-            
-            friend constexpr bool operator==(const grapheme_iterator & lhs, std::default_sentinel_t)
-                { return lhs.m_current == std::default_sentinel; }
-            friend constexpr bool operator==(std::default_sentinel_t, const grapheme_iterator & rhs)
-                { return rhs.m_current == std::default_sentinel; }
-            friend constexpr bool operator!=(const grapheme_iterator & lhs, std::default_sentinel_t rhs)
-                { return !(lhs == rhs); }
-            friend constexpr bool operator!=(std::default_sentinel_t lhs, const grapheme_iterator & rhs)
-                { return !(lhs == rhs); }
-
-            
-        private:
-            iter_type m_current;
-            iter_type m_next;
-        };
-
-        template<std::input_iterator RawIt, std::sentinel_for<RawIt> RawEndIt>
-        class grapheme_iterator<utf_iterator<utf32, RawIt, RawEndIt, iter_direction::forward>, std::default_sentinel_t>
-        {
-        private:
-            using iter_type = utf_iterator<utf32, RawIt, RawEndIt, iter_direction::forward>;
-        public:
-            using difference_type = std::iter_difference_t<iter_type>;
-            using size_type = std::make_unsigned_t<difference_type>;
-            using value_type = std::ranges::subrange<iter_type, iter_type>;
-            using reference = const value_type;
-            using pointer = void;
-
-            using iterator_category = std::forward_iterator_tag;
-        public:
-            grapheme_iterator() = default;
-
-            grapheme_iterator(iter_type first, iter_type last):
-                m_current(first, last),
-                m_next(first, last)
-            {
-                advance_to_grapheme_cluster_break(m_next, std::default_sentinel);
+                    for (++this->m_next; this->m_next != this->m_last; ++this->m_next)
+                    {
+                        if (this->m_finder(*this->m_next))
+                            break;
+                    }
+                }
             }
 
             value_type operator*() const noexcept
@@ -106,8 +76,29 @@ namespace sysstr
 
             grapheme_iterator & operator++()
             {
-                m_current = m_next;
-                advance_to_grapheme_cluster_break(m_next, std::default_sentinel);
+                this->m_current = this->m_next;
+                if (this->m_next != this->m_last)
+                {
+                    ++this->m_next;
+
+                    if constexpr (!is_utf32_iterator_already)
+                    {
+                        utf32_input<source_encoding> input;
+                        for (auto next = this->m_next; this->m_next != this->m_last; this->m_next = next)
+                        {
+                            if (this->m_finder(input.read(next, this->m_last)))
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        for ( ; this->m_next != this->m_last; ++this->m_next)
+                        {
+                            if (this->m_finder(*this->m_next))
+                                break;
+                        }
+                    }
+                }
                 return *this;
             }
 
@@ -124,18 +115,19 @@ namespace sysstr
                 { return !(lhs == rhs); }
             
             friend constexpr bool operator==(const grapheme_iterator & lhs, std::default_sentinel_t)
-                { return lhs.m_current == std::default_sentinel; }
+                { return lhs.m_current == lhs.m_last; }
             friend constexpr bool operator==(std::default_sentinel_t, const grapheme_iterator & rhs)
-                { return rhs.m_current == std::default_sentinel; }
+                { return rhs.m_current == rhs.m_last; }
             friend constexpr bool operator!=(const grapheme_iterator & lhs, std::default_sentinel_t rhs)
                 { return !(lhs == rhs); }
             friend constexpr bool operator!=(std::default_sentinel_t lhs, const grapheme_iterator & rhs)
                 { return !(lhs == rhs); }
 
-            
         private:
-            iter_type m_current;
-            iter_type m_next;
+            It m_current;
+            It m_next;
+            [[no_unique_address]] EndIt m_last;
+            grapheme_cluster_break_finder m_finder;
         };
     }
     
@@ -179,8 +171,8 @@ namespace sysstr
             m_src(src)
         {}
 
-        grapheme_view(Range && src) noexcept(noexcept(range(std::move<Range>(src)))) :
-            m_src(std::move<Range>(src))
+        grapheme_view(Range && src) noexcept(noexcept(range(std::move(src)))) :
+            m_src(std::move(src))
         {}
 
         template<class... Args>

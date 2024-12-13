@@ -25,26 +25,25 @@ static_assert(std::invocable<const sysstr::graphemes_func &, std::string>);
 
 namespace {
 
-    void check_graphemes(std::u32string_view src, const std::vector<std::u32string> & expected, const char * info)
+    template<std::ranges::forward_range Range>
+    void check_graphemes_range(Range && range, const std::vector<std::u32string> & expected,
+                               std::source_location loc = std::source_location::current())
     {
-        auto first = std::ranges::begin(src);
-        auto last = std::ranges::end(src);
-
         std::vector<std::u32string> result;
-        do
-        {
-            auto next = first;
-            sysstr::advance_to_grapheme_cluster_break(next, last);
-            result.push_back(std::u32string(first, next));
-            first = next;
-        } 
-        while (first != last);
-
-        INFO("source: ", std::string_view(info));
+        #if __cpp_lib_ranges >= 202202L
+            std::ranges::transform(std::forward<Range>(range) | graphemes, std::back_inserter(result), [](auto range) {
+                return std::u32string(range.begin(), range.end());
+            });
+        #else
+            std::ranges::transform(graphemes(std::forward<Range>(range)), std::back_inserter(result), [](auto range) {
+                return std::u32string(range.begin(), range.end());
+            });
+        #endif
+        INFO("source: ", std::string(loc.file_name()), std::string(":"), loc.line());
         bool res = std::ranges::equal(result, expected);
         CHECK(res);
     }
-
+    
     template<std::ranges::forward_range Range>
     void check_graphemes_iter(const Range & range, const std::vector<std::u32string> & expected, 
                               std::source_location loc = std::source_location::current())
@@ -63,31 +62,18 @@ namespace {
         CHECK(res);
     }
 
-    template<std::ranges::forward_range Range>
-    void check_graphemes_range(Range && range, const std::vector<std::u32string> & expected, 
-                               std::source_location loc = std::source_location::current())
+    void check_graphemes(std::u32string_view src, const std::vector<std::u32string> & expected, std::source_location loc = std::source_location::current())
     {
-        std::vector<std::u32string> result;
-        #if __cpp_lib_ranges >= 202202L
-            std::ranges::transform(std::forward<Range>(range) | graphemes, std::back_inserter(result), [](auto range) {
-                return std::u32string(range.begin(), range.end());
-            });
-        #else
-            std::ranges::transform(graphemes(std::forward<Range>(range)), std::back_inserter(result), [](auto range) {
-                return std::u32string(range.begin(), range.end());
-            });
-        #endif
-        INFO("source: ", std::string(loc.file_name()), std::string(":"), loc.line());
-        bool res = std::ranges::equal(result, expected);
-        CHECK(res);
+        check_graphemes_range(src, expected, loc);
     }
+    
 }
 
 TEST_SUITE("grapheme") {
 
 TEST_CASE("boundary") {
-    check_graphemes(U"", {U""}, "empty");
-    check_graphemes(std::u32string_view(U"\0\0", 2), {std::u32string(U"\0", 1), std::u32string(U"\0", 1)}, "null");
+    check_graphemes(U""sv, {});
+    check_graphemes(std::u32string_view(U"\0\0", 2), {std::u32string(U"\0", 1), std::u32string(U"\0", 1)});
 }
 
 TEST_CASE("generated") {
@@ -103,8 +89,10 @@ TEST_CASE("iterators") {
 
 TEST_CASE("ranges") {
 
-    check_graphemes_range(""s, {});
     check_graphemes_range("ab"s, {U"a", U"b"});
+    check_graphemes_range(u"ab"s, {U"a", U"b"});
+    check_graphemes_range(U"ab"s, {U"a", U"b"});
+    check_graphemes_range(as_utf32("ab"s), {U"a", U"b"});
 }
 
 }

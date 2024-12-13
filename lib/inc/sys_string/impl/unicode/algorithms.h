@@ -129,18 +129,19 @@ namespace sysstr
     private:
         using table = util::unicode::grapheme_cluster_break_prop;
 
-        struct char_data
-        {
-            char32_t c;
-            table::value props;
+        static constexpr uint16_t s_lf_offset = 7;
+        static constexpr uint16_t s_cr_offset = 8;
+        static constexpr uint16_t s_zwj_offset = 9;
+        static constexpr uint16_t s_special_mask = 0b0000'0011'1000'0000;
 
-            table::value basic_props() const
-                { return table::value(props & table::basic_mask); }
-            table::value in_cb_props() const
-                { return table::value(props & table::in_cb_mask); }
+        enum class special : uint16_t
+        {
+            lf = uint16_t(1 << s_lf_offset),
+            cr = uint16_t(1 << s_cr_offset),
+            zwj = uint16_t(1 << s_zwj_offset)
         };
 
-        enum class state
+        enum class state : uint16_t
         {
             none,
             after_ri_indicator,
@@ -150,13 +151,34 @@ namespace sysstr
             extended_picto_has_zwj
         };
 
-        char_data m_prev;
-        state m_state;
+        static constexpr uint16_t s_state_offset = 10;
+        static constexpr uint16_t s_state_mask = 0b0001'1100'0000'0000;
+
+        static constexpr special get_special(char32_t c)
+        {
+            return special(
+                   (uint16_t(c == U'\u000A') << s_lf_offset) |
+                   (uint16_t(c == U'\u000D') << s_cr_offset) |
+                   (uint16_t(c == U'\u200D') << s_zwj_offset)
+            );
+        }
+
+        static constexpr uint16_t pack(table::value props, special sp, state st)
+        {
+            return props | uint16_t(sp) | (uint16_t(st) << s_state_offset);
+        }
+
+        static constexpr table::value basic_props(table::value props)
+            { return table::value(props & table::basic_mask); }
+        static constexpr table::value in_cb_props(table::value  props)
+            { return table::value(props & table::in_cb_mask); }
+
+        
+        uint16_t m_data;
 
     public:
         grapheme_cluster_break_finder():
-            m_prev{U'\u000A', table::none},
-            m_state(state::none)
+            m_data(pack(table::none, special::lf, state::none))
         {}
         
         grapheme_cluster_break_finder(char32_t first)
@@ -166,35 +188,45 @@ namespace sysstr
 
         void reset(char32_t first)
         {
-            m_prev = char_data{first, table::get(first)},
-            m_state = (m_prev.basic_props() == table::regional_indicator ? state::after_ri_indicator : (
-                        m_prev.in_cb_props() == table::in_cb_consonant ? state::conjunct_cluster_start : (
-                        m_prev.props & table::extended_pictographic ? state::extended_picto_start :
+            auto props = table::get(first);
+            auto sp = get_special(first);
+            state st = (basic_props(props) == table::regional_indicator ? state::after_ri_indicator : (
+                        in_cb_props(props) == table::in_cb_consonant ? state::conjunct_cluster_start : (
+                        basic_props(props) == table::extended_pictographic ? state::extended_picto_start :
                         state::none)));
+            m_data = pack(props, sp, st);
         }
 
         bool operator()(char32_t c)
         {
-            char_data current{c, table::get(c)};
+            auto current_props = table::get(c);
+            auto current_basic_props = basic_props(current_props);
+            auto current_in_cb_props = in_cb_props(current_props);
+            auto current_special = get_special(c);
+            auto current_state = state(m_data >> s_state_offset);
+
             bool ret = false;
-            state next_state = m_state;
-            switch (m_state)
+            state next_state = current_state;
+            switch (current_state)
             {
                 case state::none:
                 case state::after_ri_indicator:
                 main_case:
+                {
+                    auto prev_basic_props = basic_props(table::value(m_data));
+                    auto prev_special = special(m_data & s_special_mask);
 
-                    if (current.basic_props() == table::regional_indicator) //GB12 and GB13
+                    if (current_basic_props == table::regional_indicator) //GB12 and GB13
                     {
-                        next_state = state((int(m_state) + 1) % (int(state::after_ri_indicator) + 1));
-                        if (m_state == state::after_ri_indicator)
+                        next_state = state((int(current_state) + 1) % (int(state::after_ri_indicator) + 1));
+                        if (current_state == state::after_ri_indicator)
                             break;
                     }
-                    else if (current.in_cb_props() == table::in_cb_consonant) //GB9c start
+                    else if (current_in_cb_props == table::in_cb_consonant) //GB9c start
                     {
                         next_state = state::conjunct_cluster_start;
                     }
-                    else if (current.props & table::extended_pictographic) //GB11 start
+                    else if (current_basic_props == table::extended_pictographic) //GB11 start
                     {
                         next_state = state::extended_picto_start;
                     }
@@ -203,56 +235,55 @@ namespace sysstr
                         next_state = state::none;
                     }
 
-
                     //GB3
-                    if (current.c == U'\u000A' && m_prev.c == U'\u000D')
+                    if (current_special == special::lf && prev_special == special::cr)
                         break;
 
                     //GB4
-                    if (m_prev.c == U'\u000D' || m_prev.c == U'\u000A' || m_prev.props == table::control)
+                    if (prev_special == special::cr || prev_special == special::lf || prev_basic_props == table::control)
                     {
                         ret = true;
                         break;
                     }
 
                     //GB5
-                    if (current.c == U'\u000D' || current.c == U'\u000A' || current.props == table::control)
+                    if (current_special == special::cr || current_special == special::lf || current_basic_props == table::control)
                     {
                         ret = true;
                         break;
                     }
 
                     //GB6
-                    if (m_prev.basic_props() == table::hangul_l && (
-                            current.basic_props() == table::hangul_l ||
-                            current.basic_props() == table::hangul_v ||
-                            current.basic_props() == table::hangul_lv ||
-                            current.basic_props() == table::hangul_lvt))
+                    if (prev_basic_props == table::hangul_l && (
+                            current_basic_props == table::hangul_l ||
+                            current_basic_props == table::hangul_v ||
+                            current_basic_props == table::hangul_lv ||
+                            current_basic_props == table::hangul_lvt))
                     {
                         break;
                     }
 
                     //GB7
-                    if ((m_prev.basic_props() == table::hangul_lv ||
-                         m_prev.basic_props() == table::hangul_v) && (
-                            current.basic_props() == table::hangul_v ||
-                            current.basic_props() == table::hangul_t))
+                    if ((prev_basic_props == table::hangul_lv ||
+                         prev_basic_props == table::hangul_v) && (
+                            current_basic_props == table::hangul_v ||
+                            current_basic_props == table::hangul_t))
                     {
                         break;
                     }
 
                     //GB8
-                    if ((m_prev.basic_props() == table::hangul_lvt ||
-                         m_prev.basic_props() == table::hangul_t) && (
-                            current.basic_props() == table::hangul_t))
+                    if ((prev_basic_props == table::hangul_lvt ||
+                         prev_basic_props == table::hangul_t) && (
+                            current_basic_props == table::hangul_t))
                     {
                         break;
                     }
 
                     
-                    if (current.basic_props() == table::extend || current.c == U'\u200D' || //GB9
-                        current.basic_props() == table::spacing_mark ||  //GB9a
-                        m_prev.basic_props() == table::prepend)          //GB9b
+                    if (current_basic_props == table::extend || current_special == special::zwj || //GB9
+                        current_basic_props == table::spacing_mark ||  //GB9a
+                        prev_basic_props == table::prepend)          //GB9b
                         break;
 
                     
@@ -260,10 +291,10 @@ namespace sysstr
                     ret = true;
                     break;
                 
-                
+                }
                 case state::conjunct_cluster_has_linker:
                     
-                    if (current.in_cb_props() == table::in_cb_consonant)
+                    if (current_in_cb_props == table::in_cb_consonant)
                     {
                         next_state = state::conjunct_cluster_start;
                         break;
@@ -272,29 +303,29 @@ namespace sysstr
 
                 case state::conjunct_cluster_start:
 
-                    if (current.in_cb_props() == table::in_cb_extend)
+                    if (current_in_cb_props == table::in_cb_extend)
                         break;
-                    if (current.in_cb_props() == table::in_cb_linker)
+                    if (current_in_cb_props == table::in_cb_linker)
                     {
                         next_state = state::conjunct_cluster_has_linker;
                         break;
                     }
 
-                    m_state = state::none;
+                    current_state = state::none;
                     next_state = state::none;
                     goto main_case;
 
                 case state::extended_picto_start:
 
-                    if (current.basic_props() == table::extend)
+                    if (current_basic_props == table::extend)
                         break;
-                    if (current.c == U'\u200D')
+                    if (current_special == special::zwj)
                     {
                         next_state = state::extended_picto_has_zwj;
                         break;
                     }
 
-                    m_state = state::none;
+                    current_state = state::none;
                     next_state = state::none;
                     goto main_case;
 
@@ -302,15 +333,14 @@ namespace sysstr
 
                     next_state = state::none;
                 
-                    if (current.props & table::extended_pictographic)
+                    if (current_basic_props == table::extended_pictographic)
                         break;
                     
-                    m_state = state::none;
+                    current_state = state::none;
                     goto main_case;
             }
 
-            m_state = next_state;
-            m_prev = current;
+            m_data = pack(current_props, current_special, next_state);
             return ret;
         }
     };

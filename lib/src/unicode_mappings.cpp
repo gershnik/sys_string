@@ -1079,7 +1079,7 @@ namespace sysstr::util::unicode
     });
 
     
-    const bit_array<7, 17> grapheme_cluster_break_prop_data::values({0, 48, 16, 32, 4, 1, 34, 50, 2, 3, 5, 6, 7, 8, 9, 10, 64});
+    const bit_array<6, 17> grapheme_cluster_break_prop_data::values({0, 48, 16, 32, 4, 1, 34, 50, 2, 3, 5, 6, 7, 8, 9, 10, 11});
     
     
     constexpr auto total_data_size = 
@@ -1092,6 +1092,6 @@ namespace sysstr::util::unicode
         sizeof(whitespaces) +
         case_prop_data::data_size +
         grapheme_cluster_break_prop_data::data_size;
-    static_assert(total_data_size == 59381);
+    static_assert(total_data_size == 59379);
 
 }

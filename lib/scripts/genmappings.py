@@ -60,7 +60,7 @@ grapheme_related_prop_values = {
 }
 
 grapheme_related_emoji_values = {
-    'Extended_Pictographic':    (0x40, 'extended_pictographic')
+    'Extended_Pictographic':    (0xB, 'extended_pictographic')
 }
 
 grapheme_masks = {
@@ -377,7 +377,7 @@ namespace sysstr::util::unicode
 
     {print_properties_header("case_prop_data", case_prop_builder, case_prop_values)}
     {print_properties_header("grapheme_cluster_break_prop_data", grapheme_cluster_break_prop_builder, 
-                             (grapheme_cluster_break_prop_values, grapheme_related_prop_values, grapheme_related_emoji_values), 
+                             (grapheme_cluster_break_prop_values, grapheme_related_emoji_values, grapheme_related_prop_values), 
                              grapheme_masks)}
 }}
 

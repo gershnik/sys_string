@@ -51,7 +51,7 @@ namespace sysstr::util::unicode
         static const bit_array<7, 3600> stage1;
         static const bit_array<5, 27136> stage2;
     
-        static const bit_array<7, 17> values;
+        static const bit_array<6, 17> values;
 
         static constexpr bool separate_values = true;
     
@@ -69,10 +69,10 @@ namespace sysstr::util::unicode
             hangul_t = 8,
             hangul_lv = 9,
             hangul_lvt = 10,
+            extended_pictographic = 11,
             in_cb_consonant = 16,
             in_cb_extend = 32,
             in_cb_linker = 48,
-            extended_pictographic = 64,
             
             basic_mask = 15,
             in_cb_mask = 48

@@ -13,6 +13,7 @@ from table_builder import table_builder
 datadir = Path(sys.argv[1])
 cppfile = Path(sys.argv[2])
 hfile = Path(sys.argv[3])
+testfile = Path(sys.argv[4])
 
 total_data_size = 0
 
@@ -445,7 +446,7 @@ namespace sysstr::util::unicode
 }}
 ''')
 
-write_file(datadir / ('../../test/test_grapheme_data.h'), 
+write_file(testfile, 
            f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 
 //

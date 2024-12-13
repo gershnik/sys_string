@@ -8,7 +8,6 @@
 
 include(FetchContent)
 
-find_package (Python3 COMPONENTS Development)
 
 FetchContent_Declare(doctest
     URL  https://raw.githubusercontent.com/doctest/doctest/v2.4.11/doctest/doctest.h

@@ -17,8 +17,6 @@ if (NOT SYSSTR_VERSION)
 endif()
 project(sys_string VERSION ${SYSSTR_VERSION})
 
-find_package (Python3 COMPONENTS Interpreter)
-
 set(SRCDIR ${CMAKE_CURRENT_LIST_DIR})
 set(LIBNAME sys_string)
 
@@ -131,26 +129,6 @@ PRIVATE
 )
 
 add_library(${LIBNAME}::${LIBNAME} ALIAS ${LIBNAME})
-
-
-if(${Python3_Interpreter_FOUND})
-
-    file(GLOB UNICODE_DATA ${SRCDIR}/res/*.txt)
-    file(GLOB UNICODE_SCRIPTS ${SRCDIR}/scripts/*.py)
-
-    add_custom_command(
-        COMMENT "Generating Unicoode mappings"
-        OUTPUT ${SRCDIR}/src/unicode_mappings.cpp ${SRCDIR}/inc/sys_string/impl/unicode/mappings_params.h
-        COMMAND ${Python3_EXECUTABLE} ${SRCDIR}/scripts/genmappings.py 
-                        ${SRCDIR}/res 
-                        ${SRCDIR}/src/unicode_mappings.cpp 
-                        ${SRCDIR}/inc/sys_string/impl/unicode/mappings_params.h
-        DEPENDS 
-            ${UNICODE_DATA} 
-            ${UNICODE_SCRIPTS}
-    )
-
-endif()
 
 if (PROJECT_IS_TOP_LEVEL)
     

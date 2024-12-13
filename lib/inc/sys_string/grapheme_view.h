@@ -22,12 +22,6 @@ namespace sysstr
         class grapheme_iterator
         {
         private:
-            template<std::input_iterator RawIt, std::sentinel_for<RawIt> RawEndIt>
-            static std::true_type detect_utf32_iterator(utf_iterator<utf32,RawIt,RawEndIt,iter_direction::forward>);
-            template<class X>
-            static std::false_type detect_utf32_iterator(X);
-            
-            static constexpr bool is_utf32_iterator_already = decltype(detect_utf32_iterator(std::declval<It>()))::value; 
             static constexpr utf_encoding source_encoding = utf_encoding_of<std::iter_value_t<It>>;
         public:
             using difference_type = std::iter_difference_t<It>;
@@ -48,7 +42,7 @@ namespace sysstr
                 if (this->m_next == this->m_last)
                     return;
 
-                if constexpr (!is_utf32_iterator_already)
+                if constexpr (source_encoding != utf32)
                 {
                     utf32_input<source_encoding> input;
                     this->m_finder.reset(input.read(this->m_next, this->m_last));
@@ -81,7 +75,7 @@ namespace sysstr
                 {
                     ++this->m_next;
 
-                    if constexpr (!is_utf32_iterator_already)
+                    if constexpr (source_encoding != utf32)
                     {
                         utf32_input<source_encoding> input;
                         for (auto next = this->m_next; this->m_next != this->m_last; this->m_next = next)

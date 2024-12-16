@@ -16,6 +16,47 @@
 
 namespace sysstr
 {
+
+    namespace util
+    {
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt, iter_direction Direction = iter_direction::forward>
+        requires has_utf_encoding<std::iter_value_t<It>> 
+        struct utf32_stream
+        {
+            It next; 
+            const EndIt & end;
+            
+            char32_t read()
+            { 
+                if constexpr (Direction == iter_direction::forward)
+                    return utf32_input<utf_encoding_of<std::iter_value_t<It>>>::read(next, end); 
+                else
+                    return utf32_input<utf_encoding_of<std::iter_value_t<It>>>::read_reversed(next, end);
+            }
+            bool eof() const
+                { return next == end; }
+        };
+
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt, iter_direction Direction>
+        requires(has_utf_encoding<std::iter_value_t<It>> &&
+                 utf_encoding_of<std::iter_value_t<It>> == utf32)
+        struct utf32_stream<It, EndIt, Direction>
+        {
+            It next; 
+            const EndIt & end;
+            
+            char32_t read()
+            {
+                char32_t ret = *next;
+                ++next;
+                return ret;
+            }
+            bool eof() const
+                { return next == end; }
+        };
+
+
+    }
     struct isspace
     {
         auto operator()(char32_t c) const noexcept -> bool
@@ -77,6 +118,7 @@ namespace sysstr
     struct tolower
     {
         template<ranges::reversible_range Range, std::output_iterator<utf_char_of<OutEnc>> OutIt>
+        requires(utf_encoding_of<std::ranges::range_value_t<Range>> == utf32)
         inline auto operator()(const Range & range, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<OutEnc>())) -> OutIt
         {
             using namespace util::unicode;
@@ -108,6 +150,7 @@ namespace sysstr
     struct toupper
     {
         template<ranges::reversible_range Range, std::output_iterator<utf_char_of<OutEnc>> OutIt>
+        requires(utf_encoding_of<std::ranges::range_value_t<Range>> == utf32)
         inline auto operator()(const Range & range, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<OutEnc>())) -> OutIt
         {
             using namespace util::unicode;
@@ -124,14 +167,14 @@ namespace sysstr
         }
     };
 
-    class grapheme_cluster_break_finder
+    class grapheme_cluster_break_common
     {
-    private:
+    protected:
         using table = util::unicode::grapheme_cluster_break_prop;
 
-        static constexpr uint16_t s_lf_offset = 7;
-        static constexpr uint16_t s_cr_offset = 8;
-        static constexpr uint16_t s_zwj_offset = 9;
+        static constexpr uint16_t s_lf_offset = 6;
+        static constexpr uint16_t s_cr_offset = 7;
+        static constexpr uint16_t s_zwj_offset = 8;
         static constexpr uint16_t s_special_mask = 0b0000'0001'1100'0000;
 
         enum class special : uint16_t
@@ -141,6 +184,24 @@ namespace sysstr
             zwj = uint16_t(1 << s_zwj_offset)
         };
 
+        static constexpr special get_special(char32_t c)
+        {
+            return special(
+                   (uint16_t(c == U'\u000A') << s_lf_offset) |
+                   (uint16_t(c == U'\u000D') << s_cr_offset) |
+                   (uint16_t(c == U'\u200D') << s_zwj_offset)
+            );
+        }
+
+        static constexpr table::value basic_props(table::value props)
+            { return table::value(props & table::basic_mask); }
+        static constexpr table::value in_cb_props(table::value  props)
+            { return table::value(props & table::in_cb_mask); }
+    };
+
+    class grapheme_cluster_break_finder : private grapheme_cluster_break_common
+    {
+    private:
         enum class state : uint16_t
         {
             none,
@@ -154,36 +215,55 @@ namespace sysstr
         static constexpr uint16_t s_state_offset = 10;
         static constexpr uint16_t s_state_mask = 0b000'1110'0000'0000;
 
-        static constexpr special get_special(char32_t c)
-        {
-            return special(
-                   (uint16_t(c == U'\u000A') << s_lf_offset) |
-                   (uint16_t(c == U'\u000D') << s_cr_offset) |
-                   (uint16_t(c == U'\u200D') << s_zwj_offset)
-            );
-        }
 
         static constexpr uint16_t pack(table::value props, special sp, state st)
             { return props | uint16_t(sp) | (uint16_t(st) << s_state_offset); }
-        static constexpr table::value basic_props(table::value props)
-            { return table::value(props & table::basic_mask); }
-        static constexpr table::value in_cb_props(table::value  props)
-            { return table::value(props & table::in_cb_mask); }
 
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+        using reader = util::utf32_stream<It, EndIt, util::iter_direction::forward>; 
         
+
         uint16_t m_data;
 
     public:
-        grapheme_cluster_break_finder():
-            m_data(pack(table::none, special::lf, state::none))
-        {}
-        
-        grapheme_cluster_break_finder(char32_t first)
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+        requires has_utf_encoding<std::iter_value_t<It>>
+        grapheme_cluster_break_finder(It & it, const EndIt & end)
         {
-            reset(first);
+            if (it == end)
+            {
+                m_data = pack(table::none, special::lf, state::none);
+                return;
+            }
+
+            reader<It, EndIt> src{it, end};
+            this->init(src.read());
+            for (it = src.next; !src.eof(); it = src.next)
+            {
+                if (this->next(src.read()))
+                    break;
+            }
         }
 
-        void reset(char32_t first)
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+        requires has_utf_encoding<std::iter_value_t<It>>
+        void operator()(It & it, const EndIt & end)
+        {
+            if (it == end)
+                return;
+
+            reader<It, EndIt> src{it, end};
+            src.read();
+            for (it = src.next; !src.eof(); it = src.next)
+            {
+                if (this->next(src.read()))
+                    break;
+            }
+        }
+
+    private:
+
+        void init(char32_t first)
         {
             auto props = table::get(first);
             auto sp = get_special(first);
@@ -194,7 +274,7 @@ namespace sysstr
             m_data = pack(props, sp, st);
         }
 
-        bool operator()(char32_t c)
+        bool next(char32_t c)
         {
             auto current_props = table::get(c);
             auto current_basic_props = basic_props(current_props);
@@ -340,6 +420,261 @@ namespace sysstr
             m_data = pack(current_props, current_special, next_state);
             return ret;
         }
+    };
+
+    class grapheme_cluster_break_reverse_finder : private grapheme_cluster_break_common
+    {
+    private:
+        enum class state : uint16_t
+        {
+            none,
+            ri_prefix_even,
+            ri_prefix_odd
+        };
+
+        static constexpr uint16_t s_state_offset = 10;
+        static constexpr uint16_t s_state_mask = 0b000'0110'0000'0000;
+
+
+        static constexpr uint16_t pack(table::value props, special sp, state st)
+            { return props | uint16_t(sp) | (uint16_t(st) << s_state_offset); }
+
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+        using reader = util::utf32_stream<It, EndIt, util::iter_direction::backward>; 
+
+        
+        uint16_t m_data;
+
+    public:
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+        requires has_utf_encoding<std::iter_value_t<It>>
+        grapheme_cluster_break_reverse_finder(It & it, const EndIt & end)
+        {
+            if (it == end)
+            {
+                m_data = pack(table::none, special::cr, state::none);
+                return;
+            }
+
+            reader<It, EndIt> src{it, end};
+            auto c = src.read();
+            auto current_props = table::get(c);
+            auto current_special = get_special(c);
+            m_data = pack(current_props, current_special, state::none);
+            find_break(it, src);
+        }
+
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+        requires has_utf_encoding<std::iter_value_t<It>>
+        void operator()(It & it, const EndIt & end)
+        {
+            if (it == end)
+                return;
+
+            reader<It, EndIt> src{it, end};
+            src.read();
+            find_break(it, src);
+        }
+        
+    private:
+
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+        void find_break(It & it, reader<It, EndIt> & src)
+        {
+            for (it = src.next; !src.eof(); it = src.next)
+            {
+                if (this->find_break(src))
+                    break;
+            }
+        }
+
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+        bool find_break(reader<It, EndIt> & src)
+        {
+            auto c = src.read();
+            
+            auto current_props = table::get(c);
+            auto current_special = get_special(c);
+            const auto current_basic_props = basic_props(current_props);
+            const auto current_in_cb_props = in_cb_props(current_props);
+            
+            auto current_state = state(m_data >> s_state_offset);
+            switch(current_state)
+            {
+                case state::none:
+                {
+                    const auto prev_props = table::value(m_data);
+                    const auto prev_basic_props = basic_props(prev_props);
+                    const auto prev_in_cb_props = in_cb_props(prev_props);
+                    const auto prev_special = special(m_data & s_special_mask);
+
+                    //GB3
+                    if (current_special == special::cr && prev_special == special::lf)
+                    {
+                        m_data = pack(current_props, current_special, state::none);
+                        return false;
+                    }
+
+                    //GB4
+                    if (current_special == special::cr || current_special == special::lf || current_basic_props == table::control)
+                    {
+                        m_data = pack(current_props, current_special, state::none);
+                        return true;
+                    }
+
+                    //GB5
+                    if (prev_special == special::cr || prev_special == special::lf || prev_basic_props == table::control)
+                    {
+                        m_data = pack(current_props, current_special, state::none);
+                        return true;
+                    }
+
+                    //GB6
+                    if (current_basic_props == table::hangul_l && (
+                            prev_basic_props == table::hangul_l ||
+                            prev_basic_props == table::hangul_v ||
+                            prev_basic_props == table::hangul_lv ||
+                            prev_basic_props == table::hangul_lvt))
+                    {
+                        m_data = pack(current_props, current_special, state::none);
+                        return false;
+                    }
+
+                    //GB7
+                    if ((current_basic_props == table::hangul_lv ||
+                            current_basic_props == table::hangul_v) && (
+                            prev_basic_props == table::hangul_v ||
+                            prev_basic_props == table::hangul_t))
+                    {
+                        m_data = pack(current_props, current_special, state::none);
+                        return false;
+                    }
+
+                    //GB8
+                    if ((current_basic_props == table::hangul_lvt ||
+                            current_basic_props == table::hangul_t) && (
+                            prev_basic_props == table::hangul_t))
+                    {
+                        m_data = pack(current_props, current_special, state::none);
+                        return false;
+                    }
+
+                    if (prev_basic_props == table::extend || prev_special == special::zwj || //GB9
+                        prev_basic_props == table::spacing_mark ||        //GB9a
+                        current_basic_props == table::prepend)            //GB9b
+                    {
+                        m_data = pack(current_props, current_special, state::none);
+                        return false;
+                    }
+
+                    //GB9c start
+                    if (prev_in_cb_props == table::in_cb_consonant &&
+                            (current_in_cb_props == table::in_cb_extend ||
+                             current_in_cb_props == table::in_cb_linker))
+                    {
+                        reader<It, EndIt> test_reader(src);
+                        bool has_linker = (current_in_cb_props == table::in_cb_linker);
+                        while(!test_reader.eof())
+                        {
+                            auto c = test_reader.read();
+                            auto test_props = table::get(c);
+                            auto test_in_cb_props = in_cb_props(test_props);
+                            if (test_in_cb_props == table::in_cb_extend)
+                                continue;
+                            if (test_in_cb_props == table::in_cb_linker)
+                            {
+                                has_linker = true;
+                                continue;
+                            }
+                            if (test_in_cb_props == table::in_cb_consonant && has_linker)
+                            {
+                                src.next = test_reader.next;
+                                m_data = pack(test_props, get_special(c), state::none);
+                                return false;
+                            }
+                            break;
+                        }
+                        m_data = pack(current_props, current_special, state::none);
+                        return true;
+                    }
+
+                    //GB11 start
+                    if (prev_basic_props == table::extended_pictographic &&
+                        current_special == special::zwj)
+                    {
+                        reader<It, EndIt> test_reader(src);
+                        while(!test_reader.eof())
+                        {
+                            auto c = test_reader.read();
+                            auto test_props = table::get(c);
+                            auto test_basic_props = basic_props(test_props);
+                            if (test_basic_props == table::extend)
+                                continue;
+                            if (test_basic_props == table::extended_pictographic)
+                            {
+                                src.next = test_reader.next;
+                                m_data = pack(test_props, get_special(c), state::none);
+                                return false;
+                            }
+                        }
+                        m_data = pack(current_props, current_special, state::none);
+                        return true;
+                    }
+
+                    //GB12 and GB13 start
+                    if (prev_basic_props == table::regional_indicator &&
+                        current_basic_props == table::regional_indicator)
+                    {
+                        reader<It, EndIt> test_reader(src);
+                        bool even = true;
+                        while(!test_reader.eof())
+                        {
+                            auto c = test_reader.read();
+                            auto test_props = table::get(c);
+                            if (test_props != table::regional_indicator)
+                                break;
+                            even = !even;
+                        }
+                        if (even)
+                        {
+                            m_data = pack(current_props, current_special, state::ri_prefix_even);
+                            return false;
+                        }
+                        m_data = pack(current_props, current_special, state::ri_prefix_odd);
+                        return true;
+                    }
+                    
+                    
+                    //GB999
+                    m_data = pack(current_props, current_special, state::none);
+                    return true;
+                }
+
+                case state::ri_prefix_even:
+
+                    if (current_basic_props == table::regional_indicator)
+                        m_data = pack(current_props, current_special, state::ri_prefix_odd);
+                    else
+                        m_data = pack(current_props, current_special, state::none);
+                    
+
+                    return true;
+
+                case state::ri_prefix_odd:
+
+                    if (current_basic_props == table::regional_indicator)
+                    {
+                        m_data = pack(current_props, current_special, state::ri_prefix_even);
+                        return false;
+                    }
+                        
+                    m_data = pack(current_props, current_special, state::none);
+                    return true;
+
+            }
+            
+        }
+
     };
 
 }

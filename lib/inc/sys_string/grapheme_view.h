@@ -18,11 +18,13 @@ namespace sysstr
 {
     namespace util
     {
-        template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+        template<std::forward_iterator It, std::sentinel_for<It> EndIt, iter_direction Direction>
         class grapheme_iterator
         {
         private:
             static constexpr utf_encoding source_encoding = utf_encoding_of<std::iter_value_t<It>>;
+            static constexpr bool is_forward = (Direction == iter_direction::forward);
+            static constexpr bool is_reverse = !is_forward;
         public:
             using difference_type = std::iter_difference_t<It>;
             using size_type = std::make_unsigned_t<difference_type>;
@@ -37,33 +39,9 @@ namespace sysstr
             grapheme_iterator(It first, EndIt last):
                 m_current(first),
                 m_next(first),
-                m_last(last)
-            {
-                if (this->m_next == this->m_last)
-                    return;
-
-                if constexpr (source_encoding != utf32)
-                {
-                    utf32_input<source_encoding> input;
-                    this->m_finder.reset(input.read(this->m_next, this->m_last));
-                    
-                    for (auto next = this->m_next; this->m_next != this->m_last; this->m_next = next)
-                    {
-                        if (this->m_finder(input.read(next, this->m_last)))
-                            break;
-                    }
-                }
-                else
-                {
-                    this->m_finder.reset(*this->m_next);
-
-                    for (++this->m_next; this->m_next != this->m_last; ++this->m_next)
-                    {
-                        if (this->m_finder(*this->m_next))
-                            break;
-                    }
-                }
-            }
+                m_last(last),
+                m_finder(this->m_next, this->m_last)
+            {}
 
             value_type operator*() const noexcept
                 { return value_type{this->m_current, this->m_next}; }
@@ -71,28 +49,7 @@ namespace sysstr
             grapheme_iterator & operator++()
             {
                 this->m_current = this->m_next;
-                if (this->m_next != this->m_last)
-                {
-                    ++this->m_next;
-
-                    if constexpr (source_encoding != utf32)
-                    {
-                        utf32_input<source_encoding> input;
-                        for (auto next = this->m_next; this->m_next != this->m_last; this->m_next = next)
-                        {
-                            if (this->m_finder(input.read(next, this->m_last)))
-                                break;
-                        }
-                    }
-                    else
-                    {
-                        for ( ; this->m_next != this->m_last; ++this->m_next)
-                        {
-                            if (this->m_finder(*this->m_next))
-                                break;
-                        }
-                    }
-                }
+                this->m_finder(this->m_next, this->m_last);
                 return *this;
             }
 
@@ -121,7 +78,7 @@ namespace sysstr
             It m_current;
             It m_next;
             SYS_STRING_NO_UNIQUE_ADDRESS EndIt m_last;
-            grapheme_cluster_break_finder m_finder;
+            std::conditional_t<is_forward, grapheme_cluster_break_finder, grapheme_cluster_break_reverse_finder> m_finder;
         };
     }
     
@@ -133,23 +90,24 @@ namespace sysstr
         using range = Range;
         
         static constexpr auto source_encoding = utf_encoding_of<std::ranges::range_value_t<range>>;
+        static constexpr bool is_reversible = ranges::reverse_traversable_range<std::remove_reference_t<range>>;
         
         using access_iterator = decltype(std::ranges::begin(std::declval<const range &>()));
         using access_sentinel = decltype(std::ranges::end(std::declval<const range &>()));
-        // using access_reverse_iterator = std::conditional_t<is_reversible, 
-        //                                                 decltype(std::ranges::rbegin(std::declval<range>())),
-        //                                                 void>;
-        // using access_reverse_sentinel = std::conditional_t<is_reversible, 
-        //                                                 decltype(std::ranges::rend(std::declval<range>())),
-        //                                                 void>;
+        using access_reverse_iterator = std::conditional_t<is_reversible, 
+                                                           decltype(std::ranges::rbegin(std::declval<const range &>())),
+                                                           void>;
+        using access_reverse_sentinel = std::conditional_t<is_reversible, 
+                                                           decltype(std::ranges::rend(std::declval<const range &>())),
+                                                           void>;
 
     public:
-        using iterator = util::grapheme_iterator<access_iterator, access_sentinel>;
+        using iterator = util::grapheme_iterator<access_iterator, access_sentinel, util::iter_direction::forward>;
         using const_iterator = iterator;
-        // using reverse_iterator = std::conditional_t<is_reversible, 
-        //                                             utf_iterator<Enc, access_reverse_iterator, access_reverse_sentinel, iter_direction::backward>,
-        //                                             void>;
-        // using const_reverse_iterator = reverse_iterator;
+        using reverse_iterator = std::conditional_t<is_reversible, 
+                                                    util::grapheme_iterator<access_reverse_iterator, access_reverse_sentinel, util::iter_direction::backward>,
+                                                    void>;
+        using const_reverse_iterator = reverse_iterator;
         
         using value_type = typename iterator::value_type;
         using reference = typename iterator::reference;
@@ -184,20 +142,20 @@ namespace sysstr
             { return begin(); }
         SYS_STRING_FORCE_INLINE std::default_sentinel_t cend() const
             { return end(); }
-        // SYS_STRING_FORCE_INLINE reverse_iterator rbegin() const requires(is_reversible)
-        //     { return reverse_iterator(std::ranges::rbegin(range_ref(m_src)), std::ranges::rend(range_ref(m_src))); }
-        // SYS_STRING_FORCE_INLINE std::default_sentinel_t rend() const requires(is_reversible)
-        //     { return std::default_sentinel; }
-        // SYS_STRING_FORCE_INLINE const_reverse_iterator crbegin() const requires(is_reversible)
-        //     { return rbegin(); }
-        // SYS_STRING_FORCE_INLINE std::default_sentinel_t crend() const requires(is_reversible)
-        //     { return rend(); }
+        SYS_STRING_FORCE_INLINE reverse_iterator rbegin() const requires(is_reversible)
+            { return reverse_iterator(std::ranges::rbegin(m_src), std::ranges::rend(m_src)); }
+        SYS_STRING_FORCE_INLINE std::default_sentinel_t rend() const requires(is_reversible)
+            { return std::default_sentinel; }
+        SYS_STRING_FORCE_INLINE const_reverse_iterator crbegin() const requires(is_reversible)
+            { return rbegin(); }
+        SYS_STRING_FORCE_INLINE std::default_sentinel_t crend() const requires(is_reversible)
+            { return rend(); }
 
-        // reverse_iterator reverse(iterator it) const requires(is_reversible)
-        //     { return reverse_iterator(it, std::ranges::rend(range_ref(m_src))); }
+        reverse_iterator reverse(iterator it) const requires(is_reversible)
+            { return reverse_iterator(it, std::ranges::rend(m_src)); }
 
-        // iterator reverse(reverse_iterator it) const requires(is_reversible)
-        //     { return iterator(it, std::ranges::end(range_ref(m_src))); }
+        iterator reverse(reverse_iterator it) const requires(is_reversible)
+            { return iterator(it, std::ranges::end(m_src)); }
         
         // template<class Func>
         // decltype(auto) each(Func func) const

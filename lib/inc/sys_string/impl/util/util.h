@@ -17,6 +17,7 @@
 #include <utility>
 #include <cstdarg>
 #include <cassert>
+#include <cstdio>
 
 namespace sysstr::util
 {

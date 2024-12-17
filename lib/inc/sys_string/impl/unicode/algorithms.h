@@ -673,6 +673,8 @@ namespace sysstr
                     return true;
 
             }
+
+            SYS_STRING_UNREACHABLE;
             
         }
 

@@ -14,6 +14,7 @@
 #include <ranges>
 #include <algorithm>
 #include <tuple>
+#include <utility>
 #include <cstdarg>
 
 namespace sysstr::util
@@ -82,6 +83,28 @@ namespace sysstr::util
             range.resize(ret);
         return ret;
     }
+
+    #if __cpp_lib_unreachable >= 202202L
+
+        #define SYS_STRING_UNREACHABLE assert(false); ::std::unreachable()
+
+    #else
+
+        [[noreturn]] inline void unreachable()
+        {
+            // Uses compiler specific extensions if possible.
+            // Even if no extension is used, undefined behavior is still raised by
+            // an empty function body and the noreturn attribute.
+        #if defined(_MSC_VER) && !defined(__clang__) // MSVC
+            __assume(false);
+        #else // GCC, Clang
+            __builtin_unreachable();
+        #endif
+        }
+
+        #define SYS_STRING_UNREACHABLE assert(false); ::sysstr::util::unreachable()
+
+    #endif
 
 }
 

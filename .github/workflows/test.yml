@@ -54,6 +54,7 @@ jobs:
             sudo apt-get install -y clang-tools-${{ matrix.version }}
             echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
             echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
+            echo "CXXFLAGS=-stdlib=libc++" >> $GITHUB_ENV
           fi
 
           if [[ '${{ matrix.compiler }}' == 'gcc' ]]; then

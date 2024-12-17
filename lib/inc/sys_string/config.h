@@ -56,8 +56,6 @@
     #define SYS_STRING_ENABLE_PYTHON 1
 #endif
 
-#include <utility>
-
 #if SYS_STRING_ENABLE_PYTHON
     #include <Python.h>
     #if PY_MAJOR_VERSION < 3 || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 7)

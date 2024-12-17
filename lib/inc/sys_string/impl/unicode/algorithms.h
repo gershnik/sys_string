@@ -9,6 +9,7 @@
 #define HEADER_SYS_STRING_UNICODE_ALGORITHMS_H_INCLUDED
 
 #include <sys_string/impl/unicode/mappings.h>
+#include <sys_string/impl/unicode/utf_util.h>
 #include <sys_string/impl/util/iter_util.h>
 
 #include <ranges>
@@ -576,8 +577,8 @@ namespace sysstr
                         bool has_linker = (current_in_cb_props == table::in_cb_linker);
                         while(!test_reader.eof())
                         {
-                            auto c = test_reader.read();
-                            auto test_props = table::get(c);
+                            auto test_c = test_reader.read();
+                            auto test_props = table::get(test_c);
                             auto test_in_cb_props = in_cb_props(test_props);
                             if (test_in_cb_props == table::in_cb_extend)
                                 continue;
@@ -589,7 +590,7 @@ namespace sysstr
                             if (test_in_cb_props == table::in_cb_consonant && has_linker)
                             {
                                 src.next = test_reader.next;
-                                m_data = pack(test_props, get_special(c), state::none);
+                                m_data = pack(test_props, get_special(test_c), state::none);
                                 return false;
                             }
                             break;
@@ -605,15 +606,15 @@ namespace sysstr
                         reader<It, EndIt> test_reader(src);
                         while(!test_reader.eof())
                         {
-                            auto c = test_reader.read();
-                            auto test_props = table::get(c);
+                            auto test_c = test_reader.read();
+                            auto test_props = table::get(test_c);
                             auto test_basic_props = basic_props(test_props);
                             if (test_basic_props == table::extend)
                                 continue;
                             if (test_basic_props == table::extended_pictographic)
                             {
                                 src.next = test_reader.next;
-                                m_data = pack(test_props, get_special(c), state::none);
+                                m_data = pack(test_props, get_special(test_c), state::none);
                                 return false;
                             }
                         }
@@ -629,8 +630,8 @@ namespace sysstr
                         bool even = true;
                         while(!test_reader.eof())
                         {
-                            auto c = test_reader.read();
-                            auto test_props = table::get(c);
+                            auto test_c = test_reader.read();
+                            auto test_props = table::get(test_c);
                             if (test_props != table::regional_indicator)
                                 break;
                             even = !even;

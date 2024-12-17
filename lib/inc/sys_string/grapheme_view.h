@@ -8,7 +8,6 @@
 #ifndef HEADER_SYS_STRING_GRAPHEME_VIEW_H_INCLUDED
 #define HEADER_SYS_STRING_GRAPHEME_VIEW_H_INCLUDED
 
-#include <sys_string/utf_view.h>
 #include <sys_string/impl/unicode/algorithms.h>
 
 #include <iterator>
@@ -156,10 +155,6 @@ namespace sysstr
 
         iterator reverse(reverse_iterator it) const requires(is_reversible)
             { return iterator(it, std::ranges::end(m_src)); }
-        
-        // template<class Func>
-        // decltype(auto) each(Func func) const
-        //     { return utf_converter<source_encoding, Enc>::for_each_converted(range_ref(), func); }
         
     private:
         range m_src;

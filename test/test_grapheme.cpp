@@ -8,6 +8,7 @@
 // _🪦🐮🐌_
 
 #include <sys_string/grapheme_view.h>
+#include <sys_string/utf_view.h>
 
 #include <doctest/doctest.h>
 

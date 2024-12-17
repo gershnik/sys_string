@@ -141,13 +141,6 @@ namespace sysstr
         using utf16_view [[deprecated("use utf16_access")]] = utf16_access;
         using utf32_view [[deprecated("use utf32_access")]] = utf32_access;
 
-        class grapheme_access
-        {
-        public:
-        private:
-            char_access m_chars;
-        };
-
         using compare_result [[deprecated("use std::strong_ordering")]] = std::strong_ordering;
         static constexpr std::strong_ordering ordering_less [[deprecated("use std::strong_ordering::less")]] = std::strong_ordering::less;
         static constexpr std::strong_ordering ordering_equal [[deprecated("use std::strong_ordering::less")]] = std::strong_ordering::equal;

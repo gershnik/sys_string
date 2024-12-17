@@ -120,6 +120,11 @@ template<utf_encoding SrcEnc, utf_encoding DstEnc,
 requires(utf_encoding_of<std::ranges::range_value_t<SrcCont>> == SrcEnc &&
          utf_encoding_of<std::ranges::range_value_t<ExpectedCont>> == DstEnc &&
          std::is_same_v<std::ranges::range_value_t<ExpectedCont>, std::ranges::range_value_t<ExpectedBackwardCont>>)
+#if defined(__GNUC__)
+    [[gnu::noinline]]
+#elif defined(__MSVC__)
+    [[msvc::noinline]]
+#endif
 void do_check_iteration(const SrcCont & src,
                         const ExpectedCont & expected,
                         const ExpectedBackwardCont & expected_backward,

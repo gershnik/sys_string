@@ -14,7 +14,7 @@ on:
       - 'tools/**'
 
 env:
-  BUILD_TYPE: Release
+  BUILD_TYPE: MinSizeRel
   NDK_VER: 27.2.12479018
   NDK_ARCH: x86_64
   NDK_API: 29

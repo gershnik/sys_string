@@ -104,6 +104,11 @@ namespace {
         CHECK(res);
     }
 
+#if defined(__GNUC__)
+    [[gnu::noinline]]
+#elif defined(__MSVC__)
+    [[msvc::noinline]]
+#endif
     void check_graphemes(std::u32string_view src, const std::vector<std::u32string> & expected, std::source_location loc = std::source_location::current())
     {
         check_graphemes_range(src, expected, loc);

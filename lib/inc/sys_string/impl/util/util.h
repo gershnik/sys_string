@@ -16,6 +16,7 @@
 #include <tuple>
 #include <utility>
 #include <cstdarg>
+#include <cassert>
 
 namespace sysstr::util
 {

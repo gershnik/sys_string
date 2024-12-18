@@ -18,6 +18,17 @@ def parse_char_range(text):
     end = char_range[len(char_range) - 1] + 1
     return (start, end)
 
+def type_for_bits(bits: int):
+    if bits <= 8:
+        return 'uint8_t'
+    if bits <= 16:
+        return 'uint16_t'
+    if bits <= 32:
+        return 'uint32_t'
+    if bits <= 64:
+        return 'uint64_t'
+    raise RuntimeError('too many bits')
+
 def read_ucd_file(srcpath, handler):
     with open(srcpath, 'r', encoding='utf-8') as src:
         line_idx = 0

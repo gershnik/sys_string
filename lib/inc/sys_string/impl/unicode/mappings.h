@@ -123,8 +123,48 @@ namespace sysstr::util
             }
         };
 
+        template<class Base>
+        class trie_lookup : public Base
+        {
+        public:
+            using typename Base::value;
+
+            static inline value get(char32_t c) noexcept
+            {
+                using entry_type = typename decltype(Base::entries)::value_type;
+                constexpr auto value_shift = Base::bits_per_index << 1;
+                constexpr uint32_t masks[] = {
+                    0x10'0000,
+                     0x8'0000, 0x4'0000, 0x2'0000, 0x1'0000,
+                       0x8000,   0x4000,   0x2000,   0x1000,
+                        0x800,    0x400,    0x200,    0x100,
+                         0x80,     0x40,     0x20,     0x10,
+                          0x8,      0x4,      0x2,      0x1
+                };
+
+                constexpr entry_type index_mask = (1 << Base::bits_per_index) - 1;
+                entry_type entry;
+                entry_type idx = 0;
+                int count = 0;
+                for ( ; ; )
+                {
+                    entry = Base::entries[idx];
+                    bool bit = (c & masks[count++]);
+                    idx = (entry >> (Base::bits_per_index * bit)) & index_mask;
+                    if (idx == index_mask)
+                        break;
+                }
+                entry >>= value_shift;
+                if constexpr (Base::separate_values)
+                    return value(Base::values[entry]);
+                else
+                    return value(entry);
+            }
+        };
+
         using case_prop = property_lookup<case_prop_data>;
-        using grapheme_cluster_break_prop = property_lookup<grapheme_cluster_break_prop_data>;
+        //using grapheme_cluster_break_prop = property_lookup<grapheme_cluster_break_prop_data>;
+        using grapheme_cluster_break_prop = trie_lookup<grapheme_cluster_break_prop_data2>;
     }
 }
 

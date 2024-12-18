@@ -7,8 +7,9 @@
 # 
 import sys
 from pathlib import Path
-from common import read_ucd_file, write_file, char_name, parse_char_range
+from common import read_ucd_file, write_file, char_name, parse_char_range, type_for_bits
 from table_builder import table_builder
+from trie_builder import trie_builder
 
 datadir = Path(sys.argv[1])
 cppfile = Path(sys.argv[2])
@@ -70,7 +71,7 @@ grapheme_masks = {
 }
 
 grapheme_cluster_break_prop_builder = table_builder(separate_values=True)
-
+grapheme_cluster_break_trie_builder = trie_builder()
 
 def parse_case_info(line):
     fields = line.split(';')
@@ -126,6 +127,7 @@ def parse_derived_properties(line):
     elif (prop_val := grapheme_related_prop_values.get(props)) is not None:
         start, end = parse_char_range(char_range)
         grapheme_cluster_break_prop_builder.add_chars(start, end, prop_val[0])
+        grapheme_cluster_break_trie_builder.add_chars(start, end, prop_val[0])
 
 
 def parse_grapheme_cluster_break_properties(line):
@@ -136,6 +138,7 @@ def parse_grapheme_cluster_break_properties(line):
     if not prop_val is None:
         start, end = parse_char_range(char_range)
         grapheme_cluster_break_prop_builder.add_chars(start, end, prop_val[0])
+        grapheme_cluster_break_trie_builder.add_chars(start, end, prop_val[0])
 
 def parse_emoji_data(line):
     (char_range, prop) = line[:line.index('# ')].split('; ')
@@ -145,6 +148,7 @@ def parse_emoji_data(line):
     if not prop_val is None:
         start, end = parse_char_range(char_range)
         grapheme_cluster_break_prop_builder.add_chars(start, end, prop_val[0])
+        grapheme_cluster_break_trie_builder.add_chars(start, end, prop_val[0])
 
 grapheme_tests = []
 def parse_grapheme_tests(line):
@@ -317,6 +321,73 @@ def make_index(builder: mapping_builder):
         total_data_size += 1
     return ret
 
+def print_trie_header(name, tr: trie_builder, enums, masks={}):
+    separate_values = tr.separate_values()
+
+    ret = f'''
+    class {name}
+    {{
+    protected:
+        static constexpr size_t bits_per_index = {tr.bits_per_index()};
+        static constexpr size_t bits_per_value = {tr.bits_per_value()};
+    '''
+
+    if separate_values:
+        ret += f'''
+        static constexpr size_t bits_per_value_index = {tr.bits_per_value_index()};
+    '''
+
+    ret += f'''
+        static const std::array<{type_for_bits(tr.bits_per_entry())}, {tr.entris_count()}> entries;
+    '''
+
+    if separate_values:
+        ret += f'''
+        static const std::array<{type_for_bits(tr.bits_per_value())}, {tr.values_count()}> values;
+
+        static constexpr bool separate_values = true;
+    '''
+    else:
+        ret += '''
+        static constexpr bool separate_values = false;
+    '''
+
+    ret += f'''
+    public:
+        enum value : {type_for_bits(tr.bits_per_value())}
+        {{
+            none = 0,
+            {print_enum(enums, masks)}
+        }};
+    '''
+
+    if separate_values:
+        ret += '''
+        static constexpr size_t data_size = sizeof(entries) + sizeof(values);
+    '''
+    else:
+        ret += '''
+        static constexpr size_t data_size = sizeof(entries);
+    '''
+    
+    ret += '''
+    };
+    '''
+
+    return ret
+
+def print_trie_impl(name, tr: trie_builder):
+    ret = f'''
+    const std::array<{type_for_bits(tr.bits_per_entry())}, {tr.entris_count()}> {name}::entries({tr.make_entries()});
+    '''
+
+    if tr.separate_values():
+        ret += f'''
+    const std::array<{type_for_bits(tr.bits_per_value())}, {tr.values_count()}> {name}::values({tr.make_values()});
+    '''
+        
+    return ret
+
 def make_whitespaces():
     global total_data_size 
     ret = ''
@@ -354,8 +425,7 @@ read_ucd_file(datadir/'GraphemeBreakTest.txt', parse_grapheme_tests)
 
 total_data_size += case_prop_builder.generate()
 total_data_size += grapheme_cluster_break_prop_builder.generate()
-#print(f'{prop_builder.block_size}: {len(prop_builder.stage1)}, {len(prop_builder.blocks)}, {len(prop_builder.stage1) + len(prop_builder.blocks) * prop_builder.block_size // prop_builder.count_per_byte}')
-
+total_data_size += grapheme_cluster_break_trie_builder.generate()
 
 write_file(hfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 
@@ -368,7 +438,9 @@ write_file(hfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 //
 #ifndef HEADER_SYS_STRING_UNICODE_MAPPINGS_DATA_H_INCLUDED
 #define HEADER_SYS_STRING_UNICODE_MAPPINGS_DATA_H_INCLUDED
-           
+
+#include <array>
+
 namespace sysstr::util::unicode 
 {{
     struct mapper_data
@@ -380,6 +452,9 @@ namespace sysstr::util::unicode
     {print_properties_header("grapheme_cluster_break_prop_data", grapheme_cluster_break_prop_builder, 
                              (grapheme_cluster_break_prop_values, grapheme_related_emoji_values, grapheme_related_prop_values), 
                              grapheme_masks)}
+    {print_trie_header("grapheme_cluster_break_prop_data2", grapheme_cluster_break_trie_builder, 
+                       (grapheme_cluster_break_prop_values, grapheme_related_emoji_values, grapheme_related_prop_values), 
+                       grapheme_masks)}
 }}
 
 #endif
@@ -430,6 +505,7 @@ namespace sysstr::util::unicode
 
     {print_properties_impl("case_prop_data", case_prop_builder)}
     {print_properties_impl("grapheme_cluster_break_prop_data", grapheme_cluster_break_prop_builder)}
+    {print_trie_impl("grapheme_cluster_break_prop_data2", grapheme_cluster_break_trie_builder)}
     
     constexpr auto total_data_size = 
         sizeof(folding_source_chars) + 
@@ -440,7 +516,8 @@ namespace sysstr::util::unicode
         sizeof(lowercase_chars) + 
         sizeof(whitespaces) +
         case_prop_data::data_size +
-        grapheme_cluster_break_prop_data::data_size;
+        grapheme_cluster_break_prop_data::data_size +
+        grapheme_cluster_break_prop_data2::data_size;
     static_assert(total_data_size == {total_data_size});
 
 }}

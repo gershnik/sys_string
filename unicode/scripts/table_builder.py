@@ -1,4 +1,10 @@
-import math
+# 
+# Copyright 2024 Eugene Gershnik
+# 
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file or at
+# https://github.com/gershnik/sys_string/blob/master/LICENSE
+# 
 
 class table_builder:
     block_size = 256
@@ -109,19 +115,19 @@ class table_builder:
         return ret
     
     def stage1_bits_per_value(self):
-        return 1 + math.floor(math.log2(self.max_block_idx))
+        return self.max_block_idx.bit_length()
     
     def stage1_size(self):
         return len(self.stage1)
     
     def stage2_bits_per_value(self):
-        return 1 + math.floor(math.log2(self.max_stage2_value))
+        return self.max_stage2_value.bit_length()
     
     def stage2_size(self):
         return len(self.blocks_by_index) * table_builder.block_size
     
     def values_bits_per_value(self):
-        return 1 + math.floor(math.log2(self.max_value)) if self.separate_values else -1
+        return self.max_value.bit_length() if self.separate_values else -1
 
     def values_size(self):
         return len(self.values)

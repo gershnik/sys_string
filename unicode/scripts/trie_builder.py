@@ -128,23 +128,13 @@ class trie_builder:
         print(f"After hash: {len(self.byhash)}")
         
         indices_by_hash = {}
-        self.__calc_linear(self.root, indices_by_hash)
+        terminals_by_value = {}
+        self.__calc_linear(self.root, indices_by_hash, terminals_by_value)
 
         bits_per_entry = self.bits_per_entry()
         if bits_per_entry > 32:
             raise RuntimeError("more than 32 bits in entry is currently not supported")
         bits_per_entry_type = (1<<(bits_per_entry-1).bit_length())
-        # entries_bits = len(self.linear) * self.bits_per_entry()
-        # entries_bits = ((entries_bits // bits_per_value_type) + bool(entries_bits % bits_per_value_type)) * bits_per_value_type
-        # entries_bytes = entries_bits // 8
-        # total_data_size = entries_bytes
-
-        # if self.separate_values():
-        #     values_bits = len(self.values) * self.bits_per_value()
-        #     values_bytes = (values_bits // 8) + bool(values_bits % 8)
-        #     total_data_size += values_bytes
-        # return total_data_size
-
         bits_per_entry_type = max(8, bits_per_entry_type)
         bytes_per_entry_type = bits_per_entry_type // 8
         total_data_size = len(self.linear) * bytes_per_entry_type
@@ -157,47 +147,57 @@ class trie_builder:
 
         return total_data_size
 
-    def __calc_linear(self, current: node, indices_by_hash: dict):
+    def __calc_linear(self, current: node, indices_by_hash: dict, terminals_by_value: dict):
         current_idx = indices_by_hash.get(current.hash)
         if current_idx is not None:
             return current_idx
-        current_idx = len(self.linear)
-        indices_by_hash[current.hash] = current_idx
-        self.linear.append([])
-        current_linear = self.linear[current_idx]
-        current_linear.append(self.__calc_linear(current.zero, indices_by_hash) if current.zero is not None else -1)
-        current_linear.append(self.__calc_linear(current.one, indices_by_hash) if current.one is not None else -1)
         
         value_idx = self.values.get(current.value)
         if value_idx is None:
             value_idx = len(self.values)
             self.values[current.value] = value_idx
-        current_linear.append(value_idx)
-        self.max_value = max(self.max_value, current.value)
+            self.max_value = max(self.max_value, current.value)
+
+        if current.is_leaf():
+            terminal_idx = terminals_by_value.get(value_idx)
+            if terminal_idx is None:
+                terminal_idx = len(self.linear)
+                self.linear.append([terminal_idx, terminal_idx, value_idx])
+                terminals_by_value[value_idx] = terminal_idx
+            indices_by_hash[current.hash] = terminal_idx
+            return terminal_idx
+            
+        current_idx = len(self.linear)
+        indices_by_hash[current.hash] = current_idx
+        self.linear.append([])
+        current_linear = self.linear[current_idx]
+
+        for child in (current.zero, current.one):
+            if child is not None:
+                current_linear.append(self.__calc_linear(child, indices_by_hash, terminals_by_value))
+            else:
+                terminal_idx = terminals_by_value.get(value_idx)
+                if terminal_idx is None:
+                    terminal_idx = len(self.linear)
+                    self.linear.append([terminal_idx, terminal_idx, value_idx])
+                    terminals_by_value[value_idx] = terminal_idx
+                current_linear.append(terminal_idx)
+        
+        current_linear.append(0)
 
         return current_idx
 
 
-    def __trim(self, current: node) -> bool:
-        if current.zero is None:
-            if current.one is None:
-                return True
-            if self.__trim(current.one):
-                if current.value == current.one.value:
-                    current.one = None
-                    return True
-        elif self.__trim(current.zero):
-            if current.one is None:
-                if current.value == current.zero.value:
-                    current.zero = None
-                    return True
-            if self.__trim(current.one):
-                if current.zero.value == current.one.value:
-                    current.value = current.zero.value
-                    current.zero = None
-                    current.one = None
-                    return True
-        return False
+    def __trim(self, current: node):
+        for child in (current.zero, current.one):
+            if child is not None:
+                self.__trim(child)
+        if (current.zero is not None and current.zero.is_leaf() and
+            current.one is not None and current.one.is_leaf() and 
+            current.zero.value == current.one.value):
+            current.value = current.zero.value
+            current.zero = None
+            current.one = None
         
 
     def __hash(self, current: node):

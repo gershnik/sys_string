@@ -93,7 +93,7 @@ namespace sysstr::util::unicode
     
         static constexpr size_t bits_per_value_index = 5;
     
-        static const std::array<uint32_t, 1695> entries;
+        static const std::array<uint32_t, 1514> entries;
     
         static const std::array<uint8_t, 16> values;
 

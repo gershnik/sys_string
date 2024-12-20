@@ -133,6 +133,9 @@ namespace sysstr::util
             {
                 using entry_type = typename decltype(Base::entries)::value_type;
                 constexpr auto value_shift = Base::bits_per_index << 1;
+                constexpr size_t index_shifts[] = {0, Base::bits_per_index};
+                constexpr entry_type index_mask = (1 << Base::bits_per_index) - 1;
+                
                 constexpr uint32_t masks[] = {
                     0x10'0000,
                      0x8'0000, 0x4'0000, 0x2'0000, 0x1'0000,
@@ -141,20 +144,18 @@ namespace sysstr::util
                          0x80,     0x40,     0x20,     0x10,
                           0x8,      0x4,      0x2,      0x1
                 };
-
-                constexpr entry_type index_mask = (1 << Base::bits_per_index) - 1;
+                
                 entry_type entry;
                 entry_type idx = 0;
-                int count = 0;
-                for ( ; ; )
+                #pragma clang loop unroll(full)
+                for (size_t count = 0; count < std::size(masks); ++count)
                 {
                     entry = Base::entries[idx];
-                    bool bit = (c & masks[count++]);
-                    idx = (entry >> (Base::bits_per_index * bit)) & index_mask;
-                    if (idx == index_mask)
-                        break;
+                    int bit = (c & masks[count]);
+                    idx = (entry >> index_shifts[bit]) & index_mask;
                 }
-                entry >>= value_shift;
+                //entry >>= value_shift;
+                entry = Base::entries[idx] >> value_shift;
                 if constexpr (Base::separate_values)
                     return value(Base::values[entry]);
                 else

@@ -132,17 +132,25 @@ namespace sysstr::util
             static inline value get(char32_t c) noexcept
             {
                 using entry_type = typename decltype(Base::entries)::value_type;
-                constexpr auto value_shift = Base::bits_per_index << 1;
-                constexpr size_t index_shifts[] = {0, Base::bits_per_index};
+                constexpr size_t index_shifts[] = {0, Base::bits_per_index, 2 * Base::bits_per_index, 3 * Base::bits_per_index};
+                constexpr auto value_shift = 4 * Base::bits_per_index;
                 constexpr entry_type index_mask = (1 << Base::bits_per_index) - 1;
                 
                 constexpr uint32_t masks[] = {
                     0x10'0000,
-                     0x8'0000, 0x4'0000, 0x2'0000, 0x1'0000,
-                       0x8000,   0x4000,   0x2000,   0x1000,
-                        0x800,    0x400,    0x200,    0x100,
-                         0x80,     0x40,     0x20,     0x10,
-                          0x8,      0x4,      0x2,      0x1
+                     0xC'0000, 0x3'0000,
+                       0xC000,   0x3000,
+                        0xC00,    0x300,
+                         0xC0,     0x30,
+                          0xC,      0x3
+                };
+                constexpr uint32_t shifts[] = {
+                           20,
+                           18,       16,
+                           14,       12,
+                           10,        8,
+                            6,        4,
+                            2,        0
                 };
                 
                 entry_type entry;
@@ -151,8 +159,8 @@ namespace sysstr::util
                 for (size_t count = 0; count < std::size(masks); ++count)
                 {
                     entry = Base::entries[idx];
-                    int bit = (c & masks[count]);
-                    idx = (entry >> index_shifts[bit]) & index_mask;
+                    int char_idx = (c & masks[count]) >> shifts[count];
+                    idx = (entry >> index_shifts[char_idx]) & index_mask;
                 }
                 //entry >>= value_shift;
                 entry = Base::entries[idx] >> value_shift;
@@ -164,8 +172,8 @@ namespace sysstr::util
         };
 
         using case_prop = property_lookup<case_prop_data>;
-        //using grapheme_cluster_break_prop = property_lookup<grapheme_cluster_break_prop_data>;
-        using grapheme_cluster_break_prop = trie_lookup<grapheme_cluster_break_prop_data2>;
+        using grapheme_cluster_break_prop = property_lookup<grapheme_cluster_break_prop_data>;
+        //using grapheme_cluster_break_prop = trie_lookup<grapheme_cluster_break_prop_data2>;
     }
 }
 

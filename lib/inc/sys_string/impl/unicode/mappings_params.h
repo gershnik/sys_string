@@ -88,12 +88,12 @@ namespace sysstr::util::unicode
     class grapheme_cluster_break_prop_data2
     {
     protected:
-        static constexpr size_t bits_per_index = 11;
+        static constexpr size_t bits_per_index = 10;
         static constexpr size_t bits_per_value = 6;
     
         static constexpr size_t bits_per_value_index = 5;
     
-        static const std::array<uint32_t, 1514> entries;
+        static const std::array<uint64_t, 786> entries;
     
         static const std::array<uint8_t, 16> values;
 

@@ -9,32 +9,36 @@
 import hashlib
 
 class trie_builder:
+    bits_per_fanout = 2
+    fanout = 1 << bits_per_fanout
+    single_mask = (1 << bits_per_fanout) - 1
+    char_mask_start = ((21 // bits_per_fanout) + bool(21 % bits_per_fanout)) * bits_per_fanout
+
     class node:
         def __init__(self):
-            self.zero = None
-            self.one = None
+            self.children = [None] * trie_builder.fanout
             self.value = 0
             self.hash = None
 
         def is_leaf(self):
-            return self.zero is None and self.one is None
+            for child in self.children:
+                if child is not None:
+                    return False
+            return True
 
-        def descend(self, bit):
-            if bit == 0:
-                if self.zero is None:
-                    self.zero = trie_builder.node()
-                return self.zero
-            
-            if self.one is None:
-                self.one = trie_builder.node()
-            return self.one
+        def descend(self, idx):
+            ret = self.children[idx]
+            if ret is None:
+                ret = trie_builder.node()
+                self.children[idx] = ret
+            return ret
+        
         
         def calc_size(self):
             ret = 1
-            if self.zero is not None:
-                ret += self.zero.calc_size()
-            if self.one is not None:
-                ret += self.one.calc_size()
+            for child in self.children:
+                if child is not None:
+                    ret += child.calc_size()
             return ret
 
     
@@ -58,7 +62,7 @@ class trie_builder:
         bits_per_index = self.bits_per_index()
         bits_per_value_index = self.bits_per_value_index()
         bits_per_value = self.bits_per_value()
-        return 2 * bits_per_index + min(bits_per_value_index, bits_per_value)
+        return trie_builder.fanout * bits_per_index + min(bits_per_value_index, bits_per_value)
     
     def entris_count(self):
         return len(self.linear)
@@ -70,41 +74,39 @@ class trie_builder:
         return len(self.values)
 
     def add_chars(self, start, end, flag):
+        
         for c in range(start, end):
             node = self.root
-            for bit_num in range(21, 0, -1):
-                bit = (c >> (bit_num - 1)) & 0x1
-                node = node.descend(bit)
+            for bit_start in range(self.char_mask_start, 0, -trie_builder.bits_per_fanout):
+                mask = trie_builder.single_mask << (bit_start - trie_builder.bits_per_fanout)
+                child_idx = (c & mask) >> (bit_start - trie_builder.bits_per_fanout)
+                node = node.descend(child_idx)
             node.value |= flag
 
     def get_char(self, c):
+        start = ((21 // trie_builder.bits_per_fanout) + bool(21 % trie_builder.bits_per_fanout)) * trie_builder.bits_per_fanout
         node = self.root
-        for bit_num in range(21, 0, -1):
-            bit = (c >> (bit_num - 1)) & 0x1
-            if bit == 0:
-                if node.zero is not None:
-                    node = node.zero
-                else:
-                    break
+        for bit_start in range(start, 0, -trie_builder.bits_per_fanout):
+            mask = trie_builder.single_mask << (bit_start - trie_builder.bits_per_fanout)
+            child_idx = (c & mask) >> (bit_start - trie_builder.bits_per_fanout)
+            if node.children[child_idx] is not None:
+                node = node.children[child_idx]
             else:
-                if node.one is not None:
-                    node = node.one
-                else:
-                    break
+                break
         return node.value
 
     def make_entries(self):
         bits_per_index = self.bits_per_index()
-        no_index = (1 << bits_per_index) - 1
         ret = '{\n        '
         for idx, entry in enumerate(self.linear):
             if idx > 0:
                 ret += ', '
                 if idx % 8 == 0:
                     ret += '\n        '
-            val = (entry[2] << (2 * bits_per_index))
-            val |= ((entry[1] if entry[1] != -1 else no_index) << bits_per_index)
-            val |= (entry[0] if entry[0] != -1 else no_index)
+            
+            val = (entry[1] << (self.fanout * bits_per_index))
+            for idx, index in enumerate(entry[0]):
+                val |= index << (bits_per_index * idx)
             ret += f'0x{val:08X}'
         ret += '}'
         return ret
@@ -132,8 +134,8 @@ class trie_builder:
         self.__calc_linear(self.root, indices_by_hash, terminals_by_value)
 
         bits_per_entry = self.bits_per_entry()
-        if bits_per_entry > 32:
-            raise RuntimeError("more than 32 bits in entry is currently not supported")
+        if bits_per_entry > 64:
+            raise RuntimeError("more than 64 bits in entry is currently not supported")
         bits_per_entry_type = (1<<(bits_per_entry-1).bit_length())
         bits_per_entry_type = max(8, bits_per_entry_type)
         bytes_per_entry_type = bits_per_entry_type // 8
@@ -162,56 +164,54 @@ class trie_builder:
             terminal_idx = terminals_by_value.get(value_idx)
             if terminal_idx is None:
                 terminal_idx = len(self.linear)
-                self.linear.append([terminal_idx, terminal_idx, value_idx])
+                self.linear.append(([terminal_idx] * trie_builder.fanout, value_idx))
                 terminals_by_value[value_idx] = terminal_idx
             indices_by_hash[current.hash] = terminal_idx
             return terminal_idx
             
         current_idx = len(self.linear)
         indices_by_hash[current.hash] = current_idx
-        self.linear.append([])
+        self.linear.append(([], 0))
         current_linear = self.linear[current_idx]
 
-        for child in (current.zero, current.one):
+        for child in current.children:
             if child is not None:
-                current_linear.append(self.__calc_linear(child, indices_by_hash, terminals_by_value))
+                current_linear[0].append(self.__calc_linear(child, indices_by_hash, terminals_by_value))
             else:
                 terminal_idx = terminals_by_value.get(value_idx)
                 if terminal_idx is None:
                     terminal_idx = len(self.linear)
-                    self.linear.append([terminal_idx, terminal_idx, value_idx])
+                    self.linear.append(([terminal_idx] * trie_builder.fanout, value_idx))
                     terminals_by_value[value_idx] = terminal_idx
-                current_linear.append(terminal_idx)
+                current_linear[0].append(terminal_idx)
         
-        current_linear.append(0)
-
         return current_idx
 
 
     def __trim(self, current: node):
-        for child in (current.zero, current.one):
+        for child in current.children:
             if child is not None:
                 self.__trim(child)
-        if (current.zero is not None and current.zero.is_leaf() and
-            current.one is not None and current.one.is_leaf() and 
-            current.zero.value == current.one.value):
-            current.value = current.zero.value
-            current.zero = None
-            current.one = None
+        if current.children[0] is None or not current.children[0].is_leaf():
+            return
+        for idx in range(1, len(current.children)):
+            if (current.children[idx] is None or not current.children[idx].is_leaf() or 
+                current.children[idx].value != current.children[0].value):
+                return
+        current.value = current.children[0].value
+        for i in range(0, trie_builder.fanout):
+            current.children[i] = None
         
 
     def __hash(self, current: node):
         m = hashlib.sha256()
-        if current.zero is not None:
-            current.zero = self.__hash(current.zero)
-            m.update(current.zero.hash)
-        else:
-            m.update(b'none')
-        if current.one is not None:
-            current.one = self.__hash(current.one)
-            m.update(current.one.hash)
-        else:
-            m.update(b'none')
+        for idx in range(0, trie_builder.fanout):
+            if current.children[idx] is not None:
+                current.children[idx] = self.__hash(current.children[idx])
+                m.update(current.children[idx].hash)
+            else:
+                m.update(b'none')
+        
         m.update(current.value.to_bytes(4, 'little'))
         current.hash = m.digest()
         existing = self.byhash.get(current.hash)

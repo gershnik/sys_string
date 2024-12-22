@@ -29,6 +29,12 @@ def type_for_bits(bits: int):
         return 'uint64_t'
     raise RuntimeError('too many bits')
 
+def bytes_for_bits(bits: int):
+    bits_per_value = (1<<(bits-1).bit_length())
+    bits_per_value = max(8, bits_per_value)
+    bytes_per_value = bits_per_value // 8
+    return bytes_per_value
+
 def read_ucd_file(srcpath, handler):
     with open(srcpath, 'r', encoding='utf-8') as src:
         line_idx = 0

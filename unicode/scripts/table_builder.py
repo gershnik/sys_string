@@ -4,6 +4,8 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file or at
 # https://github.com/gershnik/sys_string/blob/master/LICENSE
+
+from common import bytes_for_bits
 # 
 
 class table_builder:
@@ -63,17 +65,14 @@ class table_builder:
                 self.max_block_idx = max(self.max_block_idx, block_idx)
             self.stage1[idx] = block_idx
 
-        stage1_block_bits = len(self.stage1) * self.stage1_bits_per_value()
-        stage1_block_bytes = (stage1_block_bits // 8) + bool(stage1_block_bits % 8)
+        stage1_block_bytes = len(self.stage1) * bytes_for_bits(self.stage1_bits_per_value())
         total_data_size = stage1_block_bytes
         
-        stage2_block_bits = table_builder.block_size * self.stage2_bits_per_value()
-        stage2_block_bytes = (stage2_block_bits // 8) + bool(stage2_block_bits % 8)
+        stage2_block_bytes = table_builder.block_size * bytes_for_bits(self.stage2_bits_per_value())
         total_data_size += stage2_block_bytes * len(self.blocks_by_index)
 
         if self.separate_values:
-            values_block_bits = len(self.values) * self.values_bits_per_value()
-            values_block_bytes = (values_block_bits // 8) + bool(values_block_bits % 8)
+            values_block_bytes = len(self.values) * bytes_for_bits(self.values_bits_per_value())
             total_data_size += values_block_bytes
 
         return total_data_size

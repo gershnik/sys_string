@@ -209,13 +209,13 @@ def print_properties_header(name, builder, enums, masks={}):
         static constexpr size_t block_len = {builder.block_size};
         static constexpr char32_t max_char = U'{char_name(builder.max_known_char)}';
 
-        static const bit_array<{builder.stage1_bits_per_value()}, {builder.stage1_size()}> stage1;
-        static const bit_array<{builder.stage2_bits_per_value()}, {builder.stage2_size()}> stage2;
+        static const std::array<{type_for_bits(builder.stage1_bits_per_value())}, {builder.stage1_size()}> stage1;
+        static const std::array<{type_for_bits(builder.stage2_bits_per_value())}, {builder.stage2_size()}> stage2;
     '''
 
     if builder.separate_values:
         ret += f'''
-        static const bit_array<{builder.values_bits_per_value()}, {builder.values_size()}> values;
+        static const std::array<{type_for_bits(builder.values_bits_per_value())}, {builder.values_size()}> values;
 
         static constexpr bool separate_values = true;
     '''
@@ -250,15 +250,15 @@ def print_properties_header(name, builder, enums, masks={}):
 
 def print_properties_impl(name, builder):
     ret = f'''
-    const bit_array<{builder.stage1_bits_per_value()}, {builder.stage1_size()}> {name}::stage1({builder.make_stage1()});
+    const std::array<{type_for_bits(builder.stage1_bits_per_value())}, {builder.stage1_size()}> {name}::stage1({builder.make_stage1()});
 
-    const bit_array<{builder.stage2_bits_per_value()}, {builder.stage2_size()}> {name}::stage2({builder.make_stage2()});
+    const std::array<{type_for_bits(builder.stage2_bits_per_value())}, {builder.stage2_size()}> {name}::stage2({builder.make_stage2()});
 
     '''
 
     if builder.separate_values:
         ret += f'''
-    const bit_array<{builder.values_bits_per_value()}, {builder.values_size()}> {name}::values({builder.make_values()});
+    const std::array<{type_for_bits(builder.values_bits_per_value())}, {builder.values_size()}> {name}::values({builder.make_values()});
     '''
         
     return ret
@@ -322,68 +322,35 @@ def make_index(builder: mapping_builder):
     return ret
 
 def print_trie_header(name, tr: trie_builder, enums, masks={}):
-    separate_values = tr.separate_values()
-
     ret = f'''
     class {name}
     {{
     protected:
-        static constexpr size_t bits_per_index = {tr.bits_per_index()};
-        static constexpr size_t bits_per_value = {tr.bits_per_value()};
-    '''
+        using entry_type = std::array<{type_for_bits(tr.bits_per_index())}, {tr.fanout}>;
+        using value_type = {type_for_bits(tr.bits_per_value())};
 
-    if separate_values:
-        ret += f'''
-        static constexpr size_t bits_per_value_index = {tr.bits_per_value_index()};
-    '''
+        static const std::array<entry_type, {tr.entris_count()}> entries;
+    
+        static const std::array<value_type, {tr.values_count()}> values;
 
-    ret += f'''
-        static const std::array<{type_for_bits(tr.bits_per_entry())}, {tr.entris_count()}> entries;
-    '''
-
-    if separate_values:
-        ret += f'''
-        static const std::array<{type_for_bits(tr.bits_per_value())}, {tr.values_count()}> values;
-
-        static constexpr bool separate_values = true;
-    '''
-    else:
-        ret += '''
-        static constexpr bool separate_values = false;
-    '''
-
-    ret += f'''
     public:
-        enum value : {type_for_bits(tr.bits_per_value())}
+        enum value : value_type
         {{
             none = 0,
             {print_enum(enums, masks)}
         }};
-    '''
-
-    if separate_values:
-        ret += '''
-        static constexpr size_t data_size = sizeof(entries) + sizeof(values);
-    '''
-    else:
-        ret += '''
-        static constexpr size_t data_size = sizeof(entries);
-    '''
     
-    ret += '''
-    };
+        static constexpr size_t data_size = sizeof(entries) + sizeof(values);
+    }};
     '''
 
     return ret
 
 def print_trie_impl(name, tr: trie_builder):
     ret = f'''
-    const std::array<{type_for_bits(tr.bits_per_entry())}, {tr.entris_count()}> {name}::entries({tr.make_entries()});
-    '''
-
-    if tr.separate_values():
-        ret += f'''
-    const std::array<{type_for_bits(tr.bits_per_value())}, {tr.values_count()}> {name}::values({tr.make_values()});
+    const std::array<{name}::entry_type, {tr.entris_count()}> {name}::entries({tr.make_entries()});
+   
+    const std::array<{name}::value_type, {tr.values_count()}> {name}::values({tr.make_values()});
     '''
         
     return ret
@@ -426,6 +393,8 @@ read_ucd_file(datadir/'GraphemeBreakTest.txt', parse_grapheme_tests)
 total_data_size += case_prop_builder.generate()
 total_data_size += grapheme_cluster_break_prop_builder.generate()
 total_data_size += grapheme_cluster_break_trie_builder.generate()
+
+print(grapheme_cluster_break_trie_builder.get_char(0x308))
 
 write_file(hfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 

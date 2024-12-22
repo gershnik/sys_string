@@ -131,11 +131,6 @@ namespace sysstr::util
 
             static inline value get(char32_t c) noexcept
             {
-                using entry_type = typename decltype(Base::entries)::value_type;
-                constexpr size_t index_shifts[] = {0, Base::bits_per_index, 2 * Base::bits_per_index, 3 * Base::bits_per_index};
-                constexpr auto value_shift = 4 * Base::bits_per_index;
-                constexpr entry_type index_mask = (1 << Base::bits_per_index) - 1;
-                
                 constexpr uint32_t masks[] = {
                     0x10'0000,
                      0xC'0000, 0x3'0000,
@@ -153,21 +148,16 @@ namespace sysstr::util
                             2,        0
                 };
                 
-                entry_type entry;
-                entry_type idx = 0;
+                size_t idx = Base::values.size();
                 #pragma clang loop unroll(full)
                 for (size_t count = 0; count < std::size(masks); ++count)
                 {
-                    entry = Base::entries[idx];
                     int char_idx = (c & masks[count]) >> shifts[count];
-                    idx = (entry >> index_shifts[char_idx]) & index_mask;
+                    auto & entry = Base::entries[idx];
+                    idx = entry[char_idx];
                 }
-                //entry >>= value_shift;
-                entry = Base::entries[idx] >> value_shift;
-                if constexpr (Base::separate_values)
-                    return value(Base::values[entry]);
-                else
-                    return value(entry);
+                assert(idx < Base::values.size());
+                return value(Base::values[idx]);
             }
         };
 

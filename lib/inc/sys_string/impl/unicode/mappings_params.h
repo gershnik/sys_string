@@ -26,8 +26,8 @@ namespace sysstr::util::unicode
         static constexpr size_t block_len = 256;
         static constexpr char32_t max_char = U'\U000E01EF';
 
-        static const bit_array<7, 3586> stage1;
-        static const bit_array<2, 25856> stage2;
+        static const std::array<uint8_t, 3586> stage1;
+        static const std::array<uint8_t, 25856> stage2;
     
         static constexpr bool separate_values = false;
     
@@ -50,10 +50,10 @@ namespace sysstr::util::unicode
         static constexpr size_t block_len = 256;
         static constexpr char32_t max_char = U'\U0001FFFD';
 
-        static const bit_array<7, 3600> stage1;
-        static const bit_array<5, 27136> stage2;
+        static const std::array<uint8_t, 3600> stage1;
+        static const std::array<uint8_t, 27136> stage2;
     
-        static const bit_array<6, 17> values;
+        static const std::array<uint8_t, 17> values;
 
         static constexpr bool separate_values = true;
     
@@ -88,19 +88,15 @@ namespace sysstr::util::unicode
     class grapheme_cluster_break_prop_data2
     {
     protected:
-        static constexpr size_t bits_per_index = 10;
-        static constexpr size_t bits_per_value = 6;
-    
-        static constexpr size_t bits_per_value_index = 5;
-    
-        static const std::array<uint64_t, 786> entries;
-    
-        static const std::array<uint8_t, 16> values;
+        using entry_type = std::array<uint8_t, 128>;
+        using value_type = uint8_t;
 
-        static constexpr bool separate_values = true;
+        static const std::array<entry_type, 177> entries;
     
+        static const std::array<value_type, 16> values;
+
     public:
-        enum value : uint8_t
+        enum value : value_type
         {
             none = 0,
             control = 1,
@@ -123,7 +119,6 @@ namespace sysstr::util::unicode
         };
     
         static constexpr size_t data_size = sizeof(entries) + sizeof(values);
-    
     };
     
 }

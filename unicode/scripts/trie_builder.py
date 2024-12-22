@@ -8,8 +8,10 @@
 
 import hashlib
 
+from common import bytes_for_bits
+
 class trie_builder:
-    bits_per_fanout = 2
+    bits_per_fanout = 3
     fanout = 1 << bits_per_fanout
     single_mask = (1 << bits_per_fanout) - 1
     char_mask_start = ((21 // bits_per_fanout) + bool(21 % bits_per_fanout)) * bits_per_fanout
@@ -47,22 +49,10 @@ class trie_builder:
         self.byhash = {}
         self.values = {0:0}
         self.max_value = 0
-        self.linear = []
+        self.linear = [[0]*self.fanout]
 
     def bits_per_index(self):
         return len(self.linear).bit_length()
-    
-    def bits_per_value_index(self):
-        return len(self.values).bit_length()
-    
-    def separate_values(self):
-        return self.bits_per_value() > self.bits_per_value_index()
-
-    def bits_per_entry(self):
-        bits_per_index = self.bits_per_index()
-        bits_per_value_index = self.bits_per_value_index()
-        bits_per_value = self.bits_per_value()
-        return trie_builder.fanout * bits_per_index + min(bits_per_value_index, bits_per_value)
     
     def entris_count(self):
         return len(self.linear)
@@ -96,7 +86,6 @@ class trie_builder:
         return node.value
 
     def make_entries(self):
-        bits_per_index = self.bits_per_index()
         ret = '{\n        '
         for idx, entry in enumerate(self.linear):
             if idx > 0:
@@ -104,10 +93,8 @@ class trie_builder:
                 if idx % 8 == 0:
                     ret += '\n        '
             
-            val = (entry[1] << (self.fanout * bits_per_index))
-            for idx, index in enumerate(entry[0]):
-                val |= index << (bits_per_index * idx)
-            ret += f'0x{val:08X}'
+            indices = ', '.join([f'{val}' for val in entry])
+            ret += f'{{{indices}}}'
         ret += '}'
         return ret
     
@@ -129,61 +116,53 @@ class trie_builder:
         self.root = self.__hash(self.root)
         print(f"After hash: {len(self.byhash)}")
         
+        self.__collect_values(self.root)
         indices_by_hash = {}
-        terminals_by_value = {}
-        self.__calc_linear(self.root, indices_by_hash, terminals_by_value)
+        self.__calc_linear(self.root, indices_by_hash)
 
-        bits_per_entry = self.bits_per_entry()
-        if bits_per_entry > 64:
-            raise RuntimeError("more than 64 bits in entry is currently not supported")
-        bits_per_entry_type = (1<<(bits_per_entry-1).bit_length())
-        bits_per_entry_type = max(8, bits_per_entry_type)
-        bytes_per_entry_type = bits_per_entry_type // 8
-        total_data_size = len(self.linear) * bytes_per_entry_type
-        if self.separate_values():
-            bits_per_value = self.bits_per_value()
-            bits_per_value_type = (1<<(bits_per_value-1).bit_length())
-            bits_per_value_type = max(8, bits_per_value_type)
-            bytes_per_value_type = bits_per_value_type // 8
-            total_data_size += len(self.values) * bytes_per_value_type
+        bytes_per_entry = bytes_for_bits(self.bits_per_index()) * self.fanout
+        total_data_size = len(self.linear) * bytes_per_entry
+        
+        bytes_per_value = bytes_for_bits(self.bits_per_value())
+        total_data_size += len(self.values) * bytes_per_value
 
         return total_data_size
+    
+    def __collect_values(self, current: node):
+        value_idx = self.values.get(current.value)
+        if value_idx is None:    
+            value_idx = len(self.values)
+            self.values[current.value] = value_idx
+            self.max_value = max(self.max_value, current.value)
+            terminal_idx = len(self.linear)
+            self.linear.append([terminal_idx] * trie_builder.fanout)
 
-    def __calc_linear(self, current: node, indices_by_hash: dict, terminals_by_value: dict):
+        for child in current.children:
+            if child is not None:
+                self.__collect_values(child)
+
+
+    def __calc_linear(self, current: node, indices_by_hash: dict):
         current_idx = indices_by_hash.get(current.hash)
         if current_idx is not None:
             return current_idx
         
         value_idx = self.values.get(current.value)
-        if value_idx is None:
-            value_idx = len(self.values)
-            self.values[current.value] = value_idx
-            self.max_value = max(self.max_value, current.value)
 
         if current.is_leaf():
-            terminal_idx = terminals_by_value.get(value_idx)
-            if terminal_idx is None:
-                terminal_idx = len(self.linear)
-                self.linear.append(([terminal_idx] * trie_builder.fanout, value_idx))
-                terminals_by_value[value_idx] = terminal_idx
-            indices_by_hash[current.hash] = terminal_idx
-            return terminal_idx
+            indices_by_hash[current.hash] = value_idx
+            return value_idx
             
         current_idx = len(self.linear)
         indices_by_hash[current.hash] = current_idx
-        self.linear.append(([], 0))
-        current_linear = self.linear[current_idx]
+        self.linear.append([])
+        current_linear: list = self.linear[current_idx]
 
         for child in current.children:
             if child is not None:
-                current_linear[0].append(self.__calc_linear(child, indices_by_hash, terminals_by_value))
+                current_linear.append(self.__calc_linear(child, indices_by_hash))
             else:
-                terminal_idx = terminals_by_value.get(value_idx)
-                if terminal_idx is None:
-                    terminal_idx = len(self.linear)
-                    self.linear.append(([terminal_idx] * trie_builder.fanout, value_idx))
-                    terminals_by_value[value_idx] = terminal_idx
-                current_linear[0].append(terminal_idx)
+                current_linear.append(value_idx)
         
         return current_idx
 

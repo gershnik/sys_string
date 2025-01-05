@@ -9,7 +9,9 @@
 //
 #ifndef HEADER_SYS_STRING_UNICODE_MAPPINGS_DATA_H_INCLUDED
 #define HEADER_SYS_STRING_UNICODE_MAPPINGS_DATA_H_INCLUDED
-           
+
+#include <array>
+
 namespace sysstr::util::unicode 
 {
     struct mapper_data
@@ -17,46 +19,122 @@ namespace sysstr::util::unicode
         static constexpr size_t max_mapped_length = 3;
     };
 
-    
-    class case_prop_data
+    struct char_lookup
     {
-    protected:
-        static constexpr size_t block_len = 256;
-        static constexpr char32_t max_char = U'\U000E01EF';
+        char32_t offset:11;
+        char32_t value:21;
+    };
 
-        static const bit_array<7, 3586> stage1;
-        static const bit_array<2, 25856> stage2;
+    struct case_fold_data
+    {
+        static const char_lookup source_chars[];
+        static constexpr size_t source_chars_len = 1557;
+        static const char16_t chars[];
+    };
+
+
+    struct to_lower_case_data
+    {
+        static const char_lookup source_chars[];
+        static constexpr size_t source_chars_len = 1460;
+        static const char16_t chars[];
+    };
+
+
+    struct to_upper_case_data
+    {
+        static const char_lookup source_chars[];
+        static constexpr size_t source_chars_len = 1552;
+        static const char16_t chars[];
+    };
+
+
+    template<class Derived>
+    class prop_lookup
+    {
+    public:
+        static auto get(char32_t c) noexcept
+        {
+            size_t idx = Derived::values.size();
     
-        static constexpr bool separate_values = false;
+            {
+                int char_idx = (c >> 20) & 0xF;
+                auto & entry = Derived::entries[idx];
+                idx = entry[char_idx];
+            }
+    
+            {
+                int char_idx = (c >> 16) & 0xF;
+                auto & entry = Derived::entries[idx];
+                idx = entry[char_idx];
+            }
+    
+            {
+                int char_idx = (c >> 12) & 0xF;
+                auto & entry = Derived::entries[idx];
+                idx = entry[char_idx];
+            }
+    
+            {
+                int char_idx = (c >> 8) & 0xF;
+                auto & entry = Derived::entries[idx];
+                idx = entry[char_idx];
+            }
+    
+            {
+                int char_idx = (c >> 4) & 0xF;
+                auto & entry = Derived::entries[idx];
+                idx = entry[char_idx];
+            }
+    
+            {
+                int char_idx = (c >> 0) & 0xF;
+                auto & entry = Derived::entries[idx];
+                idx = entry[char_idx];
+            }
+    
+           assert(idx < Derived::values.size());
+           return typename Derived::value(Derived::values[idx]);
+        }
+    };
+
+
+    class case_prop_lookup : public prop_lookup<case_prop_lookup>
+    {
+    friend prop_lookup<case_prop_lookup>;
+    private:
+        using entry_type = std::array<uint16_t, 16>;
+        using value_type = uint8_t;
+    
+        static const std::array<entry_type, 373> entries;
+    
+        static const std::array<value_type, 4> values;
     
     public:
-        enum value : decltype(stage2)::value_type
+        enum value : value_type
         {
             none = 0,
             cased = 1,
             case_ignorable = 2
         };
     
-        static constexpr size_t data_size = sizeof(stage1) + sizeof(stage2);
-    
+        static constexpr size_t data_size = sizeof(entries) + sizeof(values);
     };
-    
-    
-    class grapheme_cluster_break_prop_data
+
+
+    class grapheme_cluster_break_lookup : public prop_lookup<grapheme_cluster_break_lookup>
     {
-    protected:
-        static constexpr size_t block_len = 256;
-        static constexpr char32_t max_char = U'\U0001FFFD';
-
-        static const bit_array<7, 3600> stage1;
-        static const bit_array<5, 27136> stage2;
+    friend prop_lookup<grapheme_cluster_break_lookup>;
+    private:
+        using entry_type = std::array<uint16_t, 16>;
+        using value_type = uint8_t;
     
-        static const bit_array<6, 17> values;
-
-        static constexpr bool separate_values = true;
+        static const std::array<entry_type, 417> entries;
+    
+        static const std::array<value_type, 16> values;
     
     public:
-        enum value : decltype(stage2)::value_type
+        enum value : value_type
         {
             none = 0,
             control = 1,
@@ -73,15 +151,14 @@ namespace sysstr::util::unicode
             in_cb_consonant = 16,
             in_cb_extend = 32,
             in_cb_linker = 48,
-            
+    
             basic_mask = 15,
             in_cb_mask = 48
         };
     
-        static constexpr size_t data_size = sizeof(stage1) + sizeof(stage2) + sizeof(values);
-    
+        static constexpr size_t data_size = sizeof(entries) + sizeof(values);
     };
-    
+
 }
 
 #endif

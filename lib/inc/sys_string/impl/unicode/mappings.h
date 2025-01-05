@@ -9,7 +9,6 @@
 #define HEADER_SYS_STRING_UNICODE_MAPPINGS_H_INCLUDED
 
 #include <sys_string/impl/unicode/utf_encoding.h>
-#include <sys_string/impl/util/bit_array.h>
 
 #include <sys_string/impl/unicode/mappings_params.h>
 
@@ -21,12 +20,6 @@ namespace sysstr::util
 {
     namespace unicode
     {
-        struct char_lookup
-        {
-            char32_t offset:11;
-            char32_t value:21;
-        };
-
         class mapper : public mapper_data
         {
         public:
@@ -93,6 +86,11 @@ namespace sysstr::util
             const char16_t * m_mapped;
         };
 
+        const inline mapper mapper::case_fold{case_fold_data::source_chars, case_fold_data::source_chars_len, case_fold_data::chars};
+        const inline mapper mapper::to_lower_case(to_lower_case_data::source_chars, to_lower_case_data::source_chars_len, to_lower_case_data::chars);
+        const inline mapper mapper::to_upper_case(to_upper_case_data::source_chars, to_upper_case_data::source_chars_len, to_upper_case_data::chars);
+
+
         inline bool isspace(char32_t c) noexcept
         {
             extern const char16_t whitespaces[];
@@ -104,27 +102,10 @@ namespace sysstr::util
             return false;
         }
 
-        template<class Base>
-        class property_lookup : public Base
-        {
-        public:
-            using typename Base::value;
+        
 
-            static inline value get(char32_t c) noexcept
-            {
-                if (c > Base::max_char)
-                    return value(0);
-                auto stage2_block_offset = Base::stage1[c / Base::block_len] * Base::block_len;
-                auto stage2_char_idx = c % Base::block_len;
-                if constexpr (Base::separate_values)
-                    return value(Base::values[Base::stage2[stage2_block_offset + stage2_char_idx]]);
-                else
-                    return value(Base::stage2[stage2_block_offset + stage2_char_idx]);
-            }
-        };
-
-        using case_prop = property_lookup<case_prop_data>;
-        using grapheme_cluster_break_prop = property_lookup<grapheme_cluster_break_prop_data>;
+        using case_prop = case_prop_lookup;
+        using grapheme_cluster_break_prop = grapheme_cluster_break_lookup;
     }
 }
 

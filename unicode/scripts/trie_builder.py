@@ -212,7 +212,7 @@ class trie_builder:
         return current
     
     def make_entries(self):
-        ret = '{\n'
+        ret = ''
         line_len = 0
         for idx, entry in enumerate(self.linear):
             if idx > 0:
@@ -222,21 +222,19 @@ class trie_builder:
                     ret += '\n'
                     line_len = 0
             indices = ', '.join([f'{val}' for val in entry])
-            addition = f'{{{indices}}}'
+            addition = f'{{{{{indices}}}}}'
             line_len += len(addition)
             ret += addition
-        ret += '}'
         return ret
     
     def make_values(self):
-        ret = '{'
+        ret = ''
         for idx, value in enumerate(self.values):
             if idx > 0:
                 ret += ', '
                 if idx % 32 == 0:
                     ret += '\n'
             ret += f'{value}'
-        ret += '}'
         return ret
     
     @staticmethod
@@ -296,9 +294,13 @@ class trie_builder:
 
     def print_impl(self, name):
         ret = f'''
-        const std::array<{name}::entry_type, {self.entris_count()}> {name}::entries({indent_insert(self.make_entries(), 12)});
+        const std::array<{name}::entry_type, {self.entris_count()}> {name}::entries = {{{{
+            {indent_insert(self.make_entries(), 12)}
+        }}}};
     
-        const std::array<{name}::value_type, {self.values_count()}> {name}::values({indent_insert(self.make_values(), 12)});
+        const std::array<{name}::value_type, {self.values_count()}> {name}::values = {{{{
+            {indent_insert(self.make_values(), 12)}
+        }}}};
         '''
             
         return dedent(ret)

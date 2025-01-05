@@ -11,6 +11,7 @@
 #define HEADER_SYS_STRING_UNICODE_MAPPINGS_DATA_H_INCLUDED
 
 #include <array>
+#include <cassert>
 
 namespace sysstr::util::unicode 
 {

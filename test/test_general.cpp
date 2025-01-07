@@ -350,6 +350,8 @@ TEST_CASE( "Case conversion" ) {
     CHECK(S("ΑΣͺΑ").to_lower() == S("ασͺα"));
     
     CHECK(S("βους").to_upper() == S("ΒΟΥΣ"));
+
+    CHECK(S("𐐀").to_lower() == S("𐐨"));
 }
 
 TEST_CASE( "Trim" ) {

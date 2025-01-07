@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Fixed
+
+- Invalid character access in unicode mappings.
+
 ## [2.14] - 2024-05-02
 
 ### Fixed

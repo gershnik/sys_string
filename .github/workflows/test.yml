@@ -37,6 +37,9 @@ jobs:
         - os: ubuntu-latest
           compiler: gcc
           version: 13
+        - os: ubuntu-latest
+          compiler: gcc
+          version: 14
         # See https://github.com/actions/runner-images/issues/8659
         # - os: ubuntu-latest
         #   compiler: clang
@@ -44,15 +47,18 @@ jobs:
         # - os: ubuntu-latest
         #   compiler: clang
         #   version: 14
-        - os: ubuntu-latest
+        - os: ubuntu-22.04
           compiler: clang
           version: 15
-        - os: ubuntu-latest
+        - os: ubuntu-22.04
           compiler: clang
           version: 16
         - os: ubuntu-latest
           compiler: clang
           version: 17
+        - os: ubuntu-latest
+          compiler: clang
+          version: 18
     
     steps:
     - name: Checkout

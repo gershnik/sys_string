@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Added
+
+- `grapheme_view` which provides ability to iterate over grapheme clusters in `sys_string` and any UTF range.
+
+### Changed
+
+- Unicode data has been optimized for better size/speed balance
+
+### Fixed
+
+- Invalid character access in unicode mappings.
+
 ## [3.0] - 2024-12-02
 
 This is a major release with some breaking changes

@@ -94,7 +94,6 @@ set(UNICODE_FILES
     ${SRCDIR}/inc/sys_string/impl/unicode/utf_util.h
     ${SRCDIR}/inc/sys_string/impl/unicode/algorithms.h
     ${SRCDIR}/inc/sys_string/impl/unicode/mappings.h
-    ${SRCDIR}/inc/sys_string/impl/unicode/mappings_params.h
 )
 set(SOURCES
     ${SRCDIR}/src/unicode_mappings.cpp

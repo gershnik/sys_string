@@ -62,19 +62,19 @@ namespace sysstr
     {
         auto operator()(char32_t c) const noexcept -> bool
         {
-            return util::unicode::isspace(c);
+            return util::unicode::is_whitespace::test(c);
         }
     };
 
     template<utf_encoding OutEnc>
     struct casefold
     {
-        static constexpr auto max_output_length = util::unicode::mapper::max_mapped_length;
+        static constexpr auto max_output_length = util::unicode::case_fold_mapper::max_mapped_length;
         
         template<std::output_iterator<utf_char_of<OutEnc>> OutIt>
         auto operator()(char32_t c, OutIt dest) const noexcept(noexcept(*dest++ = utf_char_of<OutEnc>())) -> OutIt
         {
-            return util::unicode::mapper::case_fold.map_char<OutEnc>(c, dest);
+            return util::unicode::case_fold_mapper::map_char<OutEnc>(c, dest);
         }
     };
 
@@ -132,7 +132,7 @@ namespace sysstr
                 auto c = *first;
                 if (c != U'\u03A3') // not Σ
                 {
-                    dest = mapper::to_lower_case.map_char<OutEnc>(c, dest);
+                    dest = to_lower_case_mapper::map_char<OutEnc>(c, dest);
                 }
                 else
                 {
@@ -161,7 +161,7 @@ namespace sysstr
             for( ; first != last; ++first)
             {
                 auto c = *first;
-                dest = mapper::to_upper_case.map_char<OutEnc>(c, dest);
+                dest = to_upper_case_mapper::map_char<OutEnc>(c, dest);
             }
 
             return dest;

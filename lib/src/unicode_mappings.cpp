@@ -13,7 +13,7 @@
 namespace sysstr::util::unicode 
 {
 
-    const char_lookup case_fold_data::source_chars[] = {
+    const std::array<char_lookup, 1558> case_fold_mapper::source_chars = {{
         {0 ,U'\u0041'}, {1 ,U'\u0042'}, {2 ,U'\u0043'}, {3 ,U'\u0044'}, {4 ,U'\u0045'}, {5 ,U'\u0046'}, {6 ,U'\u0047'}, {7 ,U'\u0048'}, {8 ,U'\u0049'}, {9 ,U'\u004A'}, {10 ,U'\u004B'}, {11 ,U'\u004C'}, {12 ,U'\u004D'}, {13 ,U'\u004E'}, {14 ,U'\u004F'}, {15 ,U'\u0050'}, 
         {16 ,U'\u0051'}, {17 ,U'\u0052'}, {18 ,U'\u0053'}, {19 ,U'\u0054'}, {20 ,U'\u0055'}, {21 ,U'\u0056'}, {22 ,U'\u0057'}, {23 ,U'\u0058'}, {24 ,U'\u0059'}, {25 ,U'\u005A'}, {26 ,U'\u00B5'}, {27 ,U'\u00C0'}, {28 ,U'\u00C1'}, {29 ,U'\u00C2'}, {30 ,U'\u00C3'}, {31 ,U'\u00C4'}, 
         {32 ,U'\u00C5'}, {33 ,U'\u00C6'}, {34 ,U'\u00C7'}, {35 ,U'\u00C8'}, {36 ,U'\u00C9'}, {37 ,U'\u00CA'}, {38 ,U'\u00CB'}, {39 ,U'\u00CC'}, {40 ,U'\u00CD'}, {41 ,U'\u00CE'}, {42 ,U'\u00CF'}, {43 ,U'\u00D0'}, {44 ,U'\u00D1'}, {45 ,U'\u00D2'}, {46 ,U'\u00D3'}, {47 ,U'\u00D4'}, 
@@ -112,9 +112,9 @@ namespace sysstr::util::unicode
         {1885 ,U'\U00016E5D'}, {1887 ,U'\U00016E5E'}, {1889 ,U'\U00016E5F'}, {1891 ,U'\U0001E900'}, {1893 ,U'\U0001E901'}, {1895 ,U'\U0001E902'}, {1897 ,U'\U0001E903'}, {1899 ,U'\U0001E904'}, {1901 ,U'\U0001E905'}, {1903 ,U'\U0001E906'}, {1905 ,U'\U0001E907'}, {1907 ,U'\U0001E908'}, {1909 ,U'\U0001E909'}, {1911 ,U'\U0001E90A'}, {1913 ,U'\U0001E90B'}, {1915 ,U'\U0001E90C'}, 
         {1917 ,U'\U0001E90D'}, {1919 ,U'\U0001E90E'}, {1921 ,U'\U0001E90F'}, {1923 ,U'\U0001E910'}, {1925 ,U'\U0001E911'}, {1927 ,U'\U0001E912'}, {1929 ,U'\U0001E913'}, {1931 ,U'\U0001E914'}, {1933 ,U'\U0001E915'}, {1935 ,U'\U0001E916'}, {1937 ,U'\U0001E917'}, {1939 ,U'\U0001E918'}, {1941 ,U'\U0001E919'}, {1943 ,U'\U0001E91A'}, {1945 ,U'\U0001E91B'}, {1947 ,U'\U0001E91C'}, 
         {1949 ,U'\U0001E91D'}, {1951 ,U'\U0001E91E'}, {1953 ,U'\U0001E91F'}, {1955 ,U'\U0001E920'}, {1957 ,U'\U0001E921'}, {1959 , 0}
-    };
+    }};
     
-    const char16_t case_fold_data::chars[] = 
+    const char16_t case_fold_mapper::mapped_chars[] = 
         u"\u0061\u0062\u0063\u0064\u0065\u0066\u0067\u0068\u0069\u006A\u006B\u006C\u006D\u006E\u006F\u0070"
         u"\u0071\u0072\u0073\u0074\u0075\u0076\u0077\u0078\u0079\u007A\u03BC\u00E0\u00E1\u00E2\u00E3\u00E4"
         u"\u00E5\u00E6\u00E7\u00E8\u00E9\u00EA\u00EB\u00EC\u00ED\u00EE\u00EF\u00F0\u00F1\u00F2\u00F3\u00F4"
@@ -222,8 +222,7 @@ namespace sysstr::util::unicode
         u"\U0001E937\U0001E938\U0001E939\U0001E93A\U0001E93B\U0001E93C\U0001E93D\U0001E93E\U0001E93F\U0001E940\U0001E941\U0001E942\U0001E943"
     ;
 
-
-    const char_lookup to_lower_case_data::source_chars[] = {
+    const std::array<char_lookup, 1461> to_lower_case_mapper::source_chars = {{
         {0 ,U'\u0041'}, {1 ,U'\u0042'}, {2 ,U'\u0043'}, {3 ,U'\u0044'}, {4 ,U'\u0045'}, {5 ,U'\u0046'}, {6 ,U'\u0047'}, {7 ,U'\u0048'}, {8 ,U'\u0049'}, {9 ,U'\u004A'}, {10 ,U'\u004B'}, {11 ,U'\u004C'}, {12 ,U'\u004D'}, {13 ,U'\u004E'}, {14 ,U'\u004F'}, {15 ,U'\u0050'}, 
         {16 ,U'\u0051'}, {17 ,U'\u0052'}, {18 ,U'\u0053'}, {19 ,U'\u0054'}, {20 ,U'\u0055'}, {21 ,U'\u0056'}, {22 ,U'\u0057'}, {23 ,U'\u0058'}, {24 ,U'\u0059'}, {25 ,U'\u005A'}, {26 ,U'\u00C0'}, {27 ,U'\u00C1'}, {28 ,U'\u00C2'}, {29 ,U'\u00C3'}, {30 ,U'\u00C4'}, {31 ,U'\u00C5'}, 
         {32 ,U'\u00C6'}, {33 ,U'\u00C7'}, {34 ,U'\u00C8'}, {35 ,U'\u00C9'}, {36 ,U'\u00CA'}, {37 ,U'\u00CB'}, {38 ,U'\u00CC'}, {39 ,U'\u00CD'}, {40 ,U'\u00CE'}, {41 ,U'\u00CF'}, {42 ,U'\u00D0'}, {43 ,U'\u00D1'}, {44 ,U'\u00D2'}, {45 ,U'\u00D3'}, {46 ,U'\u00D4'}, {47 ,U'\u00D5'}, 
@@ -316,9 +315,9 @@ namespace sysstr::util::unicode
         {1671 ,U'\U00016E5E'}, {1673 ,U'\U00016E5F'}, {1675 ,U'\U0001E900'}, {1677 ,U'\U0001E901'}, {1679 ,U'\U0001E902'}, {1681 ,U'\U0001E903'}, {1683 ,U'\U0001E904'}, {1685 ,U'\U0001E905'}, {1687 ,U'\U0001E906'}, {1689 ,U'\U0001E907'}, {1691 ,U'\U0001E908'}, {1693 ,U'\U0001E909'}, {1695 ,U'\U0001E90A'}, {1697 ,U'\U0001E90B'}, {1699 ,U'\U0001E90C'}, {1701 ,U'\U0001E90D'}, 
         {1703 ,U'\U0001E90E'}, {1705 ,U'\U0001E90F'}, {1707 ,U'\U0001E910'}, {1709 ,U'\U0001E911'}, {1711 ,U'\U0001E912'}, {1713 ,U'\U0001E913'}, {1715 ,U'\U0001E914'}, {1717 ,U'\U0001E915'}, {1719 ,U'\U0001E916'}, {1721 ,U'\U0001E917'}, {1723 ,U'\U0001E918'}, {1725 ,U'\U0001E919'}, {1727 ,U'\U0001E91A'}, {1729 ,U'\U0001E91B'}, {1731 ,U'\U0001E91C'}, {1733 ,U'\U0001E91D'}, 
         {1735 ,U'\U0001E91E'}, {1737 ,U'\U0001E91F'}, {1739 ,U'\U0001E920'}, {1741 ,U'\U0001E921'}, {1743 , 0}
-    };
+    }};
     
-    const char16_t to_lower_case_data::chars[] = 
+    const char16_t to_lower_case_mapper::mapped_chars[] = 
         u"\u0061\u0062\u0063\u0064\u0065\u0066\u0067\u0068\u0069\u006A\u006B\u006C\u006D\u006E\u006F\u0070"
         u"\u0071\u0072\u0073\u0074\u0075\u0076\u0077\u0078\u0079\u007A\u00E0\u00E1\u00E2\u00E3\u00E4\u00E5"
         u"\u00E6\u00E7\u00E8\u00E9\u00EA\u00EB\u00EC\u00ED\u00EE\u00EF\u00F0\u00F1\u00F2\u00F3\u00F4\u00F5"
@@ -413,8 +412,7 @@ namespace sysstr::util::unicode
         u"\U0001E93F\U0001E940\U0001E941\U0001E942\U0001E943"
     ;
 
-
-    const char_lookup to_upper_case_data::source_chars[] = {
+    const std::array<char_lookup, 1553> to_upper_case_mapper::source_chars = {{
         {0 ,U'\u0061'}, {1 ,U'\u0062'}, {2 ,U'\u0063'}, {3 ,U'\u0064'}, {4 ,U'\u0065'}, {5 ,U'\u0066'}, {6 ,U'\u0067'}, {7 ,U'\u0068'}, {8 ,U'\u0069'}, {9 ,U'\u006A'}, {10 ,U'\u006B'}, {11 ,U'\u006C'}, {12 ,U'\u006D'}, {13 ,U'\u006E'}, {14 ,U'\u006F'}, {15 ,U'\u0070'}, 
         {16 ,U'\u0071'}, {17 ,U'\u0072'}, {18 ,U'\u0073'}, {19 ,U'\u0074'}, {20 ,U'\u0075'}, {21 ,U'\u0076'}, {22 ,U'\u0077'}, {23 ,U'\u0078'}, {24 ,U'\u0079'}, {25 ,U'\u007A'}, {26 ,U'\u00B5'}, {27 ,U'\u00DF'}, {29 ,U'\u00E0'}, {30 ,U'\u00E1'}, {31 ,U'\u00E2'}, {32 ,U'\u00E3'}, 
         {33 ,U'\u00E4'}, {34 ,U'\u00E5'}, {35 ,U'\u00E6'}, {36 ,U'\u00E7'}, {37 ,U'\u00E8'}, {38 ,U'\u00E9'}, {39 ,U'\u00EA'}, {40 ,U'\u00EB'}, {41 ,U'\u00EC'}, {42 ,U'\u00ED'}, {43 ,U'\u00EE'}, {44 ,U'\u00EF'}, {45 ,U'\u00F0'}, {46 ,U'\u00F1'}, {47 ,U'\u00F2'}, {48 ,U'\u00F3'}, 
@@ -512,9 +510,9 @@ namespace sysstr::util::unicode
         {1856 ,U'\U00016E72'}, {1858 ,U'\U00016E73'}, {1860 ,U'\U00016E74'}, {1862 ,U'\U00016E75'}, {1864 ,U'\U00016E76'}, {1866 ,U'\U00016E77'}, {1868 ,U'\U00016E78'}, {1870 ,U'\U00016E79'}, {1872 ,U'\U00016E7A'}, {1874 ,U'\U00016E7B'}, {1876 ,U'\U00016E7C'}, {1878 ,U'\U00016E7D'}, {1880 ,U'\U00016E7E'}, {1882 ,U'\U00016E7F'}, {1884 ,U'\U0001E922'}, {1886 ,U'\U0001E923'}, 
         {1888 ,U'\U0001E924'}, {1890 ,U'\U0001E925'}, {1892 ,U'\U0001E926'}, {1894 ,U'\U0001E927'}, {1896 ,U'\U0001E928'}, {1898 ,U'\U0001E929'}, {1900 ,U'\U0001E92A'}, {1902 ,U'\U0001E92B'}, {1904 ,U'\U0001E92C'}, {1906 ,U'\U0001E92D'}, {1908 ,U'\U0001E92E'}, {1910 ,U'\U0001E92F'}, {1912 ,U'\U0001E930'}, {1914 ,U'\U0001E931'}, {1916 ,U'\U0001E932'}, {1918 ,U'\U0001E933'}, 
         {1920 ,U'\U0001E934'}, {1922 ,U'\U0001E935'}, {1924 ,U'\U0001E936'}, {1926 ,U'\U0001E937'}, {1928 ,U'\U0001E938'}, {1930 ,U'\U0001E939'}, {1932 ,U'\U0001E93A'}, {1934 ,U'\U0001E93B'}, {1936 ,U'\U0001E93C'}, {1938 ,U'\U0001E93D'}, {1940 ,U'\U0001E93E'}, {1942 ,U'\U0001E93F'}, {1944 ,U'\U0001E940'}, {1946 ,U'\U0001E941'}, {1948 ,U'\U0001E942'}, {1950 ,U'\U0001E943'}, {1952 , 0}
-    };
+    }};
     
-    const char16_t to_upper_case_data::chars[] = 
+    const char16_t to_upper_case_mapper::mapped_chars[] = 
         u"\u0041\u0042\u0043\u0044\u0045\u0046\u0047\u0048\u0049\u004A\u004B\u004C\u004D\u004E\u004F\u0050"
         u"\u0051\u0052\u0053\u0054\u0055\u0056\u0057\u0058\u0059\u005A\u039C\u0053\u0053\u00C0\u00C1\u00C2"
         u"\u00C3\u00C4\u00C5\u00C6\u00C7\u00C8\u00C9\u00CA\u00CB\u00CC\u00CD\u00CE\u00CF\u00D0\u00D1\u00D2"
@@ -622,12 +620,11 @@ namespace sysstr::util::unicode
         u"\U0001E91C\U0001E91D\U0001E91E\U0001E91F\U0001E920\U0001E921"
     ;
 
-    
-    extern const char16_t whitespaces[] = 
+    const char16_t is_whitespace::chars[] = 
         u"\u0009\u000A\u000B\u000C\u000D\u0020\u0085\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006"
         u"\u2007\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000";
 
-    const std::array<case_prop_lookup::entry_type, 373> case_prop_lookup::entries = {{
+    const std::array<case_prop::entry_type, 373> case_prop::entries = {{
         {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}, {{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}}, {{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}}, 
         {{3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}}, {{5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}, {{6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0}}, 
         {{9, 10, 11, 12, 0, 0, 0, 0, 0, 0, 13, 0, 0, 0, 0, 14}}, {{15, 16, 0, 17, 0, 0, 18, 0, 0, 0, 19, 20, 21, 22, 23, 24}}, {{25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}, 
@@ -762,11 +759,11 @@ namespace sysstr::util::unicode
         {{2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0}}
     }};
     
-    const std::array<case_prop_lookup::value_type, 4> case_prop_lookup::values = {{
+    const std::array<case_prop::value_type, 4> case_prop::values = {{
         0, 2, 1, 3
     }};
 
-    const std::array<grapheme_cluster_break_lookup::entry_type, 417> grapheme_cluster_break_lookup::entries = {{
+    const std::array<grapheme_cluster_break_prop::entry_type, 417> grapheme_cluster_break_prop::entries = {{
         {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}, {{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}}, {{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}}, 
         {{3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}}, {{4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4}}, {{5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5}}, 
         {{6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6}}, {{7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7}}, {{8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8}}, 
@@ -919,18 +916,18 @@ namespace sysstr::util::unicode
         {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2}}, {{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2}}
     }};
     
-    const std::array<grapheme_cluster_break_lookup::value_type, 16> grapheme_cluster_break_lookup::values = {{
+    const std::array<grapheme_cluster_break_prop::value_type, 16> grapheme_cluster_break_prop::values = {{
         0, 1, 11, 34, 4, 5, 16, 50, 6, 7, 8, 2, 32, 9, 10, 3
     }};
 
     
     constexpr auto total_data_size = 
-        sizeof(case_fold_data::source_chars) + sizeof(case_fold_data::chars) +
-        sizeof(to_lower_case_data::source_chars) + sizeof(to_lower_case_data::chars) +
-        sizeof(to_upper_case_data::source_chars) + sizeof(to_upper_case_data::chars) +
-        sizeof(whitespaces) +
-        case_prop_lookup::data_size +
-        grapheme_cluster_break_lookup::data_size;
+        case_fold_mapper::data_size +
+        to_lower_case_mapper::data_size +
+        to_upper_case_mapper::data_size +
+        is_whitespace::data_size +
+        case_prop::data_size +
+        grapheme_cluster_break_prop::data_size;
     static_assert(total_data_size == 54954);
 
 }

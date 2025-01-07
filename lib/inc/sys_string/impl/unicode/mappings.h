@@ -52,7 +52,7 @@ namespace sysstr::util
                 m_mapped(mapped)
             {}
             template<utf_encoding Enc, class OutIt>
-            auto write(char32_t c, OutIt dest) const noexcept(noexcept(*dest++ = utf_char_of<Enc>())) -> OutIt
+            static auto write(char32_t c, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<Enc>())) -> OutIt
             {
                 if constexpr (Enc == utf32)
                 {
@@ -67,7 +67,7 @@ namespace sysstr::util
                 }
             }
             template<utf_encoding Enc, class OutIt>
-            auto write(const char16_t * begin, const char16_t * end, OutIt dest) const noexcept(noexcept(*dest++ = utf_char_of<Enc>())) -> OutIt
+            static auto write(const char16_t * begin, const char16_t * end, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<Enc>())) -> OutIt
             {
                 if constexpr (Enc == utf16)
                 {
@@ -80,7 +80,7 @@ namespace sysstr::util
                     {
                         decoder.put(*begin++);
                         if (!decoder.done())
-                            decoder.put(m_mapped[*begin++]); //no need to bounds check, we know end is good
+                            decoder.put(*begin++); //no need to bounds check, we know end is good
                         dest = write<Enc>(decoder.value(), dest);
                     }
                     return dest;

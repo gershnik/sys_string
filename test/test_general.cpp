@@ -233,6 +233,8 @@ TEST_CASE( "Case conversion", "[general]" ) {
     CHECK(S("ΑΣͺΑ").to_lower() == S("ασͺα"));
     
     CHECK(S("βους").to_upper() == S("ΒΟΥΣ"));
+
+    CHECK(S("\U00010400").to_lower() == S("\U00010428"));
 }
 
 TEST_CASE( "Trim", "[general]" ) {

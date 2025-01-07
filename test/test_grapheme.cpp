@@ -149,4 +149,29 @@ TEST_CASE("ranges") {
     check_graphemes_reverse_range(as_utf32("ab"s), {U"a", U"b"});
 }
 
+TEST_CASE("view interface") {
+
+    auto view = graphemes("abc"s);
+
+    CHECK(view);
+    CHECK(!view.empty());
+    auto fr = view.front();
+    CHECK(fr.size() == 1);
+    CHECK(fr.front() == 'a');
+    auto bc = view.back();
+    CHECK(bc.size() == 1);
+    CHECK(bc.front() == 'c');
+
+    CHECK(view.begin() == view.cbegin());
+    static_assert(std::is_same_v<decltype(view.end()), std::default_sentinel_t>);
+    static_assert(std::is_same_v<decltype(view.cend()), std::default_sentinel_t>);
+    CHECK(view.rbegin() == view.crbegin());
+    static_assert(std::is_same_v<decltype(view.rend()), std::default_sentinel_t>);
+    static_assert(std::is_same_v<decltype(view.crend()), std::default_sentinel_t>);
+
+    auto empty_view = graphemes(""s);
+    CHECK(!empty_view);
+    CHECK(empty_view.empty());
+}
+
 }

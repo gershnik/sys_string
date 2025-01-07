@@ -289,7 +289,7 @@ namespace sysstr
             SYS_STRING_FORCE_INLINE static auto range_ref(const range * src) -> const range &
                 { return *src; }
 
-            static constexpr bool is_reversible = ranges::reverse_traversable_range<std::remove_reference_t<range>>;
+            static constexpr bool is_reversible = ranges::reverse_traversable_range<range>;
             static constexpr auto source_encoding = utf_encoding_of<std::ranges::range_value_t<range>>;
             
             using access_iterator = decltype(std::ranges::begin(range_ref(std::declval<stored_type>())));
@@ -357,6 +357,15 @@ namespace sysstr
                 { return rbegin(); }
             SYS_STRING_FORCE_INLINE std::default_sentinel_t crend() const requires(is_reversible)
                 { return rend(); }
+
+            bool empty() const requires(std::ranges::forward_range<Range>)
+                { return std::ranges::empty(range_ref(m_src)); }
+            explicit operator bool() const requires(std::ranges::forward_range<Range>)
+                { return !std::ranges::empty(m_src); }
+            decltype(auto) front() const requires(std::ranges::forward_range<Range>)
+                { return *this->begin();}
+            decltype(auto) back() const requires(is_reversible)
+                { return *this->rbegin();}
 
             reverse_iterator reverse(iterator it) const requires(is_reversible)
                 { return reverse_iterator(it, std::ranges::rend(range_ref(m_src))); }

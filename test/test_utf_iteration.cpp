@@ -750,6 +750,67 @@ TEST_CASE( "Ranges" ) {
     CHECK(std::ranges::equal(std::vector({u'a', u'b', u'c'}) | as_utf8, std::array{'a', 'b', 'c'}));
 }
 
+TEST_CASE("view interface") {
+
+    {
+        auto view = as_utf32("abc"s);
+
+        CHECK(view);
+        CHECK(!view.empty());
+        CHECK(view.front() == U'a');
+        CHECK(view.back() == U'c');
+
+        CHECK(view.begin() == view.cbegin());
+        static_assert(std::is_same_v<decltype(view.end()), std::default_sentinel_t>);
+        static_assert(std::is_same_v<decltype(view.cend()), std::default_sentinel_t>);
+        CHECK(view.rbegin() == view.crbegin());
+        static_assert(std::is_same_v<decltype(view.rend()), std::default_sentinel_t>);
+        static_assert(std::is_same_v<decltype(view.crend()), std::default_sentinel_t>);
+
+        auto empty_view = as_utf32(""s);
+        CHECK(!empty_view);
+        CHECK(empty_view.empty());
+    }
+    {
+        auto view = as_utf16("abc"s);
+
+        CHECK(view);
+        CHECK(!view.empty());
+        CHECK(view.front() == u'a');
+        CHECK(view.back() == u'c');
+
+        CHECK(view.begin() == view.cbegin());
+        static_assert(std::is_same_v<decltype(view.end()), std::default_sentinel_t>);
+        static_assert(std::is_same_v<decltype(view.cend()), std::default_sentinel_t>);
+        CHECK(view.rbegin() == view.crbegin());
+        static_assert(std::is_same_v<decltype(view.rend()), std::default_sentinel_t>);
+        static_assert(std::is_same_v<decltype(view.crend()), std::default_sentinel_t>);
+
+        auto empty_view = as_utf32(""s);
+        CHECK(!empty_view);
+        CHECK(empty_view.empty());
+    }
+    {
+        auto view = as_utf8("abc"s);
+
+        CHECK(view);
+        CHECK(!view.empty());
+        CHECK(view.front() == 'a');
+        CHECK(view.back() == 'c');
+
+        CHECK(view.begin() == view.cbegin());
+        static_assert(std::is_same_v<decltype(view.end()), std::default_sentinel_t>);
+        static_assert(std::is_same_v<decltype(view.cend()), std::default_sentinel_t>);
+        CHECK(view.rbegin() == view.crbegin());
+        static_assert(std::is_same_v<decltype(view.rend()), std::default_sentinel_t>);
+        static_assert(std::is_same_v<decltype(view.crend()), std::default_sentinel_t>);
+
+        auto empty_view = as_utf32(""s);
+        CHECK(!empty_view);
+        CHECK(empty_view.empty());
+    }
+}
+
 #endif
 
 }

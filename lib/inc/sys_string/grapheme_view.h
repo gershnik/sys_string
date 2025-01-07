@@ -114,9 +114,6 @@ namespace sysstr
         using pointer = typename iterator::pointer;
         using const_pointer = pointer;
 
-        // static const bool borrowed = (ViewType == byref) || 
-        //                                 (ViewType == byval && std::ranges::borrowed_range<range>);
-        
     public:
         grapheme_view(const Range & src) noexcept(noexcept(range(src))) :
             m_src(src)
@@ -149,6 +146,15 @@ namespace sysstr
             { return rbegin(); }
         SYS_STRING_FORCE_INLINE std::default_sentinel_t crend() const requires(is_reversible)
             { return rend(); }
+
+        bool empty() const
+            { return std::ranges::empty(m_src); }
+        explicit operator bool() const
+            { return !std::ranges::empty(m_src); }
+        decltype(auto) front() const
+            { return *this->begin();}
+        decltype(auto) back() const requires(is_reversible)
+            { return *this->rbegin();}
 
         reverse_iterator reverse(iterator it) const requires(is_reversible)
             { return reverse_iterator(it, std::ranges::rend(m_src)); }

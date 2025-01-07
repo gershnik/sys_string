@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
-- `grapheme_view` which provides ability to iterate over grapheme clusters in `sys_string` and any UTF range.
+- `grapheme_view` and `graphemes` adapter which provide ability to iterate over grapheme clusters in `sys_string` and any UTF range.
 
 ### Changed
 

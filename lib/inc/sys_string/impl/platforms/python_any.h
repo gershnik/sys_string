@@ -237,8 +237,6 @@ namespace sysstr::util
 
         friend bool operator==(const py_char_access & lhs, const py_char_access & rhs) noexcept
             { return lhs.m_str == rhs.m_str; }
-        friend bool operator!=(const py_char_access & lhs, const py_char_access & rhs) noexcept
-            { return !(lhs == rhs); }
     private:
         PyObject * m_str = nullptr;
         PyUnicode_Kind m_kind = PyUnicode_4BYTE_KIND;

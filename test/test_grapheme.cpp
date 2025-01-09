@@ -9,6 +9,7 @@
 
 #include <sys_string/grapheme_view.h>
 #include <sys_string/utf_view.h>
+#include <sys_string/sys_string.h>
 
 #include <doctest/doctest.h>
 
@@ -16,6 +17,7 @@
 #include <vector>
 #include <string>
 #include <string_view>
+#include <forward_list>
 #include <ostream>
 #include <source_location>
 
@@ -53,7 +55,7 @@ namespace {
     {
         std::vector<std::u32string> rexpected;
         for(auto & ex: expected | std::views::reverse)
-            rexpected.emplace_back(ex.rbegin(), ex.rend());
+            rexpected.emplace_back(ex.rend().base(), ex.rbegin().base());
         auto gr = graphemes(std::forward<Range>(range));
         std::vector<std::u32string> result;
         std::ranges::transform(std::ranges::subrange(gr.rbegin(), gr.rend()), std::back_inserter(result), [](auto range) {
@@ -81,8 +83,6 @@ namespace {
         INFO("source: ", std::string(loc.file_name()), std::string(":"), loc.line());
         bool res = std::ranges::equal(result, expected);
         CHECK(res);
-        
-        
     }
     
     template<std::ranges::forward_range Range>
@@ -147,6 +147,8 @@ TEST_CASE("ranges") {
     check_graphemes_reverse_range(U"ab"s, {U"a", U"b"});
     check_graphemes_range(as_utf32("ab"s), {U"a", U"b"});
     check_graphemes_reverse_range(as_utf32("ab"s), {U"a", U"b"});
+
+    check_graphemes_range(std::forward_list<char>{'a', 'b', 'c'}, {U"a", U"b", U"c"});
 }
 
 TEST_CASE("view interface") {
@@ -155,12 +157,8 @@ TEST_CASE("view interface") {
 
     CHECK(view);
     CHECK(!view.empty());
-    auto fr = view.front();
-    CHECK(fr.size() == 1);
-    CHECK(fr.front() == 'a');
-    auto bc = view.back();
-    CHECK(bc.size() == 1);
-    CHECK(bc.front() == 'c');
+    CHECK(sys_string(view.front()) == S("a"));
+    CHECK(sys_string(view.back()) == S("c"));
 
     CHECK(view.begin() == view.cbegin());
     static_assert(std::is_same_v<decltype(view.end()), std::default_sentinel_t>);
@@ -172,6 +170,10 @@ TEST_CASE("view interface") {
     auto empty_view = graphemes(""s);
     CHECK(!empty_view);
     CHECK(empty_view.empty());
+
+    auto s = S("xyz");
+    auto access = sys_string::char_access(s);
+    CHECK(sys_string(graphemes(access).front()) == S("x"));
 }
 
 }

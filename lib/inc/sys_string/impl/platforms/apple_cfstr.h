@@ -282,8 +282,6 @@ namespace sysstr::util
         
         friend bool operator==(const cf_char_access & lhs, const cf_char_access & rhs) noexcept
             { return lhs.m_string == rhs.m_string; }
-        friend bool operator!=(const cf_char_access & lhs, const cf_char_access & rhs) noexcept
-            { return !(lhs == rhs); }
     private:
         void fill(CFIndex idx) const
         {

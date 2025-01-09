@@ -97,22 +97,15 @@ namespace sysstr
         static_assert(std::ranges::random_access_range<char_access>);
 
         template<utf_encoding Enc>
-        class utf_access : private util::utf_view<Enc, char_access, util::byval>
+        class utf_access : private util::utf_owning_view<Enc, char_access>
         {
         private:
-            using super = util::utf_view<Enc, char_access, util::byval>;
+            using super = util::utf_owning_view<Enc, char_access>;
         public:
             using typename super::iterator;
             using typename super::const_iterator;
             using typename super::reverse_iterator;
             using typename super::const_reverse_iterator;
-            
-            using typename super::value_type;
-            using typename super::reference;
-            using typename super::const_reference;
-            using typename super::pointer;
-            using typename super::const_pointer;
-            
         public:
             utf_access(const sys_string_t & src) noexcept(noexcept(super(src))) :
                 super(src)
@@ -126,6 +119,12 @@ namespace sysstr
             using super::rend;
             using super::crbegin;
             using super::crend;
+
+            using super::empty;
+            using super::operator bool;
+
+            using super::front;
+            using super::back;
             
             using super::reverse;
             using super::each;
@@ -308,10 +307,7 @@ namespace sysstr
         
         friend auto operator==(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> bool
             { return compare(lhs, rhs) == 0; }
-        friend auto operator!=(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> bool
-            { return compare(lhs, rhs) != 0; }
         
-
         friend auto operator<=>(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> std::strong_ordering
             { return compare(lhs, rhs); }
         
@@ -430,21 +426,15 @@ namespace sysstr
     {
 
         template<utf_encoding Enc, class Storage>
-        class builder_utf_view : private util::utf_view<Enc, typename Storage::builder_impl, util::byref>
+        class builder_utf_view : private util::utf_ref_view<Enc, const typename Storage::builder_impl>
         {
         private:
-            using super = util::utf_view<Enc, typename Storage::builder_impl, util::byref>;
+            using super = util::utf_ref_view<Enc, const typename Storage::builder_impl>;
         public:
             using typename super::iterator;
             using typename super::const_iterator;
             using typename super::reverse_iterator;
             using typename super::const_reverse_iterator;
-            
-            using typename super::value_type;
-            using typename super::reference;
-            using typename super::const_reference;
-            using typename super::pointer;
-            using typename super::const_pointer;
             
         public:
             builder_utf_view(const sys_string_builder_t<Storage> & src) noexcept(noexcept(super(src.chars()))) :
@@ -460,6 +450,12 @@ namespace sysstr
             using super::rend;
             using super::crbegin;
             using super::crend;
+
+            using super::empty;
+            using super::operator bool;
+
+            using super::front;
+            using super::back;
             
             using super::reverse;
             using super::each;

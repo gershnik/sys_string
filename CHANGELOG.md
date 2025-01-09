@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 
 - Invalid character access in unicode mappings.
+- `utf_ref_view` and `utf_owning_view` now actually work with forward and input underlying ranges
 
 ## [3.0] - 2024-12-02
 

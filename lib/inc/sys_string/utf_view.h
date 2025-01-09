@@ -98,11 +98,11 @@ namespace sysstr
             }
             
             template<std::equality_comparable_with<It> RIt, std::sentinel_for<RIt> EndRIt>
-            friend constexpr bool operator==(const utf_iterator & lhs, const utf_iterator<OutputEnc, RIt, EndRIt, Direction> & rhs)
-                { return lhs.m_char_idx == rhs.m_char_idx && lhs.m_next == rhs.m_next; }
+            constexpr bool operator==(const utf_iterator<OutputEnc, RIt, EndRIt, Direction> & rhs) const
+                { return this->m_char_idx == rhs.m_char_idx && this->m_next == rhs.m_next; }
             
-            friend constexpr bool operator==(const utf_iterator & lhs, std::default_sentinel_t)
-                { return !lhs; }
+            constexpr bool operator==(std::default_sentinel_t) const
+                { return !*this; }
             
             const It storage_next() const
                 { return this->m_next; }
@@ -188,11 +188,11 @@ namespace sysstr
             }
 
             template<std::equality_comparable_with<It> RIt, std::sentinel_for<RIt> EndRIt>
-            friend constexpr bool operator==(const utf_iterator & lhs, const utf_iterator<utf32, RIt, EndRIt, Direction> & rhs)
-                { return lhs.m_next == rhs.m_next && bool(lhs.m_value) == bool(rhs.m_value); }
+            constexpr bool operator==(const utf_iterator<utf32, RIt, EndRIt, Direction> & rhs) const
+                { return this->m_next == rhs.m_next && bool(this->m_value) == bool(rhs.m_value); }
             
-            friend constexpr bool operator==(const utf_iterator & lhs, std::default_sentinel_t)
-                { return !lhs.m_value; }
+            constexpr bool operator==(std::default_sentinel_t) const
+                { return !this->m_value; }
             
             It storage_next() const
                 { return this->m_next; }
@@ -307,16 +307,16 @@ namespace sysstr
             }
             
             template<std::equality_comparable_with<It> RIt, std::sentinel_for<RIt> EndRIt>
-            friend constexpr bool operator==(const utf_iterator & lhs, const utf_iterator<OutputEnc, RIt, EndRIt, Direction> & rhs)
-                { return lhs.m_char_idx == rhs.m_char_idx && lhs.m_current == rhs.m_current; }
+            constexpr bool operator==(const utf_iterator<OutputEnc, RIt, EndRIt, Direction> & rhs) const
+                { return this->m_char_idx == rhs.m_char_idx && this->m_current == rhs.m_current; }
             
             
-            friend constexpr bool operator==(const utf_iterator & lhs, std::default_sentinel_t)
-                { return !lhs; }
+            constexpr bool operator==(std::default_sentinel_t) const
+                { return !*this; }
             
-            const It storage_current() const
+            It storage_current() const
                 { return this->m_current; }
-            const It storage_next() const
+            It storage_next() const
                 { return this->m_next; }
             EndIt storage_last() const
                 { return this->m_last; }
@@ -418,11 +418,11 @@ namespace sysstr
             }
 
             template<std::equality_comparable_with<It> RIt, std::sentinel_for<RIt> EndRIt>
-            friend constexpr bool operator==(const utf_iterator & lhs, const utf_iterator<utf32, RIt, EndRIt, Direction> & rhs)
-                { return lhs.m_current == rhs.m_current; }
+            constexpr bool operator==(const utf_iterator<utf32, RIt, EndRIt, Direction> & rhs) const
+                { return this->m_current == rhs.m_current; }
             
-            friend constexpr bool operator==(const utf_iterator & lhs, std::default_sentinel_t)
-                { return lhs.m_current == lhs.m_last; }
+            constexpr bool operator==(std::default_sentinel_t) const
+                { return this->m_current == this->m_last; }
             
             
             It storage_current() const

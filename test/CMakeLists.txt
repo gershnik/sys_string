@@ -160,6 +160,17 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
         "$<$<PLATFORM_ID:Android>:-Wl,--export-dynamic>"
     )
 
+    if (SYS_STRING_COLLECT_COVERAGE)
+
+        target_compile_options(test-${TEST_SUFFIX} PRIVATE
+            $<$<CXX_COMPILER_ID:AppleClang>:-fprofile-instr-generate -fcoverage-mapping>
+        )
+        target_link_options(test-${TEST_SUFFIX} PRIVATE
+            $<$<CXX_COMPILER_ID:AppleClang>:-fprofile-instr-generate -fcoverage-mapping>
+        )
+
+    endif()
+
     target_link_libraries(test-${TEST_SUFFIX} PRIVATE
         
         sys_string::sys_string
@@ -200,6 +211,19 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
         list(APPEND TEST_COMMAND COMMAND ${ADB} shell LD_LIBRARY_PATH=${ANDROID_LD_LIBRARY_PATH} ${ANDROID_TEST_DIR}/test-${TEST_SUFFIX} -ni)
     elseif (DEFINED EMSCRIPTEN)
         list(APPEND TEST_COMMAND COMMAND node test-${TEST_SUFFIX} -ni)
+    elseif(SYS_STRING_COLLECT_COVERAGE AND ${CMAKE_SYSTEM_NAME} STREQUAL Darwin AND CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+        list(APPEND TEST_COMMAND COMMAND ${CMAKE_COMMAND} -E env LLVM_PROFILE_FILE=${CMAKE_CURRENT_BINARY_DIR}/coverage/test-${TEST_SUFFIX}.profraw $<TARGET_FILE:test-${TEST_SUFFIX}>)
+        list(APPEND TEST_COMMAND COMMAND xcrun llvm-profdata merge -sparse ${CMAKE_CURRENT_BINARY_DIR}/coverage/test-${TEST_SUFFIX}.profraw -o ${CMAKE_CURRENT_BINARY_DIR}/coverage/test-${TEST_SUFFIX}.profdata)
+        list(APPEND TEST_COMMAND COMMAND xcrun llvm-cov show -format=html 
+                -Xdemangler=c++filt -Xdemangler -n
+                -show-regions=1
+                -show-instantiations=0
+                #-show-branches=count
+                #-show-instantiation-summary=1
+                -ignore-filename-regex=test/.\\*
+                -output-dir=${CMAKE_CURRENT_BINARY_DIR}/coverage/report-${TEST_SUFFIX}
+                -instr-profile=${CMAKE_CURRENT_BINARY_DIR}/coverage/test-${TEST_SUFFIX}.profdata 
+                $<TARGET_FILE:test-${TEST_SUFFIX}>)
     else()
         list(APPEND TEST_COMMAND COMMAND test-${TEST_SUFFIX} -ni)
     endif()

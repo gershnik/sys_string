@@ -719,13 +719,15 @@ namespace sysstr
             reverse_iterator reverse(iterator it) const
                 { return reverse_iterator(it, std::ranges::rend(this->m_src)); }
 
-            const_reverse_iterator reverse(const_iterator it) const requires ranges::reverse_traversable_range<const range>
+            const_reverse_iterator reverse(const_iterator it) const 
+            requires(ranges::reverse_traversable_range<const range> && !std::is_same_v<const_iterator, iterator>)
                 { return const_reverse_iterator(it, std::ranges::rend(this->m_src)); }
 
             iterator reverse(reverse_iterator it) const
                 { return iterator(it, std::ranges::end(this->m_src)); }
 
-            const_iterator reverse(const_reverse_iterator it) const requires ranges::reverse_traversable_range<const range>
+            const_iterator reverse(const_reverse_iterator it) const 
+            requires(ranges::reverse_traversable_range<const range> && !std::is_same_v<const_reverse_iterator, reverse_iterator>)
                 { return const_iterator(it, std::ranges::end(this->m_src)); }
             
             template<class Func>

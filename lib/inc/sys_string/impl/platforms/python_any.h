@@ -162,7 +162,9 @@ namespace sysstr::util
         buffer_t release() noexcept
         {
             this->m_capacity = minimum_capacity;
-            return std::move(m_buffer);
+            buffer_t ret = std::move(m_buffer);
+            m_buffer.emplace<static_t>();
+            return ret;
         }
     private:
         buffer_t m_buffer;

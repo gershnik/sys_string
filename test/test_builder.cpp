@@ -95,6 +95,35 @@ TEST_CASE( "Builder basics" ) {
     builder.push_back(U'🩳');
     builder.pop_back();
     CHECK(builder.build() == S("🪀"));
+
+    builder.clear();
+    std::u32string expected;
+    for(int i = 0; i < 4096; ++i)
+    {
+        builder.append('a');
+        expected += U'a';
+    }
+    CHECK(builder.build() == sys_string(expected));
+
+    sys_string_builder builder1;
+    for(int i = 0; i < 4096; ++i)
+    {
+        builder.append('a');
+        builder1.append('a');
+    }
+    builder = std::move(builder1);
+    CHECK(builder1.build() == sys_string());
+    CHECK(builder.build() == sys_string(expected));
+
+    {
+        sys_string_builder unused;
+        for(int i = 0; i < 4096; ++i)
+            builder.append('a');
+    }
+    {
+        sys_string_builder unused;
+        builder.append('a');
+    }
 }
 
 TEST_CASE( "Builder iteration" ) {

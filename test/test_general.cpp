@@ -562,17 +562,17 @@ TEST_CASE( "data", "[general]" ) {
     {
         if constexpr (std::is_same_v<sys_string::storage_type, char>)
         {
-            REQUIRE(str.storage_size() == strlen("a🧡bc"));
+            REQUIRE(str.storage_size() == sys_string::size_type(strlen("a🧡bc")));
             CHECK(memcmp(data, "a🧡bc", str.storage_size()) == 0);
         }
         else if constexpr (std::is_same_v<sys_string::storage_type, char16_t>)
         {
-            REQUIRE(str.storage_size() == std::char_traits<char16_t>::length(u"a🧡bc"));
+            REQUIRE(str.storage_size() == sys_string::size_type(std::char_traits<char16_t>::length(u"a🧡bc")));
             CHECK(memcmp(data, u"a🧡bc", str.storage_size() * sizeof(sys_string::storage_type)) == 0);
         }
         else 
         {
-            REQUIRE(str.storage_size() == std::char_traits<char32_t>::length(U"a🧡bc"));
+            REQUIRE(str.storage_size() == sys_string::size_type(std::char_traits<char32_t>::length(U"a🧡bc")));
             CHECK(memcmp(data, U"a🧡bc", str.storage_size() * sizeof(sys_string::storage_type)) == 0);
         }
     }

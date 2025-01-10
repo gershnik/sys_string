@@ -12,11 +12,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 
 - Unicode data has been optimized for better size/speed balance
+- `sys_string_t::hash_type` has been changed from `unsigned` to `size_t` on some platforms. 
 
 ### Fixed
 
 - Invalid character access in unicode mappings.
+- Crash when sys_string_builder is re-used after `build()` on Apple and Python platforms.
 - `utf_ref_view` and `utf_owning_view` now actually work with forward and input underlying ranges
+- MSVC warnings when using `std::hash<sys_string>`
 
 ## [3.0] - 2024-12-02
 

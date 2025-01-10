@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [3.1] - 2025-01-10
+
 ### Added
 
 - `grapheme_view` and `graphemes` adapter which provide ability to iterate over grapheme clusters in `sys_string` and any UTF range.
@@ -242,3 +244,4 @@ This is a major release with some breaking changes
 [2.15]: https://github.com/gershnik/sys_string/releases/v2.15
 [2.16]: https://github.com/gershnik/sys_string/releases/v2.16
 [3.0]: https://github.com/gershnik/sys_string/releases/v3.0
+[3.1]: https://github.com/gershnik/sys_string/releases/v3.1

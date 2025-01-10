@@ -38,26 +38,6 @@ namespace sysstr::util
         return src;
     }
     
-    struct apple_reallocator
-    {
-        void * alloc(size_t size)
-        {
-            if (auto ret = ::CFAllocatorAllocate(nullptr, size, 0))
-                return ret;
-            throw std::bad_alloc();
-        }
-        
-        void free(void * p) noexcept
-            { ::CFAllocatorDeallocate(nullptr, p); }
-        
-        void * realloc(void * p, size_t size)
-        {
-            if (auto ret = ::CFAllocatorReallocate(nullptr, p, size, 0))
-                return ret;
-            throw std::bad_alloc();
-        }
-    };
-    
     class cf_builder_storage
     {
     public:
@@ -169,7 +149,9 @@ namespace sysstr::util
         buffer_t release() noexcept
         {
             this->m_capacity = minimum_capacity;
-            return std::move(m_buffer);
+            buffer_t ret = std::move(m_buffer);
+            m_buffer.emplace<static_t>();
+            return ret;
         }
     private:
         buffer_t m_buffer;

@@ -754,27 +754,36 @@ TEST_CASE( "UTF32 Iteration on UTF32 sequence" ) {
 
 TEST_CASE( "Ranges" ) {
     std::stringstream stream("abc");
+    std::vector vec({'a', 'b', 'c'});
+    std::forward_list flist({'a', 'b', 'c'});
 
     CHECK(std::ranges::equal(as_utf32(std::vector({'a', 'b', 'c'})), std::array{U'a', U'b', U'c'}));
+    CHECK(std::ranges::equal(as_utf32(vec), std::array{U'a', U'b', U'c'}));
     #if __cpp_lib_ranges >= 202202L
         CHECK(std::ranges::equal(std::vector({'a', 'b', 'c'}) | as_utf32, std::array{U'a', U'b', U'c'}));
+        CHECK(std::ranges::equal(vec | as_utf32, std::array{U'a', U'b', U'c'}));
     #endif
     CHECK(std::ranges::equal(as_utf32(std::forward_list({'a', 'b', 'c'})), std::array{U'a', U'b', U'c'}));
+    CHECK(std::ranges::equal(as_utf32(flist), std::array{U'a', U'b', U'c'}));
     CHECK(std::ranges::equal(as_utf32(std::ranges::istream_view<char>(stream)), std::array{U'a', U'b', U'c'}));
 
     CHECK(std::ranges::equal(as_utf16(std::vector({'a', 'b', 'c'})), std::array{u'a', u'b', u'c'}));
     #if __cpp_lib_ranges >= 202202L
         CHECK(std::ranges::equal(std::vector({'a', 'b', 'c'}) | as_utf16, std::array{u'a', u'b', u'c'}));
+        CHECK(std::ranges::equal(vec | as_utf16, std::array{u'a', u'b', u'c'}));
     #endif
     CHECK(std::ranges::equal(as_utf16(std::forward_list({'a', 'b', 'c'})), std::array{u'a', u'b', u'c'}));
+    CHECK(std::ranges::equal(as_utf16(flist), std::array{u'a', u'b', u'c'}));
     stream.clear(); stream.seekg(0);
     CHECK(std::ranges::equal(as_utf16(std::ranges::istream_view<char>(stream)), std::array{u'a', u'b', u'c'}));
 
     CHECK(std::ranges::equal(as_utf8(std::vector({u'a', u'b', u'c'})), std::array{'a', 'b', 'c'}));
     #if __cpp_lib_ranges >= 202202L
         CHECK(std::ranges::equal(std::vector({u'a', u'b', u'c'}) | as_utf8, std::array{'a', 'b', 'c'}));
+        CHECK(std::ranges::equal(vec | as_utf8, std::array{'a', 'b', 'c'}));
     #endif
     CHECK(std::ranges::equal(as_utf8(std::forward_list({u'a', u'b', u'c'})), std::array{'a', 'b', 'c'}));
+    CHECK(std::ranges::equal(as_utf8(flist), std::array{'a', 'b', 'c'}));
     stream.clear(); stream.seekg(0);
     CHECK(std::ranges::equal(as_utf8(std::ranges::istream_view<char>(stream)), std::array{'a', 'b', 'c'}));
 }

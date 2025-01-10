@@ -73,6 +73,16 @@ This is a major release with some breaking changes
   behavior applies to `wchar_t` on platform where it is UTF-16 or UTF-32.
 - `operator<<` no longer pollutes global namespace
 
+## [2.16] - 2025-01-10
+
+### Fixed
+- Crash when sys_string_builder is re-used after `build()` on Apple and Python platforms.
+- MSVC warnings when using `std::hash<sys_string>`
+
+### Changed
+- `sys_string_t::hash_type` has been changed from `unsigned` to `size_t` on some platforms. 
+
+
 ## [2.15] - 2025-01-07
 
 ### Fixed
@@ -230,4 +240,5 @@ This is a major release with some breaking changes
 [2.13]: https://github.com/gershnik/sys_string/releases/v2.13
 [2.14]: https://github.com/gershnik/sys_string/releases/v2.14
 [2.15]: https://github.com/gershnik/sys_string/releases/v2.15
+[2.16]: https://github.com/gershnik/sys_string/releases/v2.16
 [3.0]: https://github.com/gershnik/sys_string/releases/v3.0

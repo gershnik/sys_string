@@ -756,7 +756,7 @@ TEST_CASE( "data" ) {
         }
     }
     std::vector<sys_string::storage_type> buf(str.storage_size() + 5);
-    auto res = str.copy_data(0, buf.data(), buf.size());
+    auto res = str.copy_data(0, buf.data(), sys_string::size_type(buf.size()));
     REQUIRE(res == str.storage_size());
 
     if constexpr (std::is_same_v<sys_string::storage_type, char>)
@@ -766,7 +766,7 @@ TEST_CASE( "data" ) {
     else 
         CHECK(memcmp(buf.data(), U"a🧡bc", str.storage_size() * sizeof(sys_string::storage_type)) == 0);
 
-    res = str.copy_data(1, buf.data(), buf.size());
+    res = str.copy_data(1, buf.data(), sys_string::size_type(buf.size()));
     REQUIRE(res == str.storage_size() - 1);
 
     if constexpr (std::is_same_v<sys_string::storage_type, char>)
@@ -776,7 +776,7 @@ TEST_CASE( "data" ) {
     else 
         CHECK(memcmp(buf.data(), (U"a🧡bc") + 1, (str.storage_size() - 1) * sizeof(sys_string::storage_type)) == 0);
 
-    res = sys_string().copy_data(0, buf.data(), buf.size());
+    res = sys_string().copy_data(0, buf.data(), sys_string::size_type(buf.size()));
     REQUIRE(res == 0);
 }
 

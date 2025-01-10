@@ -162,7 +162,9 @@ namespace sysstr::util
         buffer_t release() noexcept
         {
             this->m_capacity = minimum_capacity;
-            return std::move(m_buffer);
+            buffer_t ret = std::move(m_buffer);
+            m_buffer.emplace<static_t>();
+            return ret;
         }
     private:
         buffer_t m_buffer;
@@ -237,8 +239,6 @@ namespace sysstr::util
 
         friend bool operator==(const py_char_access & lhs, const py_char_access & rhs) noexcept
             { return lhs.m_str == rhs.m_str; }
-        friend bool operator!=(const py_char_access & lhs, const py_char_access & rhs) noexcept
-            { return !(lhs == rhs); }
     private:
         PyObject * m_str = nullptr;
         PyUnicode_Kind m_kind = PyUnicode_4BYTE_KIND;

@@ -213,8 +213,6 @@ namespace sysstr::util
         
         friend bool operator==(const hstring_char_access & lhs, const hstring_char_access & rhs) noexcept
             { return lhs.m_buffer == rhs.m_buffer; }
-        friend bool operator!=(const hstring_char_access & lhs, const hstring_char_access & rhs) noexcept
-            { return !(lhs == rhs); }
     private:
         mutable const char * m_c_str = nullptr;
         pointer m_buffer;

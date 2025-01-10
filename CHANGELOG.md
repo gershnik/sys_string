@@ -5,6 +5,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Added
+
+- `grapheme_view` and `graphemes` adapter which provide ability to iterate over grapheme clusters in `sys_string` and any UTF range.
+
+### Changed
+
+- Unicode data has been optimized for better size/speed balance
+- `sys_string_t::hash_type` has been changed from `unsigned` to `size_t` on some platforms. 
+
+### Fixed
+
+- Invalid character access in unicode mappings.
+- Crash when sys_string_builder is re-used after `build()` on Apple and Python platforms.
+- `utf_ref_view` and `utf_owning_view` now actually work with forward and input underlying ranges
+- MSVC warnings when using `std::hash<sys_string>`
+
 ## [3.0] - 2024-12-02
 
 This is a major release with some breaking changes
@@ -56,6 +72,12 @@ This is a major release with some breaking changes
   of the string is printed as-is. This allows faithful round-tripping and support for invalid Unicode for those scenarios. Similar
   behavior applies to `wchar_t` on platform where it is UTF-16 or UTF-32.
 - `operator<<` no longer pollutes global namespace
+
+## [2.15] - 2025-01-07
+
+### Fixed
+
+- Invalid character access in unicode mappings.
 
 ## [2.14] - 2024-05-02
 
@@ -207,4 +229,5 @@ This is a major release with some breaking changes
 [2.12]: https://github.com/gershnik/sys_string/releases/v2.12
 [2.13]: https://github.com/gershnik/sys_string/releases/v2.13
 [2.14]: https://github.com/gershnik/sys_string/releases/v2.14
+[2.15]: https://github.com/gershnik/sys_string/releases/v2.15
 [3.0]: https://github.com/gershnik/sys_string/releases/v3.0

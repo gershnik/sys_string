@@ -19,7 +19,7 @@ namespace sysstr
     {
     private:
         template<std::input_iterator It, std::sentinel_for<It> EndIt>
-        static void reading(It first, EndIt last) noexcept(noexcept(*first++) && noexcept(first != last));
+        static void reading(It first, EndIt last) noexcept(noexcept(*first) && noexcept(++first) && noexcept(first != last));
         template<std::ranges::input_range Range>
         static void reading(Range && range) noexcept(noexcept(reading(std::ranges::begin(range), std::ranges::end(range))));
         template<std::output_iterator<utf_char_of<To>> OutIt>
@@ -80,7 +80,9 @@ namespace sysstr
     {
     private:
         template<std::input_iterator It, std::sentinel_for<It> EndIt>
-        static void reading(It first, EndIt last) noexcept(noexcept(*first++) && noexcept(first != last));
+        static void reading(It & first, EndIt last) noexcept(noexcept(*first) && noexcept(++first) && noexcept(first != last));
+        template<std::input_iterator It, std::sentinel_for<It> EndIt>
+        static void reading(It && first, EndIt last) noexcept(noexcept(*first) && noexcept(++first) && noexcept(first != last));
         template<std::ranges::input_range Range>
         static void reading(Range && range) noexcept(noexcept(reading(std::ranges::begin(range), std::ranges::end(range))));
 

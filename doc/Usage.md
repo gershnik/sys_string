@@ -14,7 +14,8 @@
 - [Iterating over string content](#iterating-over-string-content)
     - [Storage iteration](#storage-iteration)
     - [UTF iteration](#utf-iteration)
-    - [Helper: UTF iteration over any C++ character range](#helper-utf-iteration-over-any-c-character-range)
+    - [UTF iteration over any C++ character range](#utf-iteration-over-any-c-character-range)
+    - [Grapheme iteration](#grapheme-iteration)
 - [Substrings](#substrings)
 - [Accessing C strings](#accessing-c-strings)
 - [Accessing storage as C array](#accessing-storage-as-c-array)
@@ -307,7 +308,7 @@ utf32_access::iterator first = access.reverse(access.rend());
 
 ```
 
-### Helper: UTF iteration over any C++ character range
+### UTF iteration over any C++ character range
 
 Since the internal facility to perform UTF iteration is quite generic this library exposes it to allow you to perform UTF iteration over any C++ input range of compatible characters (`char`, `char8_t`, `char16_t`, `char32_t`, and possibly `wchar_t` on platforms where it is encoded in UTF-16 or UTF-32). At the time of this writing there is a work on including something similar to C++ standard library but, even if eventually approved, it will be a long time before it will become available. 
 
@@ -334,6 +335,50 @@ If your standard library supports user-supplied [range adapter closures](https:/
 ```cpp
 as_utf8(u"😀😜") | std::views::take(1) | ...
 ```
+
+### Grapheme iteration
+
+Sometimes even UTF-32 iteration is not what you need. Many user perceived "characters" are actually composed from multiple
+UTF-32 codepoints. Unicode standard defines [grapheme cluster](http://www.unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries) as 
+what corresponds to a user notion of a character. A single grapheme cluster, or grapheme for short, can contain one or more Unicode
+codepoints. 
+
+This library allows you to easily iterate over grapheme clusters in `sys_string_t` content as well as in any C++ 
+[forward_range](https://en.cppreference.com/w/cpp/ranges/forward_range) of compatible character type.
+
+To iterate over graphemes you need to construct an instance of `grapheme_view` directly or use `graphemes` view adapter. In either case
+you need to supply a **view** of characters to iterate over. The view can be a reference to `sys_string_t::char_access`, `sys_string_t::utfX_access`
+or any other compatible forward view.
+
+The "values" returned from `grapheme_view` are `std::ranges::subrange` of the underlying view containing graphemes.
+
+To put it all in context here is how you can iterate over all graphemes in a `sys_string`.
+
+```cpp
+sys_string str = S("क्त्य");  //6 Unicode codepoints but one grapheme!
+sys_string::char_access access(str);
+for (auto grapheme_range: graphemes(access)) {
+    //grapheme_range is a subrange of sys_string::char_access::iterator
+    sys_string grapheme(grapheme_range);
+}
+```
+
+A `grapheme_view` is reversible, that is it can be iterated in both directions. Here is how to accomplish a common task -
+safely remove the last "character" from a string (see [Substrings](#Substrings) below for details on how to obtain parts of a string):
+
+```cpp
+sys_string str = S("abक्त्य");
+sys_string::char_access access(str);
+auto gr_view = graphemes(access);
+if (auto rit = gr_view.rbegin(); rit != gr_view.rend()) {
+    auto grapheme = *rit;
+    str = sys_string(access.begin(), grapheme.begin());
+}
+assert(str == S("ab"));
+```
+
+You can easily extend this to removing any number of trailing characters.
+
 
 ## Substrings
 

@@ -70,11 +70,11 @@ namespace sysstr::ranges //non-standard extensions to std::ranges
 
     template<custom_reverse_traversable_range R>
     decltype(auto) make_reverse_iterator(R && range, std::ranges::iterator_t<std::remove_reference_t<R>> it)
-        { return range.reverse(it); }
+        { return std::forward<R>(range).reverse(it); }
 
     template<custom_reverse_traversable_range R>
     decltype(auto) make_reverse_iterator(R && range, reverse_iterator_t<std::remove_reference_t<R>> it)
-        { return range.reverse(it); }
+        { return std::forward<R>(range).reverse(it); }
 
     template<class R>
     concept reversible_range = reverse_traversable_range<R> && requires(R & r) {
@@ -218,17 +218,9 @@ namespace sysstr::util
 
         friend constexpr bool operator==(const index_iterator & lhs, const index_iterator & rhs) noexcept
             { return lhs.m_idx == rhs.m_idx; }
-        friend constexpr bool operator!=(const index_iterator & lhs, const index_iterator & rhs) noexcept
-            { return !(lhs == rhs); }
         
         friend constexpr bool operator==(const index_iterator & lhs, std::default_sentinel_t) noexcept
             { return lhs.m_idx == (index_iterator::is_forward ? lhs.m_cont->size() : 0); }
-        friend constexpr bool operator==(std::default_sentinel_t, const index_iterator & rhs) noexcept
-            { return rhs == std::default_sentinel; }
-        friend constexpr bool operator!=(const index_iterator & lhs, std::default_sentinel_t) noexcept
-            { return !(lhs == std::default_sentinel); }
-        friend constexpr bool operator!=(std::default_sentinel_t, const index_iterator & rhs) noexcept
-            { return !(rhs == std::default_sentinel); }
         
         friend constexpr std::strong_ordering operator<=>(const index_iterator & lhs, const index_iterator & rhs) noexcept
             { return is_forward ? lhs.m_idx <=> rhs.m_idx : rhs.m_idx <=> lhs.m_idx; }

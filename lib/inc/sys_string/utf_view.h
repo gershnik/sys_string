@@ -14,6 +14,7 @@
 #include <array>
 #include <iterator>
 #include <ranges>
+#include <optional>
 
 namespace sysstr
 {
@@ -31,7 +32,190 @@ namespace sysstr
         }
 
         template<utf_encoding OutputEnc, std::input_iterator It, std::sentinel_for<It> EndIt, iter_direction Direction>
-        class utf_iterator
+        class utf_iterator;
+
+        // utf_iterator for general not forward_iterator
+        template<utf_encoding OutputEnc, std::input_iterator It, std::sentinel_for<It> EndIt, iter_direction Direction>
+        requires(!std::forward_iterator<It>)
+        class utf_iterator<OutputEnc, It, EndIt, Direction>
+        {
+        public:
+            using difference_type = std::iter_difference_t<It>;
+            using size_type = std::make_unsigned_t<difference_type>;
+            using value_type = utf_char_of<OutputEnc>;
+            using reference = const value_type;
+            using pointer = void;
+            
+            using iterator_category = std::forward_iterator_tag;
+
+            static constexpr bool is_forward = (Direction == iter_direction::forward);
+            static constexpr bool is_reverse = !is_forward;
+
+        public:
+            constexpr utf_iterator() = default;
+            
+            SYS_STRING_FORCE_INLINE
+            constexpr utf_iterator(It first, EndIt last) noexcept(std::is_nothrow_move_constructible_v<It> &&
+                                                                  std::is_nothrow_move_constructible_v<EndIt>):
+                m_next(std::move(first)),
+                m_last(std::move(last))
+            {
+                this->load_next();
+            }
+
+            constexpr value_type operator*() const noexcept
+                { return this->m_encoder.begin()[this->m_char_idx]; }
+
+            explicit constexpr operator bool() const noexcept
+                { return this->m_char_idx != this->m_encoder.size(); }
+
+            SYS_STRING_FORCE_INLINE
+            constexpr utf_iterator & operator++()
+            {
+                if constexpr (is_forward)
+                {
+                    if (++this->m_char_idx < this->m_encoder.size())
+                        return *this;
+                }
+                else
+                {
+                    if (this->m_char_idx > 0)
+                    {
+                        --this->m_char_idx;
+                        return *this;
+                    }
+                }
+
+                this->load_next();
+                return *this;
+            }
+
+            constexpr utf_iterator operator++(int)
+            {
+                utf_iterator ret = *this;
+                ++(*this);
+                return ret;
+            }
+            
+            template<std::equality_comparable_with<It> RIt, std::sentinel_for<RIt> EndRIt>
+            constexpr bool operator==(const utf_iterator<OutputEnc, RIt, EndRIt, Direction> & rhs) const
+                { return this->m_char_idx == rhs.m_char_idx && this->m_next == rhs.m_next; }
+            
+            constexpr bool operator==(std::default_sentinel_t) const
+                { return !*this; }
+            
+            const It storage_next() const
+                { return this->m_next; }
+            EndIt storage_last() const
+                { return this->m_last; }
+            
+        private:
+            SYS_STRING_FORCE_INLINE
+            constexpr void load_next()
+            {
+                if (this->m_next != this->m_last)
+                {
+                    auto c = current_utf32<Direction>(this->m_next, this->m_last);
+                    this->m_encoder.put(c);
+                    if constexpr (is_forward)
+                    {
+                        this->m_char_idx = 0;
+                    }
+                    else
+                    {
+                        this->m_char_idx = uint8_t(this->m_encoder.size() - 1);
+                    }
+                }
+                else
+                {
+                    this->m_encoder.clear();
+                    this->m_char_idx = 0;
+                }
+            }
+            
+        private:
+            It m_next{};
+            SYS_STRING_NO_UNIQUE_ADDRESS EndIt m_last{};
+            utf_codepoint_encoder<OutputEnc, false> m_encoder;
+            uint8_t m_char_idx = 0;
+        };
+
+        // utf32 utf_iterator for non forward_iterator
+        template<std::input_iterator It, std::sentinel_for<It> EndIt, iter_direction Direction>
+        requires(!std::forward_iterator<It>)
+        class utf_iterator<utf32, It, EndIt, Direction>
+        {
+        public:
+            using difference_type = std::iter_difference_t<It>;
+            using size_type = std::make_unsigned_t<difference_type>;
+            using value_type = char32_t;
+            using reference = const char32_t;
+            using pointer = void;
+            
+            using iterator_category = std::forward_iterator_tag;
+            
+            static constexpr bool is_forward = (Direction == iter_direction::forward);
+            static constexpr bool is_reverse = !is_forward;
+        public:
+            constexpr utf_iterator() = default;
+
+            SYS_STRING_FORCE_INLINE
+            constexpr utf_iterator(It first, EndIt last) noexcept(std::is_nothrow_move_constructible_v<It> &&
+                                                                  std::is_nothrow_move_constructible_v<EndIt>) :
+                m_next(std::move(first)),
+                m_last(std::move(last))
+            {
+                this->load_next();
+            }
+
+            constexpr value_type operator*() const noexcept
+                { return *this->m_value; }
+
+            SYS_STRING_FORCE_INLINE
+            constexpr utf_iterator & operator++()
+            {
+                this->m_value.reset();
+                this->load_next();
+                return *this;
+            }
+
+            SYS_STRING_FORCE_INLINE
+            constexpr utf_iterator operator++(int)
+            {
+                utf_iterator ret = *this;
+                ++(*this);
+                return ret;
+            }
+
+            template<std::equality_comparable_with<It> RIt, std::sentinel_for<RIt> EndRIt>
+            constexpr bool operator==(const utf_iterator<utf32, RIt, EndRIt, Direction> & rhs) const
+                { return this->m_next == rhs.m_next && bool(this->m_value) == bool(rhs.m_value); }
+            
+            constexpr bool operator==(std::default_sentinel_t) const
+                { return !this->m_value; }
+            
+            It storage_next() const
+                { return this->m_next; }
+            EndIt storage_last() const
+                { return this->m_last; }
+            
+        private:
+            SYS_STRING_FORCE_INLINE
+            void load_next()
+            {
+                if (this->m_next != this->m_last)
+                    this->m_value = current_utf32<Direction>(this->m_next, this->m_last);
+            }
+        private:
+            It m_next{};
+            SYS_STRING_NO_UNIQUE_ADDRESS EndIt m_last{};
+            std::optional<value_type> m_value;
+        };
+
+        // utf_iterator for general forward_iterator
+        template<utf_encoding OutputEnc, std::input_iterator It, std::sentinel_for<It> EndIt, iter_direction Direction>
+        requires(std::forward_iterator<It>)
+        class utf_iterator<OutputEnc, It, EndIt, Direction>
         {
             template<utf_encoding E, std::input_iterator X, std::sentinel_for<X> EndX, iter_direction D>
             friend class utf_iterator;
@@ -51,7 +235,7 @@ namespace sysstr
             
             SYS_STRING_FORCE_INLINE
             constexpr utf_iterator(It first, EndIt last) noexcept(std::is_nothrow_move_constructible_v<It> &&
-                                                                std::is_nothrow_move_constructible_v<EndIt>):
+                                                                  std::is_nothrow_move_constructible_v<EndIt>):
                 m_current(std::move(first)),
                 m_next(m_current),
                 m_last(std::move(last))
@@ -122,24 +306,17 @@ namespace sysstr
                 return ret;
             }
             
-            friend constexpr bool operator==(const utf_iterator & lhs, const utf_iterator & rhs)
-                { return lhs.m_char_idx == rhs.m_char_idx && lhs.m_current == rhs.m_current; }
-            friend constexpr bool operator!=(const utf_iterator & lhs, const utf_iterator & rhs)
-                { return !(lhs == rhs); }
-            
-            friend constexpr bool operator==(const utf_iterator & lhs, std::default_sentinel_t)
-                { return !lhs; }
-            friend constexpr bool operator==(std::default_sentinel_t, const utf_iterator & rhs)
-                { return !rhs; }
-            friend constexpr bool operator!=(const utf_iterator & lhs, std::default_sentinel_t rhs)
-                { return !(lhs == rhs); }
-            friend constexpr bool operator!=(std::default_sentinel_t lhs, const utf_iterator & rhs)
-                { return !(lhs == rhs); }
+            template<std::equality_comparable_with<It> RIt, std::sentinel_for<RIt> EndRIt>
+            constexpr bool operator==(const utf_iterator<OutputEnc, RIt, EndRIt, Direction> & rhs) const
+                { return this->m_char_idx == rhs.m_char_idx && this->m_current == rhs.m_current; }
             
             
-            const It storage_current() const
+            constexpr bool operator==(std::default_sentinel_t) const
+                { return !*this; }
+            
+            It storage_current() const
                 { return this->m_current; }
-            const It storage_next() const
+            It storage_next() const
                 { return this->m_next; }
             EndIt storage_last() const
                 { return this->m_last; }
@@ -171,14 +348,18 @@ namespace sysstr
         private:
             It m_current{};
             It m_next{};
-            [[no_unique_address]] EndIt m_last{};
+            SYS_STRING_NO_UNIQUE_ADDRESS EndIt m_last{};
             utf_codepoint_encoder<OutputEnc, false> m_encoder;
             uint8_t m_char_idx = 0;
         };
 
+        //utf32 utf_iterator for forward_iterator
         template<std::input_iterator It, std::sentinel_for<It> EndIt, iter_direction Direction>
+        requires(std::forward_iterator<It>)
         class utf_iterator<utf32, It, EndIt, Direction>
         {
+            template<utf_encoding E, std::input_iterator X, std::sentinel_for<X> EndX, iter_direction D>
+            friend class utf_iterator;
         public:
             using difference_type = std::iter_difference_t<It>;
             using size_type = std::make_unsigned_t<difference_type>;
@@ -236,19 +417,13 @@ namespace sysstr
                 return ret;
             }
 
-            friend constexpr bool operator==(const utf_iterator & lhs, const utf_iterator & rhs)
-                { return lhs.m_current == rhs.m_current; }
-            friend constexpr bool operator!=(const utf_iterator & lhs, const utf_iterator & rhs)
-                { return lhs.m_current != rhs.m_current; }
+            template<std::equality_comparable_with<It> RIt, std::sentinel_for<RIt> EndRIt>
+            constexpr bool operator==(const utf_iterator<utf32, RIt, EndRIt, Direction> & rhs) const
+                { return this->m_current == rhs.m_current; }
             
-            friend constexpr bool operator==(const utf_iterator & lhs, std::default_sentinel_t)
-                { return lhs.m_current == lhs.m_last; }
-            friend constexpr bool operator==(std::default_sentinel_t, const utf_iterator & rhs)
-                { return rhs.m_current == rhs.m_last; }
-            friend constexpr bool operator!=(const utf_iterator & lhs, std::default_sentinel_t)
-                { return lhs.m_current != lhs.m_last; }
-            friend constexpr bool operator!=(std::default_sentinel_t, const utf_iterator & rhs)
-                { return rhs.m_current != rhs.m_last; }
+            constexpr bool operator==(std::default_sentinel_t) const
+                { return this->m_current == this->m_last; }
+            
             
             It storage_current() const
                 { return this->m_current; }
@@ -267,114 +442,310 @@ namespace sysstr
         private:
             It m_current{};
             It m_next{};
-            [[no_unique_address]] EndIt m_last{};
+            SYS_STRING_NO_UNIQUE_ADDRESS EndIt m_last{};
             value_type m_value = 0;
         };
     
-        enum utf_view_type
-        {
-            byref,
-            byval
-        };
+        template<utf_encoding Enc, std::ranges::input_range Range>
+        class utf_ref_view;
 
-        template<utf_encoding Enc, std::ranges::input_range Range, utf_view_type ViewType>
-        class utf_view
+        template<utf_encoding Enc, std::ranges::input_range Range>
+        requires(!ranges::reverse_traversable_range<Range>)
+        class utf_ref_view<Enc, Range>
         {
         private:
-            using range = std::remove_cvref_t<Range>;
-            using stored_type = std::conditional_t<ViewType == byval, range, const range *>;
+            using range = std::remove_reference_t<Range>;
 
-            SYS_STRING_FORCE_INLINE static auto range_ref(const range & src) -> const range &
-                { return src; }
-            SYS_STRING_FORCE_INLINE static auto range_ref(const range * src) -> const range &
-                { return *src; }
-
-            static constexpr bool is_reversible = ranges::reverse_traversable_range<std::remove_reference_t<range>>;
-            static constexpr auto source_encoding = utf_encoding_of<std::ranges::range_value_t<range>>;
-            
-            using access_iterator = decltype(std::ranges::begin(range_ref(std::declval<stored_type>())));
-            using access_sentinel = decltype(std::ranges::end(range_ref(std::declval<stored_type>())));
-            using access_reverse_iterator = std::conditional_t<is_reversible, 
-                                                            decltype(std::ranges::rbegin(range_ref(std::declval<stored_type>()))),
-                                                            void>;
-            using access_reverse_sentinel = std::conditional_t<is_reversible, 
-                                                            decltype(std::ranges::rend(range_ref(std::declval<stored_type>()))),
-                                                            void>;
-
+            static constexpr auto source_encoding = utf_encoding_of<std::ranges::range_value_t<range>>;            
         public:
-            using iterator = utf_iterator<Enc, access_iterator, access_sentinel, iter_direction::forward>;
+            using iterator = utf_iterator<Enc, std::ranges::iterator_t<range>, std::ranges::sentinel_t<range>, iter_direction::forward>;
             using const_iterator = iterator;
-            using reverse_iterator = std::conditional_t<is_reversible, 
-                                                        utf_iterator<Enc, access_reverse_iterator, access_reverse_sentinel, iter_direction::backward>,
-                                                        void>;
-            using const_reverse_iterator = reverse_iterator;
-            
-            using value_type = typename iterator::value_type;
-            using reference = typename iterator::reference;
-            using const_reference = reference;
-            using pointer = typename iterator::pointer;
-            using const_pointer = pointer;
-
-            static const bool borrowed = (ViewType == byref) || 
-                                         (ViewType == byval && std::ranges::borrowed_range<range>);
             
         public:
-            utf_view(const Range & src) noexcept requires(ViewType == byref) :
+            utf_ref_view(range & src) noexcept :
                 m_src(&src)
             {}
 
-            utf_view(Range && src) noexcept requires(ViewType == byref) = delete;
-
-            utf_view(const Range & src) noexcept(noexcept(stored_type(src))) 
-            requires(ViewType == byval && std::is_copy_constructible_v<stored_type>) :
-                m_src(src)
-            {}
-            utf_view(Range && src) noexcept(noexcept(stored_type(std::move(src)))) 
-            requires(ViewType == byval && std::is_move_constructible_v<stored_type>) :
-                m_src(std::move(src))
-            {}
-
-            template<class... Args>
-            utf_view(Args && ...args) noexcept(noexcept(stored_type(std::forward<Args>(args)...))) 
-            requires(ViewType == byval && std::is_constructible_v<stored_type, Args...>) :
-                m_src(std::forward<Args>(args)...)
-            {}
-
+            utf_ref_view(range && src) noexcept = delete;
 
             SYS_STRING_FORCE_INLINE iterator begin() const
-                { return iterator(std::ranges::begin(range_ref(m_src)), std::ranges::end(range_ref(m_src))); }
+                { return iterator(std::ranges::begin(*this->m_src), std::ranges::end(*this->m_src)); }
             SYS_STRING_FORCE_INLINE std::default_sentinel_t end() const
                 { return std::default_sentinel; }
             SYS_STRING_FORCE_INLINE const_iterator cbegin() const
                 { return begin(); }
             SYS_STRING_FORCE_INLINE std::default_sentinel_t cend() const
                 { return end(); }
-            SYS_STRING_FORCE_INLINE reverse_iterator rbegin() const requires(is_reversible)
-                { return reverse_iterator(std::ranges::rbegin(range_ref(m_src)), std::ranges::rend(range_ref(m_src))); }
-            SYS_STRING_FORCE_INLINE std::default_sentinel_t rend() const requires(is_reversible)
-                { return std::default_sentinel; }
-            SYS_STRING_FORCE_INLINE const_reverse_iterator crbegin() const requires(is_reversible)
-                { return rbegin(); }
-            SYS_STRING_FORCE_INLINE std::default_sentinel_t crend() const requires(is_reversible)
-                { return rend(); }
-
-            reverse_iterator reverse(iterator it) const requires(is_reversible)
-                { return reverse_iterator(it, std::ranges::rend(range_ref(m_src))); }
-
-            iterator reverse(reverse_iterator it) const requires(is_reversible)
-                { return iterator(it, std::ranges::end(range_ref(m_src))); }
+            
+            bool empty() const 
+            requires requires(range & r) { std::ranges::empty(r); }
+                { return std::ranges::empty(*this->m_src); }
+            
+            explicit operator bool() const 
+            requires requires(range & r) { std::ranges::empty(r); }
+                { return !std::ranges::empty(*this->m_src); }
+            
+            decltype(auto) front() const 
+                { return *this->begin();}
             
             template<class Func>
             decltype(auto) each(Func func) const
-                { return utf_converter<source_encoding, Enc>::for_each_converted(range_ref(), func); }
+                { return utf_converter<source_encoding, Enc>::for_each_converted(*this->m_src, func); }
             
         private:
-            stored_type m_src;
+            range * m_src;
+        };
+
+        template<utf_encoding Enc, std::ranges::input_range Range>
+        requires(ranges::reverse_traversable_range<Range>)
+        class utf_ref_view<Enc, Range>
+        {
+        private:
+            using range = std::remove_reference_t<Range>;
+            
+            static constexpr auto source_encoding = utf_encoding_of<std::ranges::range_value_t<range>>;
+
+        public:
+            using iterator = utf_iterator<Enc, std::ranges::iterator_t<range>, std::ranges::sentinel_t<range>, iter_direction::forward>;
+            using const_iterator = iterator;
+            using reverse_iterator = utf_iterator<Enc, ranges::reverse_iterator_t<range>, ranges::reverse_sentinel_t<range>, iter_direction::backward>;
+            using const_reverse_iterator = reverse_iterator;
+            
+        public:
+            utf_ref_view(range & src) noexcept :
+                m_src(&src)
+            {}
+
+            utf_ref_view(range && src) noexcept = delete;
+
+            SYS_STRING_FORCE_INLINE iterator begin() const
+                { return iterator(std::ranges::begin(*this->m_src),  std::ranges::end(*this->m_src)); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t end() const
+                { return std::default_sentinel; }
+            SYS_STRING_FORCE_INLINE auto cbegin() const
+                { return begin(); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t cend() const
+                { return end(); }
+            SYS_STRING_FORCE_INLINE reverse_iterator rbegin() const
+                { return reverse_iterator(std::ranges::rbegin(*this->m_src), std::ranges::rend(*this->m_src)); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t rend() const
+                { return std::default_sentinel; }
+            SYS_STRING_FORCE_INLINE auto crbegin() const
+                { return rbegin(); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t crend() const
+                { return rend(); }
+
+            bool empty() const 
+            requires requires(range & r) { std::ranges::empty(r); }
+                { return std::ranges::empty(*this->m_src); }
+            
+            explicit operator bool() const 
+            requires requires(range & r) { std::ranges::empty(r); }
+                { return !std::ranges::empty(*this->m_src); }
+            
+            decltype(auto) front() const 
+                { return *this->begin();}
+            
+            decltype(auto) back() const
+                { return *this->rbegin();}
+
+            reverse_iterator reverse(iterator it) const
+                { return reverse_iterator(it, std::ranges::rend(*this->m_src)); }
+
+            iterator reverse(reverse_iterator it) const
+                { return iterator(it, std::ranges::end(*this->m_src)); }
+            
+            template<class Func>
+            decltype(auto) each(Func func) const
+                { return utf_converter<source_encoding, Enc>::for_each_converted(*this->m_src, func); }
+            
+        private:
+            range * m_src;
+        };
+
+
+        template<utf_encoding Enc, std::ranges::input_range Range>
+        class utf_owning_view;
+
+        template<utf_encoding Enc, std::ranges::input_range Range>
+        requires(!ranges::reverse_traversable_range<Range>)
+        class utf_owning_view<Enc, Range> 
+        {
+        private:
+            using range = std::remove_cvref_t<Range>;
+
+            static constexpr auto source_encoding = utf_encoding_of<std::ranges::range_value_t<range>>;
+
+        public:
+            using iterator = utf_iterator<Enc, std::ranges::iterator_t<range>, std::ranges::sentinel_t<range>, iter_direction::forward>;
+            using const_iterator = decltype([](){
+                if constexpr (std::ranges::input_range<const range>)
+                    return utf_iterator<Enc, std::ranges::iterator_t<const range>, std::ranges::sentinel_t<const range>, iter_direction::forward>();
+            }());
+            
+
+            static const bool borrowed = std::ranges::borrowed_range<range>;
+            
+        public:
+            template<class... Args>
+            utf_owning_view(Args && ...args) noexcept(noexcept(range(std::forward<Args>(args)...))) 
+            requires(std::is_constructible_v<range, Args...>) :
+                m_src(std::forward<Args>(args)...)
+            {}
+
+
+            SYS_STRING_FORCE_INLINE iterator begin()
+                { return iterator(std::ranges::begin(this->m_src), std::ranges::end(this->m_src)); }
+            SYS_STRING_FORCE_INLINE const_iterator begin() const requires std::ranges::input_range<const range>
+                { return const_iterator(std::ranges::begin(this->m_src), std::ranges::end(this->m_src)); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t end() const
+                { return std::default_sentinel; }
+            SYS_STRING_FORCE_INLINE const_iterator cbegin() const requires std::ranges::input_range<const range>
+                { return begin(); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t cend() const
+                { return end(); }
+
+            bool empty() const 
+            requires requires(const range & r) { std::ranges::empty(r); }
+                { return std::ranges::empty(this->m_src); }
+            
+            bool empty() 
+            requires requires(range & r) { std::ranges::empty(r); }
+                { return std::ranges::empty(this->m_src); }
+            
+            explicit operator bool() const 
+            requires requires(const range & r) { std::ranges::empty(r); }
+                { return !std::ranges::empty(this->m_src); }
+            
+            explicit operator bool() 
+            requires requires(range & r) { std::ranges::empty(r); }
+                { return !std::ranges::empty(this->m_src); }
+
+            decltype(auto) front() 
+                { return *this->begin();}
+            decltype(auto) front() const requires ranges::reverse_traversable_range<const range>
+                { return *this->begin();}
+            
+            template<class Func>
+            decltype(auto) each(Func func) 
+                { return utf_converter<source_encoding, Enc>::for_each_converted(this->m_src, func); }
+
+            template<class Func>
+            requires std::ranges::input_range<const range>
+            decltype(auto) each(Func func) const 
+                { return utf_converter<source_encoding, Enc>::for_each_converted(this->m_src, func); }
+            
+        private:
+            range m_src;
+        };
+
+        template<utf_encoding Enc, std::ranges::input_range Range>
+        requires(ranges::reverse_traversable_range<Range>)
+        class utf_owning_view<Enc, Range> 
+        {
+        private:
+            using range = std::remove_cvref_t<Range>;
+            
+            static constexpr auto source_encoding = utf_encoding_of<std::ranges::range_value_t<range>>;
+        public:
+            using iterator = utf_iterator<Enc, std::ranges::iterator_t<range>, std::ranges::sentinel_t<range>, iter_direction::forward>;
+            using const_iterator = decltype([](){
+                if constexpr (std::ranges::input_range<const range>)
+                    return utf_iterator<Enc, std::ranges::iterator_t<const range>, std::ranges::sentinel_t<const range>, iter_direction::forward>();
+            }());
+            using reverse_iterator = utf_iterator<Enc, ranges::reverse_iterator_t<range>, ranges::reverse_sentinel_t<range>, iter_direction::backward>;
+            using const_reverse_iterator = decltype([](){
+                if constexpr (ranges::reverse_traversable_range<const range>)
+                    return utf_iterator<Enc, ranges::reverse_iterator_t<const range>, ranges::reverse_sentinel_t<const range>, iter_direction::backward>();
+            }());
+
+            static const bool borrowed = std::ranges::borrowed_range<range>;
+            
+        public:
+            template<class... Args>
+            utf_owning_view(Args && ...args) noexcept(noexcept(range(std::forward<Args>(args)...))) 
+            requires(std::is_constructible_v<range, Args...>) :
+                m_src(std::forward<Args>(args)...)
+            {}
+
+
+            SYS_STRING_FORCE_INLINE iterator begin()
+                { return iterator(std::ranges::begin(this->m_src), std::ranges::end(this->m_src)); }
+            SYS_STRING_FORCE_INLINE const_iterator begin() const requires std::ranges::input_range<const range>
+                { return const_iterator(std::ranges::begin(this->m_src), std::ranges::end(this->m_src)); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t end() const
+                { return std::default_sentinel; }
+            SYS_STRING_FORCE_INLINE const_iterator cbegin() const requires std::ranges::input_range<const range>
+                { return begin(); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t cend() const
+                { return end(); }
+            SYS_STRING_FORCE_INLINE reverse_iterator rbegin() 
+                { return reverse_iterator(std::ranges::rbegin(this->m_src), std::ranges::rend(this->m_src)); }
+            SYS_STRING_FORCE_INLINE const_reverse_iterator rbegin() const requires ranges::reverse_traversable_range<const range>
+                { return const_reverse_iterator(std::ranges::rbegin(this->m_src), std::ranges::rend(this->m_src)); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t rend() const
+                { return std::default_sentinel; }
+            SYS_STRING_FORCE_INLINE const_reverse_iterator crbegin() const requires ranges::reverse_traversable_range<const range>
+                { return rbegin(); }
+            SYS_STRING_FORCE_INLINE std::default_sentinel_t crend() const
+                { return rend(); }
+
+            bool empty() const 
+            requires requires(const range & r) { std::ranges::empty(r); }
+                { return std::ranges::empty(this->m_src); }
+            
+            bool empty() 
+            requires requires(range & r) { std::ranges::empty(r); }
+                { return std::ranges::empty(this->m_src); }
+            
+            explicit operator bool() const 
+            requires requires(const range & r) { std::ranges::empty(r); }
+                { return !std::ranges::empty(this->m_src); }
+            
+            explicit operator bool() 
+            requires requires(range & r) { std::ranges::empty(r); }
+                { return !std::ranges::empty(this->m_src); }
+
+            decltype(auto) front() 
+                { return *this->begin();}
+            decltype(auto) front() const requires ranges::reverse_traversable_range<const range>
+                { return *this->begin();}
+
+            decltype(auto) back() 
+                { return *this->rbegin();}
+            decltype(auto) back() const requires ranges::reverse_traversable_range<const range>
+                { return *this->rbegin();}
+
+            reverse_iterator reverse(iterator it) const
+                { return reverse_iterator(it, std::ranges::rend(this->m_src)); }
+
+            const_reverse_iterator reverse(const_iterator it) const 
+            requires(ranges::reverse_traversable_range<const range> && !std::is_same_v<const_iterator, iterator>)
+                { return const_reverse_iterator(it, std::ranges::rend(this->m_src)); }
+
+            iterator reverse(reverse_iterator it) const
+                { return iterator(it, std::ranges::end(this->m_src)); }
+
+            const_iterator reverse(const_reverse_iterator it) const 
+            requires(ranges::reverse_traversable_range<const range> && !std::is_same_v<const_reverse_iterator, reverse_iterator>)
+                { return const_iterator(it, std::ranges::end(this->m_src)); }
+            
+            template<class Func>
+            decltype(auto) each(Func func) 
+                { return utf_converter<source_encoding, Enc>::for_each_converted(this->m_src, func); }
+
+            template<class Func>
+            requires std::ranges::input_range<const range>
+            decltype(auto) each(Func func) const 
+                { return utf_converter<source_encoding, Enc>::for_each_converted(this->m_src, func); }
+            
+        private:
+            range m_src;
         };
     }
 
-    template<utf_encoding Enc, std::ranges::input_range Range>
-    using utf_ref_view = util::utf_view<Enc, Range, util::byref>;
+    using util::utf_ref_view;
+
     template<std::ranges::input_range Range>
     using utf8_ref_view = utf_ref_view<utf8, Range>;
     template<std::ranges::input_range Range>
@@ -382,8 +753,8 @@ namespace sysstr
     template<std::ranges::input_range Range>
     using utf32_ref_view = utf_ref_view<utf32, Range>;
 
-    template<utf_encoding Enc, std::ranges::input_range Range>
-    using utf_owning_view = util::utf_view<Enc, Range, util::byval>;
+    using util::utf_owning_view;
+
     template<std::ranges::input_range Range>
     using utf8_owning_view = utf_owning_view<utf8, Range>;
     template<std::ranges::input_range Range>
@@ -421,32 +792,32 @@ namespace sysstr
             std::ranges::view<std::remove_cvref_t<Range>>
         )
         [[nodiscard]] constexpr auto operator()(Range && range) const
-            noexcept(noexcept(util::utf_view<Enc, std::remove_cvref_t<Range>, util::byval>(std::forward<Range>(range))))
-                  -> decltype(util::utf_view<Enc, std::remove_cvref_t<Range>, util::byval>(std::forward<Range>(range))) 
-                     { return util::utf_view<Enc, std::remove_cvref_t<Range>, util::byval>(std::forward<Range>(range)); }
+            noexcept(noexcept(util::utf_owning_view<Enc, std::remove_cvref_t<Range>>(std::forward<Range>(range))))
+                  -> decltype(util::utf_owning_view<Enc, std::remove_cvref_t<Range>>(std::forward<Range>(range))) 
+                     { return util::utf_owning_view<Enc, std::remove_cvref_t<Range>>(std::forward<Range>(range)); }
 
         template <class Range>
         requires( 
             !requires(Range && range) { utf_view_traits<Enc, std::remove_cvref_t<Range>>::as_utf(std::forward<Range>(range)); } &&
             !std::ranges::view<std::remove_cvref_t<Range>> &&
-            requires(Range && range) { util::utf_view<Enc, std::remove_cvref_t<Range>, util::byref>(std::forward<Range>(range)); }
+            requires(Range && range) { util::utf_ref_view<Enc, std::remove_cvref_t<Range>>(std::forward<Range>(range)); }
         )
         [[nodiscard]] constexpr auto operator()(Range && range) const
-            noexcept(noexcept(util::utf_view<Enc, std::remove_cvref_t<Range>, util::byref>(std::forward<Range>(range))))
-                  -> decltype(util::utf_view<Enc, std::remove_cvref_t<Range>, util::byref>(std::forward<Range>(range))) 
-                     { return util::utf_view<Enc, std::remove_cvref_t<Range>, util::byref>(std::forward<Range>(range)); }
+            noexcept(noexcept(util::utf_ref_view<Enc, std::remove_cvref_t<Range>>(std::forward<Range>(range))))
+                  -> decltype(util::utf_ref_view<Enc, std::remove_cvref_t<Range>>(std::forward<Range>(range))) 
+                     { return util::utf_ref_view<Enc, std::remove_cvref_t<Range>>(std::forward<Range>(range)); }
 
 
         template <class Range>
         requires( 
             !requires(Range && range) { utf_view_traits<Enc, std::remove_cvref_t<Range>>::as_utf(std::forward<Range>(range)); } &&
             !std::ranges::view<std::remove_cvref_t<Range>> &&
-            !requires(Range && range) { util::utf_view<Enc, std::remove_cvref_t<Range>, util::byref>(std::forward<Range>(range)); }
+            !requires(Range && range) { util::utf_ref_view<Enc, std::remove_cvref_t<Range>>(std::forward<Range>(range)); }
         )
         [[nodiscard]] constexpr auto operator()(Range && range) const
-            noexcept(noexcept(util::utf_view<Enc, std::remove_cvref_t<Range>, util::byval>(std::forward<Range>(range))))
-                  -> decltype(util::utf_view<Enc, std::remove_cvref_t<Range>, util::byval>(std::forward<Range>(range))) 
-                     { return util::utf_view<Enc, std::remove_cvref_t<Range>, util::byval>(std::forward<Range>(range)); }
+            noexcept(noexcept(util::utf_owning_view<Enc, std::remove_cvref_t<Range>>(std::forward<Range>(range))))
+                  -> decltype(util::utf_owning_view<Enc, std::remove_cvref_t<Range>>(std::forward<Range>(range))) 
+                     { return util::utf_owning_view<Enc, std::remove_cvref_t<Range>>(std::forward<Range>(range)); }
 
     };
 
@@ -458,11 +829,17 @@ namespace sysstr
 }
 
 namespace std::ranges {
-    template<sysstr::utf_encoding Enc, class Range, sysstr::util::utf_view_type ViewType>
-    constexpr bool enable_view<sysstr::util::utf_view<Enc, Range, ViewType>> = true;
+    template<sysstr::utf_encoding Enc, class Range>
+    constexpr bool enable_view<sysstr::util::utf_ref_view<Enc, Range>> = true;
+
+    template<sysstr::utf_encoding Enc, class Range>
+    constexpr bool enable_view<sysstr::util::utf_owning_view<Enc, Range>> = true;
     
-    template<sysstr::utf_encoding Enc, class Range, sysstr::util::utf_view_type ViewType>
-    constexpr bool enable_borrowed_range<sysstr::util::utf_view<Enc, Range, ViewType>> = sysstr::util::utf_view<Enc, Range, ViewType>::borrowed;
+    template<sysstr::utf_encoding Enc, class Range>
+    constexpr bool enable_borrowed_range<sysstr::util::utf_ref_view<Enc, Range>> = true;
+
+    template<sysstr::utf_encoding Enc, class Range>
+    constexpr bool enable_borrowed_range<sysstr::util::utf_owning_view<Enc, Range>> = sysstr::util::utf_owning_view<Enc, Range>::borrowed;
 }
 
 namespace sysstr

@@ -84,6 +84,12 @@
     #error Please define how to force inline for your compiler
 #endif
 
+#if defined(_MSC_VER)
+    #define SYS_STRING_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+#else
+    #define SYS_STRING_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#endif
+
 //GCC up to 11.3 has a weird constexpr bug in some palces
 #if __GNUC__ > 11 || (__GNUC__ == 11 && __GNUC_MINOR__ > 2)
     #define BUGGY_CONSTEXPR constexpr
@@ -105,7 +111,7 @@
 
 //See https://github.com/llvm/llvm-project/issues/77773 for the sad story of how feature test
 //macros are useless with libc++
-#if __cpp_lib_format >= 201907L || (defined(_LIBCPP_VERSION) && __has_include(<format>))
+#if __cpp_lib_format >= 201907L || (defined(_LIBCPP_VERSION) && _LIBCPP_VERSION >= 170000 && __has_include(<format>))
 
     #define SYS_STRING_SUPPORTS_STD_FORMAT 1
 

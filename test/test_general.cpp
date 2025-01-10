@@ -143,6 +143,7 @@ TEST_CASE( "Slicing" ) {
 TEST_CASE( "Iteration" ) {
     sys_string str = S("a水𐀀𝄞");
     sys_string empty = S("");
+    sys_string long_str = sys_string(std::string(4096, 'a'));
     
     SUBCASE("utf8") {
         std::string converted;
@@ -182,6 +183,11 @@ TEST_CASE( "Iteration" ) {
             converted.push_back(c);
         }
         CHECK(converted.empty());
+
+        size_t acc = 0;
+        for(char c: sys_string::utf8_access(long_str))
+            acc += c;
+        CHECK(acc == size_t(4096) * 'a');
     }
 
     SUBCASE("utf16") {
@@ -222,6 +228,11 @@ TEST_CASE( "Iteration" ) {
             converted.push_back(c);
         }
         CHECK(converted.empty());
+
+        size_t acc = 0;
+        for(char16_t c: sys_string::utf16_access(long_str))
+            acc += c;
+        CHECK(acc == size_t(4096) * u'a');
     }
 
     SUBCASE("utf32") {
@@ -266,6 +277,11 @@ TEST_CASE( "Iteration" ) {
         
         sys_string part(++(++view.begin()), view.end());
         CHECK(part == S("𐀀𝄞"));
+
+        size_t acc = 0;
+        for(char32_t c: sys_string::utf32_access(long_str))
+            acc += c;
+        CHECK(acc == size_t(4096) * U'a');
     }
     
     SUBCASE("storage") {
@@ -292,6 +308,14 @@ TEST_CASE( "Iteration" ) {
         
         sys_string part(access.begin() + 1, access.end());
         CHECK(part == S("水𐀀𝄞"));
+
+        size_t acc = 0;
+        for(sys_string::storage_type c: sys_string::char_access(long_str))
+            acc += c;
+        CHECK(acc == size_t(4096) * 'a');
+
+        sys_string::char_access long_acc(long_str);
+        CHECK(long_acc[1024] == sys_string::storage_type('a'));
     }
 }
 
@@ -300,6 +324,10 @@ TEST_CASE( "Comparsion" ) {
     CHECK(sys_string() == sys_string());
     CHECK(sys_string() == S(""));
     CHECK(S("") == S(""));
+    CHECK(S("abc") != sys_string());
+    CHECK(compare(S(""), sys_string()) == std::strong_ordering::equal);
+    CHECK(compare(sys_string(), S("abc")) == std::strong_ordering::less);
+    
     
     CHECK(is_eq(compare_no_case(sys_string(), sys_string())));
     CHECK(is_eq(compare_no_case(sys_string(), S(""))));
@@ -336,6 +364,17 @@ TEST_CASE( "Comparsion" ) {
 
 }
 
+TEST_CASE( "Hash" ) {
+    std::hash<sys_string> hasher;
+
+    CHECK(hasher(sys_string()) == hasher(sys_string()));
+    CHECK(hasher(S("")) == hasher(S("")));
+    CHECK(hasher(S("")) == hasher(sys_string()));
+    CHECK(hasher(S("abc")) == hasher(S("abc")));
+    //technically this could fail but this means the hash function is atrocious...
+    CHECK(hasher(S("a")) != hasher(S("b")));
+}
+
 TEST_CASE( "Case conversion" ) {
     
     CHECK(S("maße").to_upper() == S("MASSE"));
@@ -350,6 +389,8 @@ TEST_CASE( "Case conversion" ) {
     CHECK(S("ΑΣͺΑ").to_lower() == S("ασͺα"));
     
     CHECK(S("βους").to_upper() == S("ΒΟΥΣ"));
+
+    CHECK(S("𐐀").to_lower() == S("𐐨"));
 }
 
 TEST_CASE( "Trim" ) {
@@ -690,6 +731,53 @@ TEST_CASE( "c_str" ) {
     REQUIRE(cstr);
     CHECK(strcmp(cstr, "a🧡bc") == 0);
     CHECK(access.c_str() == cstr);
+}
+
+TEST_CASE( "data" ) {
+    const sys_string & str = S("a🧡bc");
+
+    auto * data = str.data();
+    if (data)
+    {
+        if constexpr (std::is_same_v<sys_string::storage_type, char>)
+        {
+            REQUIRE(str.storage_size() == strlen("a🧡bc"));
+            CHECK(memcmp(data, "a🧡bc", str.storage_size()) == 0);
+        }
+        else if constexpr (std::is_same_v<sys_string::storage_type, char16_t>)
+        {
+            REQUIRE(str.storage_size() == std::char_traits<char16_t>::length(u"a🧡bc"));
+            CHECK(memcmp(data, u"a🧡bc", str.storage_size() * sizeof(sys_string::storage_type)) == 0);
+        }
+        else 
+        {
+            REQUIRE(str.storage_size() == std::char_traits<char32_t>::length(U"a🧡bc"));
+            CHECK(memcmp(data, U"a🧡bc", str.storage_size() * sizeof(sys_string::storage_type)) == 0);
+        }
+    }
+    std::vector<sys_string::storage_type> buf(str.storage_size() + 5);
+    auto res = str.copy_data(0, buf.data(), sys_string::size_type(buf.size()));
+    REQUIRE(res == str.storage_size());
+
+    if constexpr (std::is_same_v<sys_string::storage_type, char>)
+        CHECK(memcmp(buf.data(), "a🧡bc", str.storage_size()) == 0);
+    else if constexpr (std::is_same_v<sys_string::storage_type, char16_t>)
+        CHECK(memcmp(buf.data(), u"a🧡bc", str.storage_size() * sizeof(sys_string::storage_type)) == 0);
+    else 
+        CHECK(memcmp(buf.data(), U"a🧡bc", str.storage_size() * sizeof(sys_string::storage_type)) == 0);
+
+    res = str.copy_data(1, buf.data(), sys_string::size_type(buf.size()));
+    REQUIRE(res == str.storage_size() - 1);
+
+    if constexpr (std::is_same_v<sys_string::storage_type, char>)
+        CHECK(memcmp(buf.data(), ("a🧡bc") + 1, str.storage_size() - 1) == 0);
+    else if constexpr (std::is_same_v<sys_string::storage_type, char16_t>)
+        CHECK(memcmp(buf.data(), (u"a🧡bc") + 1, (str.storage_size() - 1) * sizeof(sys_string::storage_type)) == 0);
+    else 
+        CHECK(memcmp(buf.data(), (U"a🧡bc") + 1, (str.storage_size() - 1) * sizeof(sys_string::storage_type)) == 0);
+
+    res = sys_string().copy_data(0, buf.data(), sys_string::size_type(buf.size()));
+    REQUIRE(res == 0);
 }
 
 TEST_CASE( "ostream" ) {

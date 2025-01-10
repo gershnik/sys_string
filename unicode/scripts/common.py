@@ -6,6 +6,9 @@
 # license that can be found in the LICENSE file or at
 # https://github.com/gershnik/sys_string/blob/master/LICENSE
 # 
+
+import textwrap
+
 def char_name(code):
     if code < 0x10000:
         return f"\\u{code:04X}"
@@ -17,6 +20,28 @@ def parse_char_range(text):
     start = char_range[0]
     end = char_range[len(char_range) - 1] + 1
     return (start, end)
+
+def type_for_bits(bits: int):
+    if bits <= 8:
+        return 'uint8_t'
+    if bits <= 16:
+        return 'uint16_t'
+    if bits <= 32:
+        return 'uint32_t'
+    if bits <= 64:
+        return 'uint64_t'
+    raise RuntimeError('too many bits')
+
+def bytes_for_bits(bits: int):
+    bits_per_value = (1<<(bits-1).bit_length())
+    bits_per_value = max(8, bits_per_value)
+    bytes_per_value = bits_per_value // 8
+    return bytes_per_value
+
+
+def indent_insert(text: str, count: int):
+    ret = textwrap.indent(text, ' ' * count, lambda line: True).lstrip()
+    return ret
 
 def read_ucd_file(srcpath, handler):
     with open(srcpath, 'r', encoding='utf-8') as src:

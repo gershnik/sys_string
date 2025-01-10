@@ -15,6 +15,8 @@
 #include <vector>
 #include <string>
 #include <string_view>
+#include <forward_list>
+#include <sstream>
 #include <ostream>
 
 using namespace sysstr;
@@ -55,6 +57,18 @@ namespace
 
         static_assert(std::ranges::output_range<utf_output_decoder<Enc, std::back_insert_iterator<std::vector<char32_t>>>,
                                                 utf_char_of<Enc>>);
+
+        static_assert(std::ranges::forward_range<utf_ref_view<Enc, std::forward_list<char>>>);
+        static_assert(std::ranges::forward_range<utf_owning_view<Enc, std::forward_list<char>>>);
+
+        static_assert(!ranges::custom_reverse_traversable_range<utf_ref_view<Enc, std::forward_list<char>>>);
+        static_assert(!ranges::custom_reverse_traversable_range<utf_owning_view<Enc, std::forward_list<char>>>);
+
+        static_assert(std::ranges::input_range<utf_ref_view<Enc, std::ranges::istream_view<char>>>);
+        static_assert(std::ranges::input_range<utf_owning_view<Enc, std::ranges::istream_view<char>>>);
+
+        static_assert(!ranges::custom_reverse_traversable_range<utf_ref_view<Enc, std::ranges::istream_view<char>>>);
+        static_assert(!ranges::custom_reverse_traversable_range<utf_owning_view<Enc, std::ranges::istream_view<char>>>);
     };
 }
 
@@ -120,6 +134,11 @@ template<utf_encoding SrcEnc, utf_encoding DstEnc,
 requires(utf_encoding_of<std::ranges::range_value_t<SrcCont>> == SrcEnc &&
          utf_encoding_of<std::ranges::range_value_t<ExpectedCont>> == DstEnc &&
          std::is_same_v<std::ranges::range_value_t<ExpectedCont>, std::ranges::range_value_t<ExpectedBackwardCont>>)
+#if defined(__GNUC__)
+    [[gnu::noinline]]
+#elif defined(__MSVC__)
+    [[msvc::noinline]]
+#endif
 void do_check_iteration(const SrcCont & src,
                         const ExpectedCont & expected,
                         const ExpectedBackwardCont & expected_backward,
@@ -131,9 +150,9 @@ void do_check_iteration(const SrcCont & src,
     
     view_type view(src);
     
-    std::basic_string<typename view_type::value_type> expected_str(std::begin(expected), std::end(expected));
-    std::basic_string<typename view_type::value_type> expected_backward_str(std::begin(expected_backward), std::end(expected_backward));
-    std::basic_string<typename view_type::value_type> dest;
+    std::basic_string<std::ranges::range_value_t<view_type>> expected_str(std::begin(expected), std::end(expected));
+    std::basic_string<std::ranges::range_value_t<view_type>> expected_backward_str(std::begin(expected_backward), std::end(expected_backward));
+    std::basic_string<std::ranges::range_value_t<view_type>> dest;
     std::ranges::copy(view.begin(), view.end(), std::back_inserter(dest));
     CHECK(dest == expected_str);
     dest.clear();
@@ -732,19 +751,103 @@ TEST_CASE( "UTF32 Iteration on UTF32 sequence" ) {
     check_iteration<utf32, utf32>(U"\x110000""a", U"\uFFFDa"); //too large + good
 }
 
-#if __cpp_lib_ranges >= 202202L
 
 TEST_CASE( "Ranges" ) {
+    std::stringstream stream("abc");
+    std::vector vec({'a', 'b', 'c'});
+    std::forward_list flist({'a', 'b', 'c'});
+
     CHECK(std::ranges::equal(as_utf32(std::vector({'a', 'b', 'c'})), std::array{U'a', U'b', U'c'}));
-    CHECK(std::ranges::equal(std::vector({'a', 'b', 'c'}) | as_utf32, std::array{U'a', U'b', U'c'}));
+    CHECK(std::ranges::equal(as_utf32(vec), std::array{U'a', U'b', U'c'}));
+    #if __cpp_lib_ranges >= 202202L
+        CHECK(std::ranges::equal(std::vector({'a', 'b', 'c'}) | as_utf32, std::array{U'a', U'b', U'c'}));
+        CHECK(std::ranges::equal(vec | as_utf32, std::array{U'a', U'b', U'c'}));
+    #endif
+    CHECK(std::ranges::equal(as_utf32(std::forward_list({'a', 'b', 'c'})), std::array{U'a', U'b', U'c'}));
+    CHECK(std::ranges::equal(as_utf32(flist), std::array{U'a', U'b', U'c'}));
+    CHECK(std::ranges::equal(as_utf32(std::ranges::istream_view<char>(stream)), std::array{U'a', U'b', U'c'}));
 
     CHECK(std::ranges::equal(as_utf16(std::vector({'a', 'b', 'c'})), std::array{u'a', u'b', u'c'}));
-    CHECK(std::ranges::equal(std::vector({'a', 'b', 'c'}) | as_utf16, std::array{u'a', u'b', u'c'}));
+    #if __cpp_lib_ranges >= 202202L
+        CHECK(std::ranges::equal(std::vector({'a', 'b', 'c'}) | as_utf16, std::array{u'a', u'b', u'c'}));
+        CHECK(std::ranges::equal(vec | as_utf16, std::array{u'a', u'b', u'c'}));
+    #endif
+    CHECK(std::ranges::equal(as_utf16(std::forward_list({'a', 'b', 'c'})), std::array{u'a', u'b', u'c'}));
+    CHECK(std::ranges::equal(as_utf16(flist), std::array{u'a', u'b', u'c'}));
+    stream.clear(); stream.seekg(0);
+    CHECK(std::ranges::equal(as_utf16(std::ranges::istream_view<char>(stream)), std::array{u'a', u'b', u'c'}));
 
     CHECK(std::ranges::equal(as_utf8(std::vector({u'a', u'b', u'c'})), std::array{'a', 'b', 'c'}));
-    CHECK(std::ranges::equal(std::vector({u'a', u'b', u'c'}) | as_utf8, std::array{'a', 'b', 'c'}));
+    #if __cpp_lib_ranges >= 202202L
+        CHECK(std::ranges::equal(std::vector({u'a', u'b', u'c'}) | as_utf8, std::array{'a', 'b', 'c'}));
+        CHECK(std::ranges::equal(vec | as_utf8, std::array{'a', 'b', 'c'}));
+    #endif
+    CHECK(std::ranges::equal(as_utf8(std::forward_list({u'a', u'b', u'c'})), std::array{'a', 'b', 'c'}));
+    CHECK(std::ranges::equal(as_utf8(flist), std::array{'a', 'b', 'c'}));
+    stream.clear(); stream.seekg(0);
+    CHECK(std::ranges::equal(as_utf8(std::ranges::istream_view<char>(stream)), std::array{'a', 'b', 'c'}));
 }
 
-#endif
+
+TEST_CASE("view interface") {
+
+    {
+        auto view = as_utf32("abc"s);
+
+        CHECK(view);
+        CHECK(!view.empty());
+        CHECK(view.front() == U'a');
+        CHECK(view.back() == U'c');
+
+        CHECK(view.begin() == view.cbegin());
+        static_assert(std::is_same_v<decltype(view.end()), std::default_sentinel_t>);
+        static_assert(std::is_same_v<decltype(view.cend()), std::default_sentinel_t>);
+        CHECK(view.rbegin() == view.crbegin());
+        static_assert(std::is_same_v<decltype(view.rend()), std::default_sentinel_t>);
+        static_assert(std::is_same_v<decltype(view.crend()), std::default_sentinel_t>);
+
+        auto empty_view = as_utf32(""s);
+        CHECK(!empty_view);
+        CHECK(empty_view.empty());
+    }
+    {
+        auto view = as_utf16("abc"s);
+
+        CHECK(view);
+        CHECK(!view.empty());
+        CHECK(view.front() == u'a');
+        CHECK(view.back() == u'c');
+
+        CHECK(view.begin() == view.cbegin());
+        static_assert(std::is_same_v<decltype(view.end()), std::default_sentinel_t>);
+        static_assert(std::is_same_v<decltype(view.cend()), std::default_sentinel_t>);
+        CHECK(view.rbegin() == view.crbegin());
+        static_assert(std::is_same_v<decltype(view.rend()), std::default_sentinel_t>);
+        static_assert(std::is_same_v<decltype(view.crend()), std::default_sentinel_t>);
+
+        auto empty_view = as_utf32(""s);
+        CHECK(!empty_view);
+        CHECK(empty_view.empty());
+    }
+    {
+        auto view = as_utf8("abc"s);
+
+        CHECK(view);
+        CHECK(!view.empty());
+        CHECK(view.front() == 'a');
+        CHECK(view.back() == 'c');
+
+        CHECK(view.begin() == view.cbegin());
+        static_assert(std::is_same_v<decltype(view.end()), std::default_sentinel_t>);
+        static_assert(std::is_same_v<decltype(view.cend()), std::default_sentinel_t>);
+        CHECK(view.rbegin() == view.crbegin());
+        static_assert(std::is_same_v<decltype(view.rend()), std::default_sentinel_t>);
+        static_assert(std::is_same_v<decltype(view.crend()), std::default_sentinel_t>);
+
+        auto empty_view = as_utf32(""s);
+        CHECK(!empty_view);
+        CHECK(empty_view.empty());
+    }
+}
 
 }

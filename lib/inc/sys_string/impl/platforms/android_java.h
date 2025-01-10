@@ -18,7 +18,7 @@ namespace sysstr::util
     {
         using storage_type = char16_t;
         using size_type = jsize;
-        using hash_type = unsigned;
+        using hash_type = size_t;
         using native_handle_type = jstring;
         
         static constexpr size_type max_size = std::numeric_limits<jsize>::max() / sizeof(char16_t);

@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Fixed
+- Crash when sys_string_builder is re-used after `build()` on Apple and Python platforms.
+- MSVC warnings when using `std::hash<sys_string>`
+
+### Changed
+- `sys_string_t::hash_type` has been changed from `unsigned` to `size_t` on some platforms. 
+
+
 ## [2.15] - 2025-01-07
 
 ### Fixed

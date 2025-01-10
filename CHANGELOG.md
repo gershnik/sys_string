@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [2.16] - 2025-01-10
+
 ### Fixed
 - Crash when sys_string_builder is re-used after `build()` on Apple and Python platforms.
 - MSVC warnings when using `std::hash<sys_string>`
@@ -170,3 +172,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [2.13]: https://github.com/gershnik/sys_string/releases/v2.13
 [2.14]: https://github.com/gershnik/sys_string/releases/v2.14
 [2.15]: https://github.com/gershnik/sys_string/releases/v2.15
+[2.16]: https://github.com/gershnik/sys_string/releases/v2.16

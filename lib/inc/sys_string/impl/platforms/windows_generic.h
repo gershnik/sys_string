@@ -19,7 +19,7 @@ namespace sysstr::util
     {
         using storage_type = char16_t;
         using size_type = size_t;
-        using hash_type = unsigned;
+        using hash_type = size_t;
         
         static constexpr size_type max_size = std::numeric_limits<size_t>::max() / sizeof(char16_t);
     };

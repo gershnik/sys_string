@@ -219,6 +219,17 @@ TEST_CASE( "Comparsion", "[general]" ) {
 
 }
 
+TEST_CASE( "Hash", "[general]" ) {
+    std::hash<sys_string> hasher;
+
+    CHECK(hasher(sys_string()) == hasher(sys_string()));
+    CHECK(hasher(S("")) == hasher(S("")));
+    CHECK(hasher(S("")) == hasher(sys_string()));
+    CHECK(hasher(S("abc")) == hasher(S("abc")));
+    //technically this could fail but this means the hash function is atrocious...
+    CHECK(hasher(S("a")) != hasher(S("b")));
+}
+
 TEST_CASE( "Case conversion", "[general]" ) {
     
     CHECK(S("maße").to_upper() == S("MASSE"));
@@ -541,6 +552,53 @@ TEST_CASE( "c_str", "[general]" ) {
     REQUIRE(cstr);
     CHECK(strcmp(cstr, "a🧡bc") == 0);
     CHECK(access.c_str() == cstr);
+}
+
+TEST_CASE( "data", "[general]" ) {
+    const sys_string & str = S("a🧡bc");
+
+    auto * data = str.data();
+    if (data)
+    {
+        if constexpr (std::is_same_v<sys_string::storage_type, char>)
+        {
+            REQUIRE(str.storage_size() == strlen("a🧡bc"));
+            CHECK(memcmp(data, "a🧡bc", str.storage_size()) == 0);
+        }
+        else if constexpr (std::is_same_v<sys_string::storage_type, char16_t>)
+        {
+            REQUIRE(str.storage_size() == std::char_traits<char16_t>::length(u"a🧡bc"));
+            CHECK(memcmp(data, u"a🧡bc", str.storage_size() * sizeof(sys_string::storage_type)) == 0);
+        }
+        else 
+        {
+            REQUIRE(str.storage_size() == std::char_traits<char32_t>::length(U"a🧡bc"));
+            CHECK(memcmp(data, U"a🧡bc", str.storage_size() * sizeof(sys_string::storage_type)) == 0);
+        }
+    }
+    std::vector<sys_string::storage_type> buf(str.storage_size() + 5);
+    auto res = str.copy_data(0, buf.data(), sys_string::size_type(buf.size()));
+    REQUIRE(res == str.storage_size());
+
+    if constexpr (std::is_same_v<sys_string::storage_type, char>)
+        CHECK(memcmp(buf.data(), "a🧡bc", str.storage_size()) == 0);
+    else if constexpr (std::is_same_v<sys_string::storage_type, char16_t>)
+        CHECK(memcmp(buf.data(), u"a🧡bc", str.storage_size() * sizeof(sys_string::storage_type)) == 0);
+    else 
+        CHECK(memcmp(buf.data(), U"a🧡bc", str.storage_size() * sizeof(sys_string::storage_type)) == 0);
+
+    res = str.copy_data(1, buf.data(), sys_string::size_type(buf.size()));
+    REQUIRE(res == str.storage_size() - 1);
+
+    if constexpr (std::is_same_v<sys_string::storage_type, char>)
+        CHECK(memcmp(buf.data(), ("a🧡bc") + 1, str.storage_size() - 1) == 0);
+    else if constexpr (std::is_same_v<sys_string::storage_type, char16_t>)
+        CHECK(memcmp(buf.data(), (u"a🧡bc") + 1, (str.storage_size() - 1) * sizeof(sys_string::storage_type)) == 0);
+    else 
+        CHECK(memcmp(buf.data(), (U"a🧡bc") + 1, (str.storage_size() - 1) * sizeof(sys_string::storage_type)) == 0);
+
+    res = sys_string().copy_data(0, buf.data(), sys_string::size_type(buf.size()));
+    REQUIRE(res == 0);
 }
 
 TEST_CASE( "ostream", "[general]" ) {

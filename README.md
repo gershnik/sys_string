@@ -5,9 +5,8 @@
 [![License](https://img.shields.io/badge/license-BSD-brightgreen.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Tests](https://github.com/gershnik/sys_string/actions/workflows/test.yml/badge.svg)](https://github.com/gershnik/sys_string/actions/workflows/test.yml)
 
-This library provides a C++ string class template `sys_string_t` that is optimized for **interoperability with external native string type**. It is **immutable**, **Unicode-first** and exposes convenient **operations similar to Python or ECMAScript strings**. It uses a separate `sys_string_builder_t` class template to construct strings. It provides fast concatenation via `+` operator that **does not allocate temporary strings**. 
-The library exposes bidirectional UTF-8/UTF-16/UTF-32 views of `sys_string_t` as well as of any C++ input ranges of chracters. 
-of characters.
+This library provides a C++ string class template `sys_string_t` that is optimized for **interoperability with external native string types**. It is **immutable**, **Unicode-first** and exposes convenient **operations similar to Python or ECMAScript strings**. It uses a separate `sys_string_builder_t` class template to construct strings. It provides fast concatenation via `+` operator that **does not allocate temporary strings**. 
+The library exposes bidirectional UTF-8/UTF-16/UTF-32 and grapheme cluster views of `sys_string_t` as well as of other C++ ranges of characters.
 
 ## What does it mean?
 
@@ -38,11 +37,16 @@ of characters.
 
 * **Concatenation does not allocate temporaries.** You can safely do things like `result = s1 + s2 + s3`. It will result in **one** memory allocation and 3 calls to `memcpy` to copy each of `s1`, `s2` and `s3` content into the final result. Not 2 allocations and 5 copies like in other languages or with `std::string`.
 
-* **Bidirectional UTF-8/UTF-16/UTF-32 views**. You can view `sys_string_t` as a sequence of UTF-8/16/32 characters and iterate forward or __backward__ equally efficiently. Consider trying to find last instance of Unicode whitespace in UTF-8 data. Doing it as fast as finding the first instance is non-trivial. The views also work on any random access containers (C array, `std::array`, `std::vector`, `std::string`) of characters. Thus you can iterate in UTF-8 over `std::vector<char16_t>` etc.
+* **Bidirectional UTF-8/UTF-16/UTF-32 views**. You can view `sys_string_t` as a sequence of UTF-8/16/32 characters and iterate forward or __backward__ equally efficiently. Consider trying to find last instance of Unicode whitespace in UTF-8 data. Doing it as fast as finding the first instance is non-trivial. The views also work on any C++ input ranges (C array, `std::array`, `std::vector`, `std::string` or even `std::ranges::istream_view`) of characters (`char`, `char8_t`, `char16_t`, `char32_t` and `wchar_t` on platforms where it is Unicode). Thus you can iterate in UTF-8 over `std::vector<char16_t>` etc.
+
+* **Bidirectional grapheme cluster views**. Similarly you can also further view any of the UTF-8/UTF-16/UTF-32 views of `sys_string_t` as a sequence of
+[grapheme clusters](http://www.unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries) and iterate over them forward or __backward__ equally efficiently.
+Consider the task of erasing the last user perceived "character" from a string. To do so correctly you need to erase the last _grapheme cluster_. Doing it and doing it fast is very non-trivial. This functionality also works on any C++ range of characters (but requires a _forward_ range).
 
 ## Why bother? Doesn't `std::string` work well?
 
 An `std::string` storing UTF-8 (or `std::wstring` storing UTF-16 on Windows) works very well for some scenarios but fails miserably for others. `sys_string` class is an attempt to create something that works well in situations `std::string` would be a bad choice.
+
 Specifically, `std::basic_string` is an STL container of a character type that owns its memory and controls it via a user-supplied allocator. These design choices make it very fast for direct character access but create the following problems:
 
 * They rule out (efficient) reference-counted implementations. Which means that when you copy an `std::string` instance it must copy its content. Some of the penalty of that is alleviated by modern [small string optimization](https://akrzemi1.wordpress.com/2014/04/14/common-optimizations/) but this is, at best, a band-aid. There are workarounds, of course, such as using `std::shared_ptr<std::string>>` "when it matters" but they result in even more complexity for something that is quite fundamental to any data processing.

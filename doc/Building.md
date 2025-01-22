@@ -57,7 +57,7 @@ sudo cmake --install build
 #cmake --install build --prefix /usr
 ```
 
-Once the library has been installed it can be used int the following ways:
+Once the library has been installed it can be used in the following ways:
 
 #### Basic use 
 

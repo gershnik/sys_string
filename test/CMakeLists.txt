@@ -122,7 +122,10 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL Android)
     list(APPEND TEST_COMMAND COMMAND ${ADB} shell mkdir -p ${ANDROID_TEST_DIR})
 endif()
 
-set(LIB_TYPES " ;_headers")
+set(LIB_TYPES " ")
+if (ICU_UC_FOUND)
+    list(APPEND LIB_TYPES _headers)
+endif()
     
 foreach(STANDARD_SUFFIX ${CXX_STANDARDS})
 foreach(STORAGE_SUFFIX ${STORAGE_TYPES})

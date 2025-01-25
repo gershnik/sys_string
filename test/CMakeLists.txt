@@ -123,7 +123,7 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL Android)
 endif()
 
 set(LIB_TYPES " ")
-if (ICU_UC_FOUND)
+if (ICU_FOUND AND ICU_UC_FOUND)
     list(APPEND LIB_TYPES _headers)
 endif()
     

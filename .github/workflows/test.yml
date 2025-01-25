@@ -64,9 +64,12 @@ jobs:
             echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
             echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
           fi
+
+          sudo apt-get install -y libicu-dev
         fi
         if [[ '${{ matrix.os }}' == macos-* ]]; then
-            echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.version }}.app" >> $GITHUB_ENV
+          brew install icu4c
+          echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.version }}.app" >> $GITHUB_ENV
         fi
 
     - name: Configure

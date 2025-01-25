@@ -81,9 +81,8 @@ class mapping_builder:
         };
 
         template<class Derived>
-        class mapper 
+        struct mapper 
         {
-        public:
             template<utf_encoding Enc, class OutIt>
             static auto map_char(char32_t src, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<Enc>())) -> OutIt
             {
@@ -95,47 +94,10 @@ class mapping_builder:
                     return lhs.value < rhs.value;
                 });
                 if (lower == lookup_end || lower->value != src) 
-                    return write<Enc>(src, dest); 
+                    return write_unsafe<Enc>(src, dest); 
                 auto start = lower->offset;
                 auto end = (++lower)->offset; //safe - there is one behind end
-                return write<Enc>(mapped + start, mapped + end, dest);
-            }
-        private:
-            template<utf_encoding Enc, class OutIt>
-            static auto write(char32_t c, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<Enc>())) -> OutIt
-            {
-                if constexpr (Enc == utf32)
-                {
-                    *dest++ = c;
-                    return dest;
-                }
-                else
-                {
-                    utf_codepoint_encoder<Enc, false> encoder;
-                    encoder.put(c);
-                    return std::copy(encoder.begin(), encoder.end(), dest);
-                }
-            }
-
-            template<utf_encoding Enc, class OutIt>
-            static auto write(const char16_t * begin, const char16_t * end, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<Enc>())) -> OutIt
-            {
-                if constexpr (Enc == utf16)
-                {
-                    return std::copy(begin ,end, dest);
-                }
-                else
-                {
-                    utf_codepoint_decoder<utf16> decoder;
-                    while(begin != end)
-                    {
-                        decoder.put(*begin++);
-                        if (!decoder.done())
-                            decoder.put(*begin++); //no need to bounds check, we know end is good
-                        dest = write<Enc>(decoder.value(), dest);
-                    }
-                    return dest;
-                }
+                return write_unsafe<Enc>(mapped + start, mapped + end, dest);
             }
         };
         '''

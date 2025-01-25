@@ -9,7 +9,7 @@
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-install(TARGETS sys_string EXPORT sys_string FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(TARGETS sys_string_headers sys_string EXPORT sys_string FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(EXPORT sys_string NAMESPACE sys_string:: FILE sys_string-exports.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/sys_string)
 
 configure_package_config_file(

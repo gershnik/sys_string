@@ -18,6 +18,16 @@ project(sys_string VERSION ${SYSSTR_VERSION} LANGUAGES CXX)
 
 find_package (Python3 COMPONENTS Interpreter Development)
 
+if (PROJECT_IS_TOP_LEVEL)
+
+    set(SYS_STRING_CONFIGURE_INSTALL ON)
+
+else()
+
+    set(SYS_STRING_CONFIGURE_INSTALL ON)
+
+endif()
+
 add_subdirectory(lib)
 
 if(${Python3_Interpreter_FOUND})
@@ -53,7 +63,6 @@ endif()
 
 if (PROJECT_IS_TOP_LEVEL)
     
-    include(lib/cmake/install.cmake)
     add_subdirectory(test)
 
 endif()

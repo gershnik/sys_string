@@ -245,7 +245,7 @@ write_file(hfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 #ifndef HEADER_SYS_STRING_UNICODE_MAPPINGS_H_INCLUDED
 #define HEADER_SYS_STRING_UNICODE_MAPPINGS_H_INCLUDED
 
-#include <sys_string/impl/unicode/utf_encoding.h>
+#include <sys_string/impl/unicode/mappings_common.h>
            
 #include <algorithm>
 #include <cstdlib>

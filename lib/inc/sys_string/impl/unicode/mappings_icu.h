@@ -13,6 +13,8 @@
 #include <unicode/uset.h>
 #include <unicode/ucpmap.h>
 
+#include <exception>
+
 extern "C" 
 {
     //Public, but undocumented stuff from ucase.h

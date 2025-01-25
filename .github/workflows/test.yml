@@ -80,6 +80,7 @@ jobs:
           make -j `nproc`
           make install
           echo "ICU_ROOT=$GITHUB_WORKSPACE/icu_root" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/icu_root/lib" >> $GITHUB_ENV
         fi
         if [[ '${{ matrix.os }}' == macos-* ]]; then
           brew install icu4c

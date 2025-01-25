@@ -65,7 +65,20 @@ jobs:
             echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
           fi
 
-          sudo apt-get install -y libicu-dev
+          wget https://github.com/unicode-org/icu/releases/download/release-76-1/icu4c-76_1-src.tgz
+          tar -xzf icu4c-76_1-src.tgz
+          cd icu
+          ./configure --prefix $GITHUB_WORKSPACE/icu_root \
+            --enable-static=no \
+            --enable-shared=yes \
+            --enable-extras=no \
+            --enable-icuio=no \
+            --enable-tests=no \
+            --enable-samples=no \
+            --enable-tools=yes \
+            --with-data-packaging=library 
+          make -j `nproc`
+          make install
         fi
         if [[ '${{ matrix.os }}' == macos-* ]]; then
           brew install icu4c
@@ -75,6 +88,12 @@ jobs:
     - name: Configure
       shell: bash
       run: |
+        if [[ '${{ matrix.os }}' == ubuntu-* ]]; then
+          export EXTRA_FLAGS="-DICU_ROOT=$GITHUB_WORKSPACE/icu_root"
+        elif [[ '${{ matrix.os }}' == macos-* ]]; then
+          export ICU_ROOT=$(brew --cellar icu4c)/$(brew info --json icu4c | jq -r '.[0].installed[0].version')
+          export EXTRA_FLAGS="-DICU_ROOT=$ICU_ROOT"
+        fi
         cmake -S . -B out -DCMAKE_BUILD_TYPE=$BUILD_TYPE 
 
     - name: Build and Test

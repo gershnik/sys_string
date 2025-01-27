@@ -9,15 +9,50 @@
 import hashlib
 
 from textwrap import dedent
-from common import bytes_for_bits, type_for_bits, indent_insert
+from common import bytes_for_bits, hex_format_for_bits, type_for_bits, indent_insert
+
+class _trie_builder_config:
+    def __init__(self, bits: int):
+        if bits < 1 or bits > 7:
+            raise RuntimeError('bits must be between 1 and 7 inclusive')
+        self.bits_per_fanout = bits
+        self.fanout = 1 << self.bits_per_fanout
+        self.single_mask = (1 << self.bits_per_fanout) - 1
+        self.char_mask_start = ((21 // self.bits_per_fanout) + bool(21 % self.bits_per_fanout)) * self.bits_per_fanout
+
+    def print_base_class(self):
+        ret = f'''
+        template<class Derived>
+        class trie_lookup<{self.bits_per_fanout}, Derived>
+        {{
+        public:
+            SYS_STRING_FORCE_INLINE
+            static auto get(char32_t c) noexcept
+            {{
+                size_t idx = Derived::values.size();
+        '''
+        for bit_start in range(self.char_mask_start, 0, -self.bits_per_fanout):
+            ret += f'''
+                {{
+                    int char_idx = (c >> {bit_start - self.bits_per_fanout}) & 0x{self.single_mask:X};
+                    auto & entry = Derived::entries[idx];
+                    idx = entry[char_idx];
+                }}
+        '''
+
+        ret += '''
+               assert(idx < Derived::values.size());
+               return typename Derived::value(Derived::values[idx]);
+            }
+        };
+        '''
+
+        return dedent(ret)
 
 class trie_builder:
-    @staticmethod
-    def set_bits_per_fanout(bits):
-        trie_builder.bits_per_fanout = bits
-        trie_builder.fanout = 1 << trie_builder.bits_per_fanout
-        trie_builder.single_mask = (1 << trie_builder.bits_per_fanout) - 1
-        trie_builder.char_mask_start = ((21 // trie_builder.bits_per_fanout) + bool(21 % trie_builder.bits_per_fanout)) * trie_builder.bits_per_fanout
+
+    __configs: dict[int, _trie_builder_config] = {}
+    
 
     class node:
         def __init__(self, child_count):
@@ -47,12 +82,13 @@ class trie_builder:
             return ret
 
     
-    def __init__(self):
-        self.root = trie_builder.node(self.fanout)
+    def __init__(self, bits):
+        self.config = trie_builder.__configs.setdefault(bits, _trie_builder_config(bits))
+        self.root = trie_builder.node(self.config.fanout)
         self.byhash = {}
         self.values = {0:0}
         self.max_value = 0
-        self.linear = [[0]*self.fanout]
+        self.linear = [[0]*self.config.fanout]
 
     def bits_per_index(self):
         return len(self.linear).bit_length()
@@ -70,17 +106,17 @@ class trie_builder:
         
         for c in range(start, end):
             node = self.root
-            for bit_start in range(self.char_mask_start, 0, -self.bits_per_fanout):
-                mask = self.single_mask << (bit_start - self.bits_per_fanout)
-                child_idx = (c & mask) >> (bit_start - self.bits_per_fanout)
+            for bit_start in range(self.config.char_mask_start, 0, -self.config.bits_per_fanout):
+                mask = self.config.single_mask << (bit_start - self.config.bits_per_fanout)
+                child_idx = (c & mask) >> (bit_start - self.config.bits_per_fanout)
                 node = node.descend(child_idx)
             node.value |= flag
 
     def get_char(self, c):
         node = self.root
-        for bit_start in range(self.char_mask_start, 0, -self.bits_per_fanout):
-            mask = self.single_mask << (bit_start - self.bits_per_fanout)
-            child_idx = (c & mask) >> (bit_start - self.bits_per_fanout)
+        for bit_start in range(self.config.char_mask_start, 0, -self.config.bits_per_fanout):
+            mask = self.config.single_mask << (bit_start - self.config.bits_per_fanout)
+            child_idx = (c & mask) >> (bit_start - self.config.bits_per_fanout)
             if node.children[child_idx] is not None:
                 node = node.children[child_idx]
             else:
@@ -97,7 +133,7 @@ class trie_builder:
         self.__collect_values(self.root)
         self.__calc_linear()
 
-        bytes_per_entry = bytes_for_bits(self.bits_per_index()) * self.fanout
+        bytes_per_entry = bytes_for_bits(self.bits_per_index()) * self.config.fanout
         total_data_size = len(self.linear) * bytes_per_entry
         
         bytes_per_value = bytes_for_bits(self.bits_per_value())
@@ -112,7 +148,7 @@ class trie_builder:
             self.values[current.value] = value_idx
             self.max_value = max(self.max_value, current.value)
             terminal_idx = len(self.linear)
-            self.linear.append([terminal_idx] * self.fanout)
+            self.linear.append([terminal_idx] * self.config.fanout)
 
         for child in current.children:
             if child is not None:
@@ -168,7 +204,7 @@ class trie_builder:
             
             current_idx = len(self.linear)
             indices_by_hash[current_node.hash] = current_idx
-            self.linear.append([value_idx] * self.fanout)
+            self.linear.append([value_idx] * self.config.fanout)
             current_linear: list = self.linear[current_idx]
             if parent_linear is not None:
                 parent_linear[child_idx] = current_idx
@@ -190,13 +226,13 @@ class trie_builder:
                 current.children[idx].value != current.children[0].value):
                 return
         current.value = current.children[0].value
-        for i in range(0, self.fanout):
+        for i in range(0, self.config.fanout):
             current.children[i] = None
         
 
     def __hash(self, current: node):
         m = hashlib.sha256()
-        for idx in range(0, self.fanout):
+        for idx in range(0, self.config.fanout):
             if current.children[idx] is not None:
                 current.children[idx] = self.__hash(current.children[idx])
                 m.update(current.children[idx].hash)
@@ -228,51 +264,41 @@ class trie_builder:
         return ret
     
     def make_values(self):
+        hf = hex_format_for_bits(self.bits_per_value())
         ret = ''
         for idx, value in enumerate(self.values):
             if idx > 0:
                 ret += ', '
-                if idx % 32 == 0:
+                if idx % 8 == 0:
                     ret += '\n'
-            ret += f'{value}'
+            ret += ('0x{:'+ hf + '}').format(value)
+            #f'0x{value:X}'
         return ret
     
     @staticmethod
     def print_common_header():
+        if len(trie_builder.__configs) == 0:
+            return ''
+        
         ret = '''
-        template<class Derived>
-        class prop_lookup
-        {
-        public:
-            static auto get(char32_t c) noexcept
-            {
-                size_t idx = Derived::values.size();
+        template<size_t N, class Derived>
+        class trie_lookup;
         '''
-        for bit_start in range(trie_builder.char_mask_start, 0, -trie_builder.bits_per_fanout):
+
+        for config in trie_builder.__configs.values():
             ret += f'''
-                {{
-                    int char_idx = (c >> {bit_start - trie_builder.bits_per_fanout}) & 0x{trie_builder.single_mask:X};
-                    auto & entry = Derived::entries[idx];
-                    idx = entry[char_idx];
-                }}
+        {indent_insert(config.print_base_class(), 8)}
         '''
-
-        ret += '''
-               assert(idx < Derived::values.size());
-               return typename Derived::value(Derived::values[idx]);
-            }
-        };
-        '''
-
+        
         return dedent(ret)
 
     def print_header(self, name, values_enum_content):
         ret = f'''
-        class {name} : public prop_lookup<{name}>
+        class {name} : public trie_lookup<{self.config.bits_per_fanout}, {name}>
         {{
-        friend prop_lookup<{name}>;
+        friend trie_lookup<{self.config.bits_per_fanout},{name}>;
         private:
-            using entry_type = std::array<{type_for_bits(self.bits_per_index())}, {self.fanout}>;
+            using entry_type = std::array<{type_for_bits(self.bits_per_index())}, {self.config.fanout}>;
             using value_type = {type_for_bits(self.bits_per_value())};
 
             static const std::array<entry_type, {self.entris_count()}> entries;
@@ -305,5 +331,3 @@ class trie_builder:
             
         return dedent(ret)
 
-
-trie_builder.set_bits_per_fanout(4)

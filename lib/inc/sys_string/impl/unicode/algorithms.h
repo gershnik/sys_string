@@ -88,6 +88,7 @@ namespace sysstr
         {
         public:
             template<ranges::reversible_range Range>
+            SYS_STRING_FORCE_INLINE
             auto operator()(const Range & range, 
                             std::ranges::iterator_t<Range> where) const noexcept -> char32_t
             {

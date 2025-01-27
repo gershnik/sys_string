@@ -393,6 +393,11 @@ TEST_CASE( "Case conversion" ) {
     CHECK(S("𐐀").to_lower() == S("𐐨"));
 
     CHECK(S("İ").to_lower() == S("i̇"));
+
+    sys_string upper(u"\u0041\U000118A9\U00016E5F\U0001D7CA\U0001E921");
+    sys_string lower(u"\u0061\U000118C9\U00016E7F\U0001D7CA\U0001E943");
+    CHECK(upper.to_lower() == lower);
+    CHECK(lower.to_upper() == upper);
 }
 
 TEST_CASE( "Trim" ) {

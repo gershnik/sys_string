@@ -143,7 +143,7 @@ def parse_emoji_data(line):
         grapheme_cluster_break_prop_prop_builder.add_chars(start, end, prop_val[0])
 
 grapheme_tests = []
-grapheme_tests_15_1 = []
+grapheme_tests_15 = []
 def parse_grapheme_tests(dest, line):
     comment_start = line.index('# ')
     data = line[:comment_start].strip()
@@ -210,7 +210,7 @@ read_ucd_file(datadir/'DerivedCoreProperties.txt', parse_derived_properties)
 read_ucd_file(datadir/'GraphemeBreakProperty.txt', parse_grapheme_cluster_break_prop_properties)
 read_ucd_file(datadir/'emoji-data.txt', parse_emoji_data)
 read_ucd_file(datadir/'GraphemeBreakTest.txt', lambda line: parse_grapheme_tests(grapheme_tests, line))
-read_ucd_file(datadir/'GraphemeBreakTest-15.1.txt', lambda line: parse_grapheme_tests(grapheme_tests_15_1, line))
+read_ucd_file(datadir/'GraphemeBreakTest-15.txt', lambda line: parse_grapheme_tests(grapheme_tests_15, line))
 
 
 total_data_size = 0
@@ -289,7 +289,7 @@ namespace sysstr::util::unicode
 }}
 ''')
 
-for testfile, tests in ((testfile1, grapheme_tests), (testfile2, grapheme_tests_15_1)):
+for testfile, tests in ((testfile1, grapheme_tests), (testfile2, grapheme_tests_15)):
     write_file(testfile, f'''
 //THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 

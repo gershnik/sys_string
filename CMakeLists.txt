@@ -39,7 +39,7 @@ if(${Python3_Interpreter_FOUND})
         ${CMAKE_CURRENT_LIST_DIR}/lib/src/unicode_mappings.cpp 
         ${CMAKE_CURRENT_LIST_DIR}/lib/inc/sys_string/impl/unicode/mappings.h
         ${CMAKE_CURRENT_LIST_DIR}/test/test_grapheme_data.h
-        ${CMAKE_CURRENT_LIST_DIR}/test/test_grapheme_data_15.1.h
+        ${CMAKE_CURRENT_LIST_DIR}/test/test_grapheme_data_15.h
     )
 
     add_custom_command(

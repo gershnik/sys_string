@@ -289,9 +289,15 @@ namespace sysstr::util::unicode
             hangul_lv = U_GCB_LV,
             hangul_lvt = U_GCB_LVT,
             extended_pictographic = U_GCB_REGIONAL_INDICATOR + 1,
+        #if U_ICU_VERSION_MAJOR_NUM >= 76
             in_cb_consonant = (U_INCB_CONSONANT << 4),
             in_cb_extend = (U_INCB_EXTEND << 4),
             in_cb_linker = (U_INCB_LINKER << 4),
+        #else
+            in_cb_consonant = (1 << 4),
+            in_cb_extend = (2 << 4),
+            in_cb_linker = (3 << 4),
+        #endif
     
             basic_mask = 15,
             in_cb_mask = 48
@@ -316,7 +322,7 @@ namespace sysstr::util::unicode
                 return extended_pictographic; 
             }
 
-            #if U_ICU_VERSION_MAJOR_NUM >= 74
+            #if U_ICU_VERSION_MAJOR_NUM >= 76
                 auto icb = UIndicConjunctBreak(icu_prop_map<UCHAR_INDIC_CONJUNCT_BREAK>::lookup(c));
                 ret |= uint8_t(icb << 4);
             #endif

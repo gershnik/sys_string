@@ -13,6 +13,8 @@
 #include <unicode/uset.h>
 #include <unicode/ucpmap.h>
 
+static_assert(U_ICU_VERSION_MAJOR_NUM >= 67, "sys_string requires ICU 67 or higher");
+
 #include <exception>
 
 extern "C" 
@@ -123,9 +125,6 @@ extern "C"
     U_CAPI int32_t U_EXPORT2
     ucase_getTypeOrIgnorable(UChar32 c);
 }
-
-
-static_assert(U_ICU_VERSION_MAJOR_NUM >= 76, "sys_string requires ICU 76 or higher");
 
 #include <atomic>
 
@@ -314,12 +313,14 @@ namespace sysstr::util::unicode
             }
             else if (icu_prop_set<UCHAR_EXTENDED_PICTOGRAPHIC>::contains(c))
             {
-                ret = extended_pictographic; 
+                return extended_pictographic; 
             }
 
-            auto icb = UIndicConjunctBreak(icu_prop_map<UCHAR_INDIC_CONJUNCT_BREAK>::lookup(c));
-            ret |= uint8_t(icb << 4);
-
+            #if U_ICU_VERSION_MAJOR_NUM >= 74
+                auto icb = UIndicConjunctBreak(icu_prop_map<UCHAR_INDIC_CONJUNCT_BREAK>::lookup(c));
+                ret |= uint8_t(icb << 4);
+            #endif
+        
             return value(ret);
         }
     };

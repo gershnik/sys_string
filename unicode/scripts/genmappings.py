@@ -8,6 +8,7 @@
 
 import argparse
 from pathlib import Path
+from textwrap import dedent
 from common import read_ucd_file, write_file, char_name, parse_char_range, indent_insert
 from table_builder import table_builder
 from trie_builder import trie_builder
@@ -19,14 +20,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument('datadir')
 parser.add_argument('cppfile')
 parser.add_argument('hfile')
-parser.add_argument('testfile')
+parser.add_argument('testfile1')
+parser.add_argument('testfile2')
 
 args = parser.parse_args()
 
 datadir = Path(args.datadir)
 cppfile = Path(args.cppfile)
 hfile = Path(args.hfile)
-testfile = Path(args.testfile)
+testfile1 = Path(args.testfile1)
+testfile2 = Path(args.testfile2)
 
 
 case_info_builder = case_builder()
@@ -140,7 +143,8 @@ def parse_emoji_data(line):
         grapheme_cluster_break_prop_prop_builder.add_chars(start, end, prop_val[0])
 
 grapheme_tests = []
-def parse_grapheme_tests(line):
+grapheme_tests_15_1 = []
+def parse_grapheme_tests(dest, line):
     comment_start = line.index('# ')
     data = line[:comment_start].strip()
     comment = line[comment_start + 1:].strip()
@@ -160,7 +164,7 @@ def parse_grapheme_tests(line):
             source += l
             cur_expected += l
         expected.append(cur_expected)
-    grapheme_tests.append((data, comment, source, expected))
+    dest.append((data, comment, source, expected))
     
 
 def print_enum(mappings, masks={}):
@@ -186,9 +190,9 @@ def print_enum(mappings, masks={}):
     return ret
 
 
-def make_grapheme_tests():
+def make_grapheme_tests(tests):
     ret =''
-    for test in grapheme_tests:
+    for test in tests:
         data, comment, source, expected = test
         ret += f'//{data}\n//{comment}\ncheck_graphemes(U"{source}", {{'
         for idx, exp in enumerate(expected):
@@ -205,7 +209,8 @@ read_ucd_file(datadir/'PropList.txt', parse_properties)
 read_ucd_file(datadir/'DerivedCoreProperties.txt', parse_derived_properties)
 read_ucd_file(datadir/'GraphemeBreakProperty.txt', parse_grapheme_cluster_break_prop_properties)
 read_ucd_file(datadir/'emoji-data.txt', parse_emoji_data)
-read_ucd_file(datadir/'GraphemeBreakTest.txt', parse_grapheme_tests)
+read_ucd_file(datadir/'GraphemeBreakTest.txt', lambda line: parse_grapheme_tests(grapheme_tests, line))
+read_ucd_file(datadir/'GraphemeBreakTest-15.1.txt', lambda line: parse_grapheme_tests(grapheme_tests_15_1, line))
 
 
 total_data_size = 0
@@ -284,7 +289,9 @@ namespace sysstr::util::unicode
 }}
 ''')
 
-write_file(testfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
+for testfile, tests in ((testfile1, grapheme_tests), (testfile2, grapheme_tests_15_1)):
+    write_file(testfile, f'''
+//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 
 //
 // Copyright 2024 Eugene Gershnik
@@ -294,7 +301,7 @@ write_file(testfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 // https://github.com/gershnik/sys_string/blob/master/LICENSE
 //
 
-{make_grapheme_tests()}
+{make_grapheme_tests(tests)}
 
-''')
+'''.lstrip())
 

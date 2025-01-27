@@ -17,7 +17,7 @@ FetchContent_Declare(doctest
 
 FetchContent_MakeAvailable(doctest)
 
-find_package(ICU 76 COMPONENTS uc)
+find_package(ICU 67 COMPONENTS uc)
 
 if(${Python3_Development_FOUND})
     include_directories(

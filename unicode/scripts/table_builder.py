@@ -9,10 +9,17 @@
 from textwrap import dedent
 from common import bytes_for_bits, type_for_bits, char_name, indent_insert
 
-class table_builder:
-    block_size = 256
 
-    def __init__(self, separate_values=False):
+class table_builder:
+
+    used = False
+    
+    def __init__(self, block_size = 256, separate_values=False):
+        table_builder.used = True
+
+        self.block_size = block_size
+        self.separate_values = separate_values
+
         self.stage1 = []
         self.blocks = {}
         self.blocks_by_index = []
@@ -21,7 +28,6 @@ class table_builder:
         self.max_stage2_value = 0
         self.max_block_idx = 0
 
-        self.separate_values = separate_values
         if separate_values:
             self.values = [0]
             self.value_idx_by_value = {0: 0}
@@ -69,7 +75,7 @@ class table_builder:
         stage1_block_bytes = len(self.stage1) * bytes_for_bits(self.stage1_bits_per_value())
         total_data_size = stage1_block_bytes
         
-        stage2_block_bytes = table_builder.block_size * bytes_for_bits(self.stage2_bits_per_value())
+        stage2_block_bytes = self.block_size * bytes_for_bits(self.stage2_bits_per_value())
         total_data_size += stage2_block_bytes * len(self.blocks_by_index)
 
         if self.separate_values:
@@ -122,7 +128,7 @@ class table_builder:
         return self.max_stage2_value.bit_length()
     
     def stage2_size(self):
-        return len(self.blocks_by_index) * table_builder.block_size
+        return len(self.blocks_by_index) * self.block_size
     
     def values_bits_per_value(self):
         return self.max_value.bit_length() if self.separate_values else -1
@@ -132,6 +138,9 @@ class table_builder:
     
     @staticmethod
     def print_common_header():
+        if not table_builder.used:
+            return ''
+        
         ret = '''
         template<class Derived>
         class prop_lookup

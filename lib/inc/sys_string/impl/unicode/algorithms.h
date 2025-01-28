@@ -8,7 +8,11 @@
 #ifndef HEADER_SYS_STRING_UNICODE_ALGORITHMS_H_INCLUDED
 #define HEADER_SYS_STRING_UNICODE_ALGORITHMS_H_INCLUDED
 
-#include <sys_string/impl/unicode/mappings.h>
+#if SYS_STRING_USE_ICU
+    #include <sys_string/impl/unicode/mappings_icu.h>
+#else
+    #include <sys_string/impl/unicode/mappings.h>
+#endif
 #include <sys_string/impl/unicode/utf_util.h>
 #include <sys_string/impl/util/iter_util.h>
 
@@ -84,6 +88,7 @@ namespace sysstr
         {
         public:
             template<ranges::reversible_range Range>
+            SYS_STRING_FORCE_INLINE
             auto operator()(const Range & range, 
                             std::ranges::iterator_t<Range> where) const noexcept -> char32_t
             {

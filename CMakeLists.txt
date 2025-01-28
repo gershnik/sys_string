@@ -18,6 +18,16 @@ project(sys_string VERSION ${SYSSTR_VERSION} LANGUAGES CXX)
 
 find_package (Python3 COMPONENTS Interpreter Development)
 
+if (PROJECT_IS_TOP_LEVEL)
+
+    set(SYS_STRING_CONFIGURE_INSTALL ON)
+
+else()
+
+    set(SYS_STRING_CONFIGURE_INSTALL ON)
+
+endif()
+
 add_subdirectory(lib)
 
 if(${Python3_Interpreter_FOUND})
@@ -29,6 +39,7 @@ if(${Python3_Interpreter_FOUND})
         ${CMAKE_CURRENT_LIST_DIR}/lib/src/unicode_mappings.cpp 
         ${CMAKE_CURRENT_LIST_DIR}/lib/inc/sys_string/impl/unicode/mappings.h
         ${CMAKE_CURRENT_LIST_DIR}/test/test_grapheme_data.h
+        ${CMAKE_CURRENT_LIST_DIR}/test/test_grapheme_data_15.h
     )
 
     add_custom_command(
@@ -53,7 +64,6 @@ endif()
 
 if (PROJECT_IS_TOP_LEVEL)
     
-    include(lib/cmake/install.cmake)
     add_subdirectory(test)
 
 endif()

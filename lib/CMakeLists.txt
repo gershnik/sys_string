@@ -20,45 +20,6 @@ project(sys_string VERSION ${SYSSTR_VERSION})
 set(SRCDIR ${CMAKE_CURRENT_LIST_DIR})
 set(LIBNAME sys_string)
 
-add_library(${LIBNAME} STATIC)
-
-set_target_properties(${LIBNAME} PROPERTIES
-    CXX_EXTENSIONS OFF
-    CXX_VISIBILITY_PRESET hidden
-    VISIBILITY_INLINES_HIDDEN ON
-)
-
-target_compile_features(${LIBNAME} 
-PUBLIC 
-    cxx_std_20
-)
-
-target_compile_options(${LIBNAME} 
-PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/W4;/WX>
-    $<$<CXX_COMPILER_ID:Clang>:-Wall;-Wextra;-pedantic>
-    $<$<CXX_COMPILER_ID:AppleClang>:-Wall;-Wextra;-pedantic>
-    $<$<CXX_COMPILER_ID:GNU>:-Wall;-Wextra;-pedantic>
-)
-
-target_link_libraries(${LIBNAME} 
-PUBLIC
-    "$<$<PLATFORM_ID:Darwin>:-framework CoreFoundation>"
-    "$<$<PLATFORM_ID:Windows>:runtimeobject.lib>"
-    "$<$<PLATFORM_ID:Emscripten>:embind>"
-)
-
-target_compile_definitions(${LIBNAME} 
-PUBLIC
-    $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>
-)
-
-target_include_directories(${LIBNAME}
-PUBLIC
-    $<BUILD_INTERFACE:${SRCDIR}/inc>
-    $<INSTALL_INTERFACE:include>  # <prefix>/include
-)
-
 set(MAIN_CODE 
     ${SRCDIR}/inc/sys_string/config.h
     ${SRCDIR}/inc/sys_string/utf_view.h
@@ -93,7 +54,9 @@ set(UNICODE_FILES
     ${SRCDIR}/inc/sys_string/impl/unicode/utf_encoding.h
     ${SRCDIR}/inc/sys_string/impl/unicode/utf_util.h
     ${SRCDIR}/inc/sys_string/impl/unicode/algorithms.h
+    ${SRCDIR}/inc/sys_string/impl/unicode/mappings_common.h
     ${SRCDIR}/inc/sys_string/impl/unicode/mappings.h
+    ${SRCDIR}/inc/sys_string/impl/unicode/mappings_icu.h
 )
 set(SOURCES
     ${SRCDIR}/src/unicode_mappings.cpp
@@ -117,18 +80,64 @@ set(HEADERS
     ${UTIL_FILES}
 )
 
-target_sources(${LIBNAME} 
+add_library(${LIBNAME}_headers INTERFACE)
+
+target_compile_features(${LIBNAME}_headers
+INTERFACE 
+    cxx_std_20
+)
+
+target_include_directories(${LIBNAME}_headers
+INTERFACE
+    $<BUILD_INTERFACE:${SRCDIR}/inc>
+    $<INSTALL_INTERFACE:include>  # <prefix>/include
+)
+
+target_compile_definitions(${LIBNAME}_headers
+INTERFACE
+    $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>
+)
+
+target_sources(${LIBNAME}_headers
 INTERFACE 
     FILE_SET HEADERS BASE_DIRS ${SRCDIR}/inc FILES
         ${HEADERS}
 PRIVATE 
     ${HEADERS}
+)
+
+add_library(${LIBNAME}::${LIBNAME}_headers ALIAS ${LIBNAME}_headers)
+
+add_library(${LIBNAME} STATIC)
+
+set_target_properties(${LIBNAME} PROPERTIES
+    CXX_EXTENSIONS OFF
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
+)
+
+target_link_libraries(${LIBNAME} 
+PUBLIC
+    ${LIBNAME}_headers
+)
+
+target_compile_options(${LIBNAME} 
+PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/W4;/WX>
+    $<$<CXX_COMPILER_ID:Clang>:-Wall;-Wextra;-pedantic>
+    $<$<CXX_COMPILER_ID:AppleClang>:-Wall;-Wextra;-pedantic>
+    $<$<CXX_COMPILER_ID:GNU>:-Wall;-Wextra;-pedantic>
+)
+
+
+target_sources(${LIBNAME} 
+PRIVATE 
     ${SOURCES}
 )
 
 add_library(${LIBNAME}::${LIBNAME} ALIAS ${LIBNAME})
 
-if (PROJECT_IS_TOP_LEVEL)
+if (PROJECT_IS_TOP_LEVEL OR SYS_STRING_CONFIGURE_INSTALL)
     
     include(cmake/install.cmake)
 

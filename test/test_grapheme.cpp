@@ -29,7 +29,7 @@ static_assert(std::invocable<const sysstr::graphemes_func &, std::string>);
 namespace {
 
     template<std::ranges::forward_range Range>
-    void check_graphemes_range(Range && range, const std::vector<std::u32string> & expected,
+    void check_graphemes_range(Range && range, const std::initializer_list<std::u32string_view> & expected,
                                std::source_location loc = std::source_location::current())
     {
         std::vector<std::u32string> result;
@@ -50,7 +50,7 @@ namespace {
     }
     
     template<std::ranges::forward_range Range>
-    void check_graphemes_reverse_range(Range && range, const std::vector<std::u32string> & expected,
+    void check_graphemes_reverse_range(Range && range, const std::initializer_list<std::u32string_view> & expected,
                                        std::source_location loc = std::source_location::current())
     {
         std::vector<std::u32string> rexpected;
@@ -109,7 +109,7 @@ namespace {
 #elif defined(__MSVC__)
     [[msvc::noinline]]
 #endif
-    void check_graphemes(std::u32string_view src, const std::vector<std::u32string> & expected, std::source_location loc = std::source_location::current())
+    void check_graphemes(std::u32string_view src, const std::initializer_list<std::u32string_view> & expected, std::source_location loc = std::source_location::current())
     {
         check_graphemes_range(src, expected, loc);
         check_graphemes_reverse_range(src, expected, loc);
@@ -126,7 +126,11 @@ TEST_CASE("boundary") {
 
 TEST_CASE("generated") {
 
-#include "test_grapheme_data.h"
+#if SYS_STRING_USE_ICU && U_ICU_VERSION_MAJOR_NUM < 76
+    #include "test_grapheme_data_15.h"
+#else
+    #include "test_grapheme_data.h"
+#endif
 }
 
 TEST_CASE("iterators") {

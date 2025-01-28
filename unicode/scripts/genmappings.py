@@ -8,44 +8,31 @@
 
 import argparse
 from pathlib import Path
+from textwrap import dedent
 from common import read_ucd_file, write_file, char_name, parse_char_range, indent_insert
-from mapping_builder import mapping_builder
 from table_builder import table_builder
 from trie_builder import trie_builder
 from lookup_builder import lookup_builder
-
-PROP_COMPRESSION = 4
+from case_builder import case_builder
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument('datadir')
 parser.add_argument('cppfile')
 parser.add_argument('hfile')
-parser.add_argument('testfile')
+parser.add_argument('testfile1')
+parser.add_argument('testfile2')
 
 args = parser.parse_args()
 
 datadir = Path(args.datadir)
 cppfile = Path(args.cppfile)
 hfile = Path(args.hfile)
-testfile = Path(args.testfile)
+testfile1 = Path(args.testfile1)
+testfile2 = Path(args.testfile2)
 
-if PROP_COMPRESSION != 0:
-    trie_builder.set_bits_per_fanout(8 - PROP_COMPRESSION)
 
-def get_prop_builder_class():
-    if PROP_COMPRESSION == 0:
-        return table_builder
-    return trie_builder
-
-def make_prop_builder(separate_values=False):
-    if PROP_COMPRESSION == 0:
-        return table_builder(separate_values)
-    return trie_builder()
-
-folding_builder = mapping_builder()
-uppercase_builder = mapping_builder()
-lowercase_builder = mapping_builder()
+case_info_builder = case_builder()
 
 whitespaces = lookup_builder()
 
@@ -53,8 +40,6 @@ case_prop_values = {
     'Cased':            (0b01, 'cased'),
     'Case_Ignorable':   (0b10, 'case_ignorable')
 }
-
-case_prop_builder = make_prop_builder()
 
 grapheme_cluster_break_prop_prop_values = {
     'Control':               (1, 'control'),
@@ -84,7 +69,7 @@ grapheme_masks = {
     'in_cb_mask': 0x30
 }
 
-grapheme_cluster_break_prop_prop_builder = make_prop_builder(separate_values=True)
+grapheme_cluster_break_prop_prop_builder = trie_builder(4)
 
 def parse_case_info(line):
     fields = line.split(';')
@@ -92,9 +77,9 @@ def parse_case_info(line):
     uppercase = fields[12].strip()
     lowercase = fields[13].strip()
     if len(uppercase) != 0:
-        lowercase_builder.set_values(char, [int(uppercase, 16)])
+        case_info_builder.set_uppercase(char, [int(uppercase, 16)])
     if len(lowercase) != 0:
-        uppercase_builder.set_values(char, [int(lowercase, 16)])
+        case_info_builder.set_lowercase(char, [int(lowercase, 16)])
         
 
 def parse_case_folding(line):
@@ -103,7 +88,7 @@ def parse_case_folding(line):
         return
     code = int(code, 16)
     folding = [int(x, 16) for x in folding.split(' ')]
-    folding_builder.set_values(code, folding)
+    case_info_builder.set_folding(code, folding)
 
 def parse_special_casing(line):
     fields = line.split('; ')
@@ -113,9 +98,9 @@ def parse_special_casing(line):
     uppercase = [int(x, 16) for x in fields[3].strip().split(' ')]
     lowercase = [int(x, 16) for x in fields[1].strip().split(' ')]
     if len(uppercase) != 1 or uppercase[0] != code:
-        lowercase_builder.set_values(code, uppercase)
+        case_info_builder.set_uppercase(code, uppercase)
     if len(lowercase) != 1 or lowercase[0] != code:
-        uppercase_builder.set_values(code, lowercase)
+        case_info_builder.set_lowercase(code, lowercase)
 
 def parse_properties(line):
     (char_range, prop) = line[:line.index('# ')].split('; ')
@@ -133,7 +118,7 @@ def parse_derived_properties(line):
         props = props[0]
     if (prop_val := case_prop_values.get(props)) is not None:
         start, end = parse_char_range(char_range)
-        case_prop_builder.add_chars(start, end, prop_val[0])
+        case_info_builder.set_props(start, end, prop_val[0])
     elif (prop_val := grapheme_related_prop_values.get(props)) is not None:
         start, end = parse_char_range(char_range)
         grapheme_cluster_break_prop_prop_builder.add_chars(start, end, prop_val[0])
@@ -158,7 +143,8 @@ def parse_emoji_data(line):
         grapheme_cluster_break_prop_prop_builder.add_chars(start, end, prop_val[0])
 
 grapheme_tests = []
-def parse_grapheme_tests(line):
+grapheme_tests_15 = []
+def parse_grapheme_tests(dest, line):
     comment_start = line.index('# ')
     data = line[:comment_start].strip()
     comment = line[comment_start + 1:].strip()
@@ -178,7 +164,7 @@ def parse_grapheme_tests(line):
             source += l
             cur_expected += l
         expected.append(cur_expected)
-    grapheme_tests.append((data, comment, source, expected))
+    dest.append((data, comment, source, expected))
     
 
 def print_enum(mappings, masks={}):
@@ -204,9 +190,9 @@ def print_enum(mappings, masks={}):
     return ret
 
 
-def make_grapheme_tests():
+def make_grapheme_tests(tests):
     ret =''
-    for test in grapheme_tests:
+    for test in tests:
         data, comment, source, expected = test
         ret += f'//{data}\n//{comment}\ncheck_graphemes(U"{source}", {{'
         for idx, exp in enumerate(expected):
@@ -223,14 +209,13 @@ read_ucd_file(datadir/'PropList.txt', parse_properties)
 read_ucd_file(datadir/'DerivedCoreProperties.txt', parse_derived_properties)
 read_ucd_file(datadir/'GraphemeBreakProperty.txt', parse_grapheme_cluster_break_prop_properties)
 read_ucd_file(datadir/'emoji-data.txt', parse_emoji_data)
-read_ucd_file(datadir/'GraphemeBreakTest.txt', parse_grapheme_tests)
+read_ucd_file(datadir/'GraphemeBreakTest.txt', lambda line: parse_grapheme_tests(grapheme_tests, line))
+read_ucd_file(datadir/'GraphemeBreakTest-15.txt', lambda line: parse_grapheme_tests(grapheme_tests_15, line))
+
 
 total_data_size = 0
-total_data_size += folding_builder.generate()
-total_data_size += uppercase_builder.generate()
-total_data_size += lowercase_builder.generate()
+total_data_size += case_info_builder.generate()
 total_data_size += whitespaces.generate()
-total_data_size += case_prop_builder.generate()
 total_data_size += grapheme_cluster_break_prop_prop_builder.generate()
 
 write_file(hfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
@@ -245,7 +230,7 @@ write_file(hfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 #ifndef HEADER_SYS_STRING_UNICODE_MAPPINGS_H_INCLUDED
 #define HEADER_SYS_STRING_UNICODE_MAPPINGS_H_INCLUDED
 
-#include <sys_string/impl/unicode/utf_encoding.h>
+#include <sys_string/impl/unicode/mappings_common.h>
            
 #include <algorithm>
 #include <cstdlib>
@@ -255,21 +240,14 @@ write_file(hfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 
 namespace sysstr::util::unicode 
 {{
-    {indent_insert(mapping_builder.print_common_header(), 4)}
-
-    {indent_insert(folding_builder.print_header('case_fold_mapper'), 4)}
-
-    {indent_insert(uppercase_builder.print_header('to_lower_case_mapper'), 4)}
-
-    {indent_insert(lowercase_builder.print_header('to_upper_case_mapper'), 4)}
-
     {indent_insert(lookup_builder.print_common_header(), 4)}
 
     {indent_insert(whitespaces.print_header('is_whitespace'), 4)}
 
-    {indent_insert(get_prop_builder_class().print_common_header(), 4)}
+    {indent_insert(trie_builder.print_common_header(), 4)}
+    {indent_insert(table_builder.print_common_header(), 4)}
 
-    {indent_insert(case_prop_builder.print_header("case_prop", print_enum(case_prop_values)), 4)}
+    {indent_insert(case_info_builder.print_header(), 4)}
 
     {indent_insert(grapheme_cluster_break_prop_prop_builder.print_header("grapheme_cluster_break_prop", 
                         print_enum((grapheme_cluster_break_prop_prop_values, grapheme_related_emoji_values, grapheme_related_prop_values), 
@@ -297,26 +275,23 @@ write_file(cppfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 namespace sysstr::util::unicode 
 {{
 
-    {indent_insert(folding_builder.print_impl('case_fold_mapper'), 4)}
-    {indent_insert(uppercase_builder.print_impl('to_lower_case_mapper'), 4)}
-    {indent_insert(lowercase_builder.print_impl('to_upper_case_mapper'), 4)}
     {indent_insert(whitespaces.print_impl('is_whitespace'), 4)}
-    {indent_insert(case_prop_builder.print_impl("case_prop"), 4)}
+    {indent_insert(case_info_builder.print_impl(), 4)}
     {indent_insert(grapheme_cluster_break_prop_prop_builder.print_impl("grapheme_cluster_break_prop"), 4)}
     
     constexpr auto total_data_size = 
-        case_fold_mapper::data_size +
-        to_lower_case_mapper::data_size +
-        to_upper_case_mapper::data_size +
         is_whitespace::data_size +
-        case_prop::data_size +
+        case_info::data_size +
+        sizeof(cased_data) +
         grapheme_cluster_break_prop::data_size;
     static_assert(total_data_size == {total_data_size});
 
 }}
 ''')
 
-write_file(testfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
+for testfile, tests in ((testfile1, grapheme_tests), (testfile2, grapheme_tests_15)):
+    write_file(testfile, f'''
+//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 
 //
 // Copyright 2024 Eugene Gershnik
@@ -326,7 +301,7 @@ write_file(testfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 // https://github.com/gershnik/sys_string/blob/master/LICENSE
 //
 
-{make_grapheme_tests()}
+{make_grapheme_tests(tests)}
 
-''')
+'''.lstrip())
 

@@ -7,7 +7,7 @@
 #
 
 include(FetchContent)
-
+include(FindICU)
 
 FetchContent_Declare(doctest
     URL  https://raw.githubusercontent.com/doctest/doctest/v2.4.11/doctest/doctest.h
@@ -16,6 +16,8 @@ FetchContent_Declare(doctest
 )
 
 FetchContent_MakeAvailable(doctest)
+
+find_package(ICU 67 COMPONENTS uc)
 
 if(${Python3_Development_FOUND})
     include_directories(
@@ -119,11 +121,19 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL Android)
 
     list(APPEND TEST_COMMAND COMMAND ${ADB} shell mkdir -p ${ANDROID_TEST_DIR})
 endif()
+
+set(LIB_TYPES " ")
+if (ICU_FOUND AND ICU_UC_FOUND)
+    list(APPEND LIB_TYPES _headers)
+endif()
     
 foreach(STANDARD_SUFFIX ${CXX_STANDARDS})
 foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
+foreach(LIB_SUFFIX ${LIB_TYPES})
 
-    set(TEST_SUFFIX ${STANDARD_SUFFIX}${STORAGE_SUFFIX})
+    string(STRIP ${LIB_SUFFIX} LIB_SUFFIX)
+
+    set(TEST_SUFFIX ${STANDARD_SUFFIX}${STORAGE_SUFFIX}${LIB_SUFFIX})
 
     if (SYS_STRING_TEST_SHARED)
         add_library(test-${TEST_SUFFIX} SHARED EXCLUDE_FROM_ALL)
@@ -137,6 +147,8 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
         CXX_EXTENSIONS OFF
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN ON
+        XCODE_GENERATE_SCHEME TRUE
+        XCODE_SCHEME_ARGUMENTS "-ni;-nc"
     )
 
     target_include_directories(test-${TEST_SUFFIX}
@@ -154,6 +166,19 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
     target_compile_definitions(test-${TEST_SUFFIX} PRIVATE
         ${STORAGE_FLAG_${STORAGE_SUFFIX}}
     )
+
+    if ("${LIB_SUFFIX}" STREQUAL "_headers")
+        target_compile_definitions(test-${TEST_SUFFIX} PRIVATE
+            SYS_STRING_USE_ICU=1
+        )
+        target_include_directories(test-${TEST_SUFFIX}
+        PRIVATE
+            ${ICU_INCLUDE_DIR}
+        )
+        target_link_libraries(test-${TEST_SUFFIX} PRIVATE
+            ICU::uc
+        )
+    endif()
 
     target_link_options(test-${TEST_SUFFIX} PRIVATE
     
@@ -173,7 +198,11 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
 
     target_link_libraries(test-${TEST_SUFFIX} PRIVATE
         
-        sys_string::sys_string
+        sys_string::sys_string${LIB_SUFFIX}
+
+        "$<$<PLATFORM_ID:Darwin>:-framework CoreFoundation>"
+        "$<$<PLATFORM_ID:Windows>:runtimeobject.lib>"
+        "$<$<PLATFORM_ID:Emscripten>:embind>"
                 
         "$<$<PLATFORM_ID:Android>:log>" 
     )
@@ -230,6 +259,7 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
 
     list(APPEND TEST_DEPS test-${TEST_SUFFIX})
 
+endforeach()
 endforeach()
 endforeach()
 

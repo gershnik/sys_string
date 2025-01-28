@@ -64,9 +64,28 @@ jobs:
             echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
             echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
           fi
+
+          # wget https://github.com/unicode-org/icu/releases/download/release-76-1/icu4c-76_1-src.tgz
+          # tar -xzf icu4c-76_1-src.tgz
+          # cd icu/source
+          # ./configure --prefix $GITHUB_WORKSPACE/icu_root \
+          #   --enable-static=no \
+          #   --enable-shared=yes \
+          #   --enable-extras=no \
+          #   --enable-icuio=no \
+          #   --enable-tests=no \
+          #   --enable-samples=no \
+          #   --enable-tools=yes \
+          #   --with-data-packaging=library 
+          # make -j `nproc`
+          # make install
+          # echo "ICU_ROOT=$GITHUB_WORKSPACE/icu_root" >> $GITHUB_ENV
+          # echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/icu_root/lib" >> $GITHUB_ENV
         fi
         if [[ '${{ matrix.os }}' == macos-* ]]; then
-            echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.version }}.app" >> $GITHUB_ENV
+          brew install icu4c
+          echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.version }}.app" >> $GITHUB_ENV
+          echo "ICU_ROOT=$(brew --cellar icu4c)/$(brew info --json icu4c | jq -r '.[0].installed[0].version')" >> $GITHUB_ENV
         fi
 
     - name: Configure

@@ -32,12 +32,31 @@ def type_for_bits(bits: int):
         return 'uint64_t'
     raise RuntimeError('too many bits')
 
+def hex_format_for_bits(bits: int):
+    if bits <= 8:
+        return '02X'
+    if bits <= 16:
+        return '04X'
+    if bits <= 32:
+        return '08X'
+    if bits <= 64:
+        return '016X'
+    raise RuntimeError('too many bits')
+
 def bytes_for_bits(bits: int):
     bits_per_value = (1<<(bits-1).bit_length())
     bits_per_value = max(8, bits_per_value)
     bytes_per_value = bits_per_value // 8
     return bytes_per_value
 
+def char_len_in_utf16(char):
+    return 1 if char < 0x10000 else 2
+
+def chars_len_in_utf16(chars):
+    ret = 0
+    for char in chars:
+        ret += char_len_in_utf16(char)
+    return ret
 
 def indent_insert(text: str, count: int):
     ret = textwrap.indent(text, ' ' * count, lambda line: True).lstrip()

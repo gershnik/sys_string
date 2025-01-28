@@ -144,7 +144,7 @@ namespace sysstr::util
         {
             assert(std::less_equal()(this->begin(), first) && std::less_equal()(first, last) && std::less_equal()(last, this->end()));
             iterator mfirst = const_cast<iterator>(first);
-            memcpy(mfirst, last, (this->m_size - (last - this->begin())) * sizeof(value_type));
+            memmove(mfirst, last, (this->m_size - (last - this->begin())) * sizeof(value_type));
             this->m_size -= size_type(last - first);
             return mfirst;
         }

@@ -18,6 +18,7 @@
 
 #include <ranges>
 #include <iterator>
+#include <vector>
 
 namespace sysstr
 {
@@ -857,6 +858,7 @@ namespace sysstr
         }
 
         template<std::random_access_iterator It, std::sized_sentinel_for<It> EndIt>
+        requires(std::is_same_v<std::iter_value_t<It>, uint32_t>)
         static void sort(It first, EndIt last)
         {
             auto len = last - first;

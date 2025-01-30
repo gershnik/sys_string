@@ -100,6 +100,43 @@ namespace sysstr
         return builder.build();
     }
 
+    template<class Storage>
+    inline
+    auto sys_string_t<Storage>::normalize(normalization norm) const -> sys_string_t
+    {
+        
+        sys_string_builder_t<Storage> builder;
+    #if !SYS_STRING_USE_ICU
+        sys_string_t<Storage>::utf32_access access(*this);
+        switch (norm)
+        {
+            break; case normalization::nfd:
+                normalize_nfd<utf_encoding_of<storage_type>>()(access, std::back_inserter(builder.chars()));
+            break; default: 
+                std::terminate();
+        }
+        
+    #else
+        U_NAMESPACE_USE
+
+        sys_string_t<Storage>::char_access access(*this);
+        StringByteSink<sys_string_builder_t<Storage>> sink(&builder);
+
+        UErrorCode ec = U_ZERO_ERROR;
+        const Normalizer2 * normalizer = nullptr;
+        switch (norm)
+        {
+            break; case normalization::nfd: normalizer = Normalizer2::getNFDInstance(ec);
+            break; case normalization::nfc: normalizer = Normalizer2::getNFCInstance(ec);
+            break; default: std::terminate();
+        }
+        normalizer->normalizeUTF8(0, StringPiece(access.c_str()), sink, nullptr, ec);
+        if (U_FAILURE(ec))
+            std::terminate();
+    #endif
+        return builder.build();
+    }
+
 
     template<class Storage>
     template<std::predicate<char32_t> Pred>

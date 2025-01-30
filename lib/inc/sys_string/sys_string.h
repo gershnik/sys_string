@@ -46,6 +46,12 @@ namespace sysstr
         attach_pointer
     };
 
+    enum class normalization
+    {
+        nfd,
+        nfc
+    };
+
     template<class T, class Storage>
     concept sys_string_or_char = std::is_same_v<std::remove_cvref_t<T>, sys_string_t<Storage>> ||
                                  std::is_same_v<std::remove_cvref_t<T>, char32_t>;
@@ -323,6 +329,8 @@ namespace sysstr
         
         auto to_lower() const -> sys_string_t;
         auto to_upper() const -> sys_string_t;
+
+        auto normalize(normalization norm) const -> sys_string_t;
 
         template<std::predicate<char32_t> Pred = isspace>
         auto trim(Pred pred = Pred()) const -> sys_string_t;

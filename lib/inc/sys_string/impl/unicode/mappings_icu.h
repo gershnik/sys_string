@@ -12,6 +12,7 @@
 #include <unicode/ustring.h>
 #include <unicode/uset.h>
 #include <unicode/ucpmap.h>
+#include <unicode/normalizer2.h>
 
 static_assert(U_ICU_VERSION_MAJOR_NUM >= 67, "sys_string requires ICU 67 or higher");
 

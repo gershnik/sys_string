@@ -14,25 +14,32 @@ from table_builder import table_builder
 from trie_builder import trie_builder
 from lookup_builder import lookup_builder
 from case_builder import case_builder
+from norm_builder import norm_builder
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument('datadir')
 parser.add_argument('cppfile')
 parser.add_argument('hfile')
-parser.add_argument('testfile1')
-parser.add_argument('testfile2')
+parser.add_argument('test_grapheme_data_h')
+parser.add_argument('test_grapheme_data_15_h')
+parser.add_argument('test_normalization_data_h')
 
 args = parser.parse_args()
 
 datadir = Path(args.datadir)
 cppfile = Path(args.cppfile)
 hfile = Path(args.hfile)
-testfile1 = Path(args.testfile1)
-testfile2 = Path(args.testfile2)
+testfiles = (
+    Path(args.test_grapheme_data_h),
+    Path(args.test_grapheme_data_15_h),
+    Path(args.test_normalization_data_h)
+)
 
+test_cases = ([], [], [])
 
 case_info_builder = case_builder()
+norm_info_builder = norm_builder()
 
 whitespaces = lookup_builder()
 
@@ -71,15 +78,22 @@ grapheme_masks = {
 
 grapheme_cluster_break_prop_prop_builder = trie_builder(4)
 
-def parse_case_info(line):
+def parse_unicode_data(line:str):
     fields = line.split(';')
     char = int(fields[0].strip(), 16)
+    comb_class = fields[3].strip()
+    decomp = fields[5].strip()
     uppercase = fields[12].strip()
     lowercase = fields[13].strip()
     if len(uppercase) != 0:
         case_info_builder.set_uppercase(char, [int(uppercase, 16)])
     if len(lowercase) != 0:
         case_info_builder.set_lowercase(char, [int(lowercase, 16)])
+    if len(comb_class) != 0:
+        norm_info_builder.set_comb_class(char, int(comb_class))
+    if len(decomp) != 0 and not decomp.startswith('<'):
+        values = [int(x, 16) for x in decomp.split(' ')]
+        norm_info_builder.set_decomp(char, values)
         
 
 def parse_case_folding(line):
@@ -142,8 +156,6 @@ def parse_emoji_data(line):
         start, end = parse_char_range(char_range)
         grapheme_cluster_break_prop_prop_builder.add_chars(start, end, prop_val[0])
 
-grapheme_tests = []
-grapheme_tests_15 = []
 def parse_grapheme_tests(dest, line):
     comment_start = line.index('# ')
     data = line[:comment_start].strip()
@@ -165,9 +177,24 @@ def parse_grapheme_tests(dest, line):
             cur_expected += l
         expected.append(cur_expected)
     dest.append((data, comment, source, expected))
+
+def parse_normalization_tests(dest, line):
+    if line.startswith('@'):
+        return
+    comment_start = line.index('# ')
+    data = line[:comment_start].strip()
+    comment = line[comment_start + 1:].strip()
+    entries = data.split(';')
+    values = []
+    for entry in entries[0:5]:
+        chars = [char_name(int(code.strip(), 16)) for code in entry.split(' ')]
+        values.append(''.join(chars))
+    dest.append((values, comment))
     
 
-def print_enum(mappings, masks={}):
+def print_enum(mappings, masks=None):
+    if masks is None:
+        masks = {}
     ret = ''
     if isinstance(mappings, dict):
         mappings = [mappings]
@@ -202,23 +229,54 @@ def make_grapheme_tests(tests):
         ret += '});\n'
     return ret
 
-read_ucd_file(datadir/'UnicodeData.txt', parse_case_info)
-read_ucd_file(datadir/'CaseFolding.txt', parse_case_folding)
-read_ucd_file(datadir/'SpecialCasing.txt', parse_special_casing)
-read_ucd_file(datadir/'PropList.txt', parse_properties)
-read_ucd_file(datadir/'DerivedCoreProperties.txt', parse_derived_properties)
-read_ucd_file(datadir/'GraphemeBreakProperty.txt', parse_grapheme_cluster_break_prop_properties)
-read_ucd_file(datadir/'emoji-data.txt', parse_emoji_data)
-read_ucd_file(datadir/'GraphemeBreakTest.txt', lambda line: parse_grapheme_tests(grapheme_tests, line))
-read_ucd_file(datadir/'GraphemeBreakTest-15.txt', lambda line: parse_grapheme_tests(grapheme_tests_15, line))
+def make_normalization_tests(tests):
+    ret = dedent('''
+    static struct 
+    {
+        const char32_t * src;
+        const char32_t * nfc;
+        const char32_t * nfd;
+        const char32_t * nfkc;
+        const char32_t * nfkd;
+    } data[] = {
+    ''')
+    for idx, test in enumerate(tests):
+        values, comment = test
+        source, NFC, NFD, NFKC, NFKD = values
+        ret += f'    //{idx}: {comment}\n'
+        ret += f'    {{ U"{source}", U"{NFC}", U"{NFD}", U"{NFKC}", U"{NFKD}" }},\n'
+    
+    ret += dedent('''
+    };
+    
+    for (size_t i = 0; i != std::size(data); ++i)
+    {
+        auto & entry = data[i];
+        check_generated(i, entry.src, entry.nfc, entry.nfd, entry.nfkc, entry.nfkd);
+    }
+    ''')
+    return ret
+
+def main():
+    read_ucd_file(datadir/'UnicodeData.txt', parse_unicode_data)
+    read_ucd_file(datadir/'CaseFolding.txt', parse_case_folding)
+    read_ucd_file(datadir/'SpecialCasing.txt', parse_special_casing)
+    read_ucd_file(datadir/'PropList.txt', parse_properties)
+    read_ucd_file(datadir/'DerivedCoreProperties.txt', parse_derived_properties)
+    read_ucd_file(datadir/'GraphemeBreakProperty.txt', parse_grapheme_cluster_break_prop_properties)
+    read_ucd_file(datadir/'emoji-data.txt', parse_emoji_data)
+    read_ucd_file(datadir/'GraphemeBreakTest.txt', lambda line: parse_grapheme_tests(test_cases[0], line))
+    read_ucd_file(datadir/'GraphemeBreakTest-15.txt', lambda line: parse_grapheme_tests(test_cases[1], line))
+    read_ucd_file(datadir/'NormalizationTest.txt', lambda line: parse_normalization_tests(test_cases[2], line))
 
 
-total_data_size = 0
-total_data_size += case_info_builder.generate()
-total_data_size += whitespaces.generate()
-total_data_size += grapheme_cluster_break_prop_prop_builder.generate()
+    total_data_size = 0
+    total_data_size += case_info_builder.generate()
+    total_data_size += norm_info_builder.generate()
+    total_data_size += whitespaces.generate()
+    total_data_size += grapheme_cluster_break_prop_prop_builder.generate()
 
-write_file(hfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
+    write_file(hfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 
 //
 // Copyright 2020 Eugene Gershnik
@@ -249,6 +307,8 @@ namespace sysstr::util::unicode
 
     {indent_insert(case_info_builder.print_header(), 4)}
 
+    {indent_insert(norm_info_builder.print_header(), 4)}
+
     {indent_insert(grapheme_cluster_break_prop_prop_builder.print_header("grapheme_cluster_break_prop", 
                         print_enum((grapheme_cluster_break_prop_prop_values, grapheme_related_emoji_values, grapheme_related_prop_values), 
                                     grapheme_masks)),
@@ -260,7 +320,7 @@ namespace sysstr::util::unicode
 ''')      
 
 
-write_file(cppfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
+    write_file(cppfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 
 //
 // Copyright 2020 Eugene Gershnik
@@ -277,20 +337,23 @@ namespace sysstr::util::unicode
 
     {indent_insert(whitespaces.print_impl('is_whitespace'), 4)}
     {indent_insert(case_info_builder.print_impl(), 4)}
+    {indent_insert(norm_info_builder.print_impl(), 4)}
     {indent_insert(grapheme_cluster_break_prop_prop_builder.print_impl("grapheme_cluster_break_prop"), 4)}
     
     constexpr auto total_data_size = 
         is_whitespace::data_size +
         case_info::data_size +
         sizeof(cased_data) +
+        decomp_info::data_size +
+        sizeof(decomp_data) +
         grapheme_cluster_break_prop::data_size;
     static_assert(total_data_size == {total_data_size});
 
 }}
 ''')
 
-for testfile, tests in ((testfile1, grapheme_tests), (testfile2, grapheme_tests_15)):
-    write_file(testfile, f'''
+    for testfile, tests in zip(testfiles[:2], test_cases[:2]):
+        write_file(testfile, f'''
 //THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 
 //
@@ -304,4 +367,22 @@ for testfile, tests in ((testfile1, grapheme_tests), (testfile2, grapheme_tests_
 {make_grapheme_tests(tests)}
 
 '''.lstrip())
+        
+    for testfile, tests in zip(testfiles[2:3], test_cases[2:3]):
+        write_file(testfile, f'''
+//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 
+//
+// Copyright 2024 Eugene Gershnik
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://github.com/gershnik/sys_string/blob/master/LICENSE
+//
+
+{make_normalization_tests(tests)}
+
+'''.lstrip())
+
+if __name__ == '__main__':
+    main()

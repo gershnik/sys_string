@@ -217,6 +217,79 @@ namespace sysstr::util::unicode
     };
 
 
+    class decomp_info : public trie_lookup<4, decomp_info>
+    {
+    friend trie_lookup<4,decomp_info>;
+    private:
+        using entry_type = std::array<uint16_t, 16>;
+        using value_type = uint16_t;
+    
+        static const std::array<entry_type, 1451> entries;
+    
+        static const std::array<value_type, 1053> values;
+    
+    public:
+        enum value : value_type
+        {
+            none = 0,
+    
+        };
+    
+        static constexpr size_t data_size = sizeof(entries) + sizeof(values);
+    };
+    
+    
+    extern const uint32_t decomp_data[];
+    
+    struct decomp_mapper 
+    {
+        template<utf_encoding Enc, class OutIt>
+        SYS_STRING_FORCE_INLINE
+        static auto map_char(char32_t src, OutIt dest) noexcept(noexcept(*dest++ = uint32_t())) -> OutIt
+        {
+            auto res = uint16_t(decomp_info::get(src));
+            if (res == 0)
+            {
+                *dest = src;
+                return ++dest;
+            }
+            uint16_t idx = res & 0x0FFF;
+            size_t entry_offset = (size_t(src) - idx) & 0x0FFF;
+            const uint32_t * entry = decomp_data + entry_offset;
+    
+            res >>= 12;
+            int len = res & 0x3;
+            if (len == 0)
+            {
+                uint32_t val = uint32_t(src) | *entry;
+                *dest = val;
+                return ++dest;
+            }
+    
+            bool final = res >> 2;
+            if (!final) 
+            {
+                dest = map_char<Enc>(*entry++, dest);
+            }
+            else
+            {
+                *dest = *entry++;
+                ++dest;
+            }
+    
+            if (--len)
+            {
+                *dest = *entry++;
+                ++dest;
+            }
+    
+            return dest;
+        }
+    };
+    
+    
+
+
     class grapheme_cluster_break_prop : public trie_lookup<4, grapheme_cluster_break_prop>
     {
     friend trie_lookup<4,grapheme_cluster_break_prop>;

@@ -60,6 +60,86 @@ namespace sysstr
                 { return next == end; }
         };
 
+        template<std::integral T, size_t StackLimit>
+        struct stack_or_heap_buffer
+        {
+        public:
+            using value_type = T;
+
+            stack_or_heap_buffer():
+                m_first(m_data.stack),
+                m_size(0)
+            {}
+            stack_or_heap_buffer(const stack_or_heap_buffer &) = delete;
+            stack_or_heap_buffer & operator=(const stack_or_heap_buffer &) = delete;
+            ~stack_or_heap_buffer()
+            {
+                if (m_first != m_data.stack)
+                    m_data.heap.~vector<T>();
+            }
+
+            void push_back(T val)
+            {
+                if (m_size < StackLimit)
+                {
+                    m_first[m_size++] = val;
+                }
+                else if (m_size == StackLimit)
+                {
+                    std::vector<T> heap;
+                    heap.reserve(m_size + 1);
+                    heap.insert(heap.begin(), m_first, m_first + m_size);
+                    heap.push_back(val);
+                    new (&m_data.heap) std::vector<T>(std::move(heap));
+                    m_first = m_data.heap.data();
+                    ++m_size;
+                }
+                else
+                {
+                    m_data.heap.push_back(val);
+                    m_first = m_data.heap.data();
+                    ++m_size;
+                }
+            }
+
+            void clear()
+            {
+                if (m_first != m_data.stack)
+                    m_data.heap.clear();
+                m_size = 0;
+            }
+
+            void erase_front(size_t size)
+            {
+                if (m_first != m_data.stack)
+                    m_data.heap.erase(m_data.heap.begin(), m_data.heap.begin() + size);
+                else
+                    memmove(m_first, m_first + size, (m_size - size) * sizeof(T));
+                m_size -= size;
+            }
+
+            T * begin() { return m_first; }
+            const T * begin() const { return m_first; }
+            T * end() { return m_first + m_size; }
+            const T * end() const { return m_first + m_size; }
+            size_t size() const { return m_size; }
+            bool empty() const { return m_size == 0; }
+
+            T operator[](size_t idx) const { return m_first[idx]; }
+        private:
+            union data
+            {
+                data()
+                {}
+                ~data()
+                {}
+                T stack[StackLimit];
+                std::vector<T> heap;
+            } m_data;
+            T * m_first;
+            size_t m_size;
+        };
+
 
     }
     struct isspace
@@ -684,6 +764,146 @@ namespace sysstr
         }
 
     };
+
+#if !SYS_STRING_USE_ICU
+
+    template<utf_encoding OutEnc>
+    class normalize_nfd
+    {
+    private:
+        static constexpr int SBase = 0xAC00,
+            LBase = 0x1100, VBase = 0x1161, TBase = 0x11A7,
+            LCount = 19, VCount = 21, TCount = 28,
+            NCount = VCount * TCount,   // 588
+            SCount = LCount * NCount;   // 11172
+    public:
+        template<ranges::reversible_range Range, std::output_iterator<utf_char_of<OutEnc>> OutIt>
+        requires(utf_encoding_of<std::ranges::range_value_t<Range>> == utf32)
+        inline auto operator()(const Range & range, OutIt dest) -> OutIt
+        {
+            using namespace util;
+            using namespace util::unicode;
+
+            stack_or_heap_buffer<uint32_t, 32> buffer;
+            auto inserter = std::back_inserter(buffer);
+
+            for (char32_t c: range)
+            {
+                size_t insert_idx = buffer.size();
+                
+                if (insert_idx == 0 && c < 128)
+                {
+                    *dest = utf_char_of<OutEnc>(c);
+                    ++dest;
+                    continue;
+                }
+                
+                if (c < SBase || c >= SBase + SCount)
+                    decomp_mapper::map_char<OutEnc>(c, inserter);
+                else
+                    this->decomposeHangul(c, inserter);
+
+                size_t new_size = buffer.size();
+
+                if (new_size == 1 && buffer[0] == c)
+                {
+                    dest = write_unsafe<OutEnc>(c, dest);
+                    buffer.clear();
+                    continue;
+                }
+
+                if ((buffer[insert_idx] >> 21) == 0)
+                {
+                    this->sort(buffer.begin(), buffer.begin() + insert_idx);
+                    ++insert_idx;
+                    size_t copied = 0;
+                    for( ; copied < insert_idx; ++copied)
+                    {
+                        dest = write_unsafe<OutEnc>(char32_t(buffer[copied] & 0x1FFFFF), dest);
+                    }
+                    for( ; copied < new_size; ++copied)
+                    {
+                        auto val = buffer[copied]; 
+                        if ((val >> 21) != 0)
+                            break;
+                        dest = write_unsafe<OutEnc>(char32_t(val & 0x1FFFFF), dest);
+                    }
+                    buffer.erase_front(copied);
+                }
+            }
+            if (!buffer.empty())
+            {
+                this->sort(buffer.begin(), buffer.end());
+                for(size_t i = 0; i < buffer.size(); ++i)
+                    dest = write_unsafe<OutEnc>(char32_t(buffer[i] & 0x1FFFFF), dest);
+            }
+            return dest;
+        }
+    private:
+        //see https://www.unicode.org/versions/Unicode16.0.0/core-spec/chapter-3/#G61399
+        template<std::output_iterator<uint32_t> OutIt>
+        static auto decomposeHangul(char16_t s, OutIt dest) noexcept(noexcept(*dest++ = uint32_t())) -> OutIt
+        {
+            uint32_t SIndex = s - SBase;
+            
+            auto l = uint32_t(LBase + SIndex / NCount);
+            *dest++ = l;
+            auto v = uint32_t(VBase + (SIndex % NCount) / TCount);
+            *dest++ = v;
+            auto t = uint32_t(TBase + SIndex % TCount);
+            if (t != TBase)
+                *dest++ = t;
+            return dest;
+        }
+
+        template<std::random_access_iterator It, std::sized_sentinel_for<It> EndIt>
+        static void sort(It first, EndIt last)
+        {
+            auto len = last - first;
+            
+            if (len < 2)
+                return;
+
+            if (len == 2)
+            {
+                auto & a = *first;
+                ++first;
+                auto & b = *first;
+                if ((a >> 21) > (b >> 21))
+                    std::swap(a, b);
+                return;
+            }
+            
+            if (len >= 8)
+            {
+                std::sort(first, last, [] (uint32_t lhs, uint32_t rhs) {
+                    return (lhs >> 21) < (rhs >> 21);
+                });
+                return;
+            }
+
+            for ( ; ; )
+            {
+                bool swapped = false;
+                for (auto cur_it = first; ; )
+                {
+                    auto & prev = *cur_it;
+                    if (++cur_it == last)
+                        break;
+                    auto & cur = *cur_it;
+                    if ((prev >> 21) > (cur >> 21))
+                    {
+                        std::swap(prev, cur);
+                        swapped = true;
+                    }
+                }
+                if (!swapped)
+                    break;
+            }
+        }
+    };
+
+#endif
 
 }
 

@@ -400,6 +400,11 @@ TEST_CASE( "Case conversion" ) {
     CHECK(lower.to_upper() == upper);
 }
 
+TEST_CASE( "Normalization" ) {
+
+    CHECK(S("\u00C5").normalize(normalization::nfd) == S("\u0041\u030A"));
+}
+
 TEST_CASE( "Trim" ) {
     CHECK(S("").trim() == S(""));
     CHECK(S("  \t\n   ").trim() == S(""));

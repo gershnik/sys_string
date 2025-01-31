@@ -14,6 +14,7 @@
 #include <string_view>
 #include <source_location>
 #include <vector>
+#include <string>
 #include <ranges>
 
 using namespace sysstr;

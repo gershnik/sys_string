@@ -2,9 +2,8 @@
 
 from dataclasses import dataclass
 from textwrap import dedent
-from typing import Optional
 
-from common import char_len_in_utf16, char_name, chars_len_in_utf16, indent_insert
+from common import indent_insert
 from trie_builder import trie_builder
 
 
@@ -78,7 +77,6 @@ class norm_builder:
         struct decomp_mapper 
         {
             template<utf_encoding Enc, class OutIt>
-            SYS_STRING_FORCE_INLINE
             static auto map_char(char32_t src, OutIt dest) noexcept(noexcept(*dest++ = uint32_t())) -> OutIt
             {
                 auto res = uint16_t(decomp_info::get(src));

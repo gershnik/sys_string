@@ -244,7 +244,6 @@ namespace sysstr::util::unicode
     struct decomp_mapper 
     {
         template<utf_encoding Enc, class OutIt>
-        SYS_STRING_FORCE_INLINE
         static auto map_char(char32_t src, OutIt dest) noexcept(noexcept(*dest++ = uint32_t())) -> OutIt
         {
             auto res = uint16_t(decomp_info::get(src));

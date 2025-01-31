@@ -19,6 +19,7 @@
 #include <ranges>
 #include <iterator>
 #include <vector>
+#include <cstring>
 
 namespace sysstr
 {
@@ -802,7 +803,7 @@ namespace sysstr
                 if (c < SBase || c >= SBase + SCount)
                     decomp_mapper::map_char<OutEnc>(c, inserter);
                 else
-                    this->decomposeHangul(c, inserter);
+                    this->decomposeHangul(char16_t(c), inserter);
 
                 size_t new_size = buffer.size();
 

@@ -112,8 +112,6 @@ namespace sysstr
         {
             break; case normalization::nfd:
                 normalize_nfd<utf_encoding_of<storage_type>>()(access, std::back_inserter(builder.chars()));
-            break; default: 
-                std::terminate();
         }
         
     #else
@@ -128,11 +126,9 @@ namespace sysstr
         {
             break; case normalization::nfd: normalizer = Normalizer2::getNFDInstance(ec);
             break; case normalization::nfc: normalizer = Normalizer2::getNFCInstance(ec);
-            break; default: std::terminate();
         }
         normalizer->normalizeUTF8(0, StringPiece(access.c_str()), sink, nullptr, ec);
-        if (U_FAILURE(ec))
-            std::terminate();
+        icu_error_to_exception(ec);
     #endif
         return builder.build();
     }

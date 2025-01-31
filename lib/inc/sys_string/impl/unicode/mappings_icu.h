@@ -17,6 +17,11 @@
 static_assert(U_ICU_VERSION_MAJOR_NUM >= 67, "sys_string requires ICU 67 or higher");
 
 #include <exception>
+#include <stdexcept>
+#include <atomic>
+
+#include <sys_string/impl/unicode/mappings_common.h>
+
 
 extern "C" 
 {
@@ -127,12 +132,24 @@ extern "C"
     ucase_getTypeOrIgnorable(UChar32 c);
 }
 
-#include <atomic>
-
-#include <sys_string/impl/unicode/mappings_common.h>
 
 namespace sysstr::util::unicode 
 {
+
+    inline void icu_error_to_exception(UErrorCode ec)
+    {
+        if (U_FAILURE(ec))
+        {
+            if (ec == U_MEMORY_ALLOCATION_ERROR)
+                throw std::bad_alloc();
+            throw std::runtime_error(u_errorName(ec));
+        }
+    }
+    inline void icu_error_to_abort(UErrorCode ec) noexcept
+    {
+        if (U_FAILURE(ec))
+            std::terminate();
+    }
 
     template<class Derived>
     struct mapper 
@@ -213,8 +230,7 @@ namespace sysstr::util::unicode
             {
                 UErrorCode ec = U_ZERO_ERROR;
                 ret = u_getIntPropertyMap(Prop, &ec);
-                if (U_FAILURE(ec))
-                    std::terminate();
+                icu_error_to_abort(ec);
                 m_map.store(ret, std::memory_order_release);
             }
             return ret;
@@ -240,8 +256,7 @@ namespace sysstr::util::unicode
             {
                 UErrorCode ec = U_ZERO_ERROR;
                 ret = u_getBinaryPropertySet(Prop, &ec);
-                if (U_FAILURE(ec))
-                    std::terminate();
+                icu_error_to_abort(ec);
                 m_set.store(ret, std::memory_order_release);
             }
             return ret;

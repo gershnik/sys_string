@@ -25,10 +25,10 @@ class norm_builder:
     def __init__(self):
         self.__info_map: dict[int, norm_builder.__char_info] = {}
         self.__exclusions = set()
+        self.__nfc_qc_not_yes = set()
         self.__decomp_builder = trie_builder(4)
-        self.__compositions = None
-        self.__compositions_count = None
         self.__values = None
+        self.__compositions = None
 
 
     def set_comb_class(self, c: int, val: int):
@@ -43,6 +43,9 @@ class norm_builder:
 
     def set_exclusion(self, c: int):
         self.__exclusions.add(c)
+
+    def set_nfc_qc_not_yes(self, c: int):
+        self.__nfc_qc_not_yes.add(c)
 
     def __get_ccc(self, char):
         char_info = self.__info_map.get(char)
@@ -85,6 +88,25 @@ class norm_builder:
         return sorted_compositions, count
 
 
+    # End layout
+    # ==========
+    #
+    #       ╔══════╗                  ┌────┐                         
+    # a────>║ Trie ║───>┬───────>┬───>┤cc│0│                         
+    #       ╚══════╝    │        │    └────┘                         
+    #                   │        │                                   
+    #                   │        │                                   
+    #           ┌───────┴───┐ ┌──┴───────┐                           
+    #           │0│f│D2│D1│C│ │1│...│cc│C│                           
+    #           └───────────┘ └──────────┘                           
+    #                                                                
+    # ┌─────────┐╓───────────╥─────────╖   ╓───────────╥─────────╖   
+    # │0│cc│'D1'│║ 0│cc│'D2a'║  cc│'Ca'║...║ 1│cc│'D2x'║  cc│'Cx'║...
+    # └─────────┘╙───────────╨─────────╜   ╙───────────╨─────────╜   
+    # ┌─────────┐                                                    
+    # │1│cc│'D1'│ ...                                                
+    # └─────────┘                                                    
+    #
     def generate(self):
         compositions, compositions_count = self.__collect_compositions()
 
@@ -138,16 +160,27 @@ class norm_builder:
                     raise RuntimeError('value_idx exceeds 12 bits')
                 value = ((char - value_idx) & 0x0FFF)
                 self.__decomp_builder.add_chars(char, char + 1, value)
-        
+
+        linear_comps = []
+        for _, first, first_ccc, comps in compositions.values():
+            is_last = (0 == len(comps))
+            vals = [first | (first_ccc << 21) | (is_last << 29)]
+            for idx, comp in enumerate(comps):
+                is_last = (idx == len(comps) - 1)
+                vals.append(comp.second | (comp.second_ccc << 21) | (is_last << 29))
+                if not comp.composition in self.__exclusions:
+                    vals.append(comp.composition | (comp.composition_ccc << 21))
+                else:
+                    vals.append(0)
+            linear_comps += vals
             
         size = compositions_count * 4
         size += len(values) * 4
         size += self.__decomp_builder.generate()
 
-        self.__compositions = compositions
-        self.__compositions_count = compositions_count
+        self.__compositions = linear_comps
         self.__values = values
-
+        
         return size
     
     def print_header(self):
@@ -157,7 +190,7 @@ class norm_builder:
         private:
             {indent_insert(self.__decomp_builder.print_header("lookup", None), 12)}
 
-            static const uint32_t compositions[{self.__compositions_count}];
+            static const uint32_t compositions[{len(self.__compositions)}];
             static const uint32_t values[{len(self.__values)}];
         '''
         ret += '''
@@ -281,21 +314,11 @@ class norm_builder:
     def __print_compositions(self):
         ret = '\n'
         val_count = 0
-        for _, first, first_ccc, comps in self.__compositions.values():
-            is_last = (0 == len(comps))
-            vals = [first | (first_ccc << 21) | (is_last << 29)]
-            for idx, comp in enumerate(comps):
-                is_last = (idx == len(comps) - 1)
-                vals.append(comp.second | (comp.second_ccc << 21) | (is_last << 29))
-                if not comp.composition in self.__exclusions:
-                    vals.append(comp.composition | (comp.composition_ccc << 21))
-                else:
-                    vals.append(0)
-            for val in vals:
-                ret += f'0x{val:04X}, '
-                val_count += 1
-                if val_count > 0 and val_count % 16 == 0:
-                    ret += '\n'
+        for val in self.__compositions:
+            ret += f'0x{val:08X}, '
+            val_count += 1
+            if val_count > 0 and val_count % 16 == 0:
+                ret += '\n'
         return ret
     
     def __print_values(self):

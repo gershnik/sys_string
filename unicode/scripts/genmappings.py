@@ -161,6 +161,20 @@ def parse_composition_exclusions(line):
     code = int(char, 16)
     norm_info_builder.set_exclusion(code)
 
+def parse_normalization_props(line):
+    parts = line[:line.index(' #')].split('; ')
+    if len(parts) != 3:
+        return
+    char_range, prop, val = parts
+    prop = prop.strip()
+    if prop == 'NFC_QC':
+        val = val.strip()
+        if val in ('N', 'M'):
+            char_range = char_range.strip()
+            start, end = parse_char_range(char_range)
+            for char in range(start, end):
+                norm_info_builder.set_nfc_qc_not_yes(char) 
+
 def parse_grapheme_tests(dest, line):
     comment_start = line.index('# ')
     data = line[:comment_start].strip()
@@ -271,6 +285,7 @@ def main():
     read_ucd_file(datadir/'GraphemeBreakProperty.txt', parse_grapheme_cluster_break_prop_properties)
     read_ucd_file(datadir/'emoji-data.txt', parse_emoji_data)
     read_ucd_file(datadir/'CompositionExclusions.txt', parse_composition_exclusions)
+    read_ucd_file(datadir/'DerivedNormalizationProps.txt', parse_normalization_props)
     read_ucd_file(datadir/'GraphemeBreakTest.txt', lambda line: parse_grapheme_tests(test_cases[0], line))
     read_ucd_file(datadir/'GraphemeBreakTest-15.txt', lambda line: parse_grapheme_tests(test_cases[1], line))
     read_ucd_file(datadir/'NormalizationTest.txt', lambda line: parse_normalization_tests(test_cases[2], line))

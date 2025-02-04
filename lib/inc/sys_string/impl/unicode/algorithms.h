@@ -769,8 +769,7 @@ namespace sysstr
 
 #if !SYS_STRING_USE_ICU
 
-    template<utf_encoding OutEnc>
-    class normalize_nfd
+    class normalize
     {
     private:
         static constexpr int SBase = 0xAC00,
@@ -778,132 +777,297 @@ namespace sysstr
             LCount = 19, VCount = 21, TCount = 28,
             NCount = VCount * TCount,   // 588
             SCount = LCount * NCount;   // 11172
+
     public:
-        template<ranges::reversible_range Range, std::output_iterator<utf_char_of<OutEnc>> OutIt>
-        requires(utf_encoding_of<std::ranges::range_value_t<Range>> == utf32)
-        inline auto operator()(const Range & range, OutIt dest) -> OutIt
+        template<utf_encoding OutEnc>
+        class nfd
         {
-            using namespace util;
-            using namespace util::unicode;
-
-            stack_or_heap_buffer<uint32_t, 32> buffer;
-            auto inserter = std::back_inserter(buffer);
-
-            for (char32_t c: range)
+        public:
+            template<std::ranges::input_range Range, std::output_iterator<utf_char_of<OutEnc>> OutIt>
+            requires(utf_encoding_of<std::ranges::range_value_t<Range>> == utf32)
+            inline auto operator()(const Range & range, OutIt dest) -> OutIt
             {
-                size_t insert_idx = buffer.size();
-                
-                if (insert_idx == 0 && c < 128)
-                {
-                    *dest = utf_char_of<OutEnc>(c);
-                    ++dest;
-                    continue;
-                }
-                
-                if (c < SBase || c >= SBase + SCount)
-                    decomp_mapper::map_char<OutEnc>(c, inserter);
-                else
-                    this->decomposeHangul(char16_t(c), inserter);
+                using namespace util;
+                using namespace util::unicode;
 
-                size_t new_size = buffer.size();
+                stack_or_heap_buffer<uint32_t, 32> buffer;
+                auto inserter = std::back_inserter(buffer);
 
-                if (new_size == 1 && buffer[0] == c)
+                for (char32_t c: range)
                 {
-                    dest = write_unsafe<OutEnc>(c, dest);
-                    buffer.clear();
-                    continue;
-                }
-
-                if ((buffer[insert_idx] >> 21) == 0)
-                {
-                    this->sort(buffer.begin(), buffer.begin() + insert_idx);
-                    ++insert_idx;
-                    size_t copied = 0;
-                    for( ; copied < insert_idx; ++copied)
+                    size_t insert_idx = buffer.size();
+                    
+                    if (insert_idx == 0 && c < 128)
                     {
-                        dest = write_unsafe<OutEnc>(char32_t(buffer[copied] & 0x1FFFFF), dest);
+                        *dest = utf_char_of<OutEnc>(c);
+                        ++dest;
+                        continue;
                     }
-                    for( ; copied < new_size; ++copied)
+                    
+                    if (c < SBase || c >= SBase + SCount)
+                        normalizer::decompose<OutEnc>(c, inserter);
+                    else
+                        this->decompose_hangul(char16_t(c), inserter);
+
+                    size_t new_size = buffer.size();
+
+                    if (new_size == 1 && buffer[0] == c)
                     {
-                        auto val = buffer[copied]; 
-                        if ((val >> 21) != 0)
+                        dest = write_unsafe<OutEnc>(c, dest);
+                        buffer.clear();
+                        continue;
+                    }
+
+                    if ((buffer[insert_idx] >> 21) == 0)
+                    {
+                        this->sort(buffer.begin(), buffer.begin() + insert_idx);
+                        ++insert_idx;
+                        size_t copied = 0;
+                        for( ; copied < insert_idx; ++copied)
+                        {
+                            dest = write_unsafe<OutEnc>(char32_t(buffer[copied] & 0x1FFFFF), dest);
+                        }
+                        for( ; copied < new_size; ++copied)
+                        {
+                            auto val = buffer[copied]; 
+                            if ((val >> 21) != 0)
+                                break;
+                            dest = write_unsafe<OutEnc>(char32_t(val & 0x1FFFFF), dest);
+                        }
+                        buffer.erase_front(copied);
+                    }
+                }
+                if (!buffer.empty())
+                {
+                    this->sort(buffer.begin(), buffer.end());
+                    for(size_t i = 0; i < buffer.size(); ++i)
+                        dest = write_unsafe<OutEnc>(char32_t(buffer[i] & 0x1FFFFF), dest);
+                }
+                return dest;
+            }
+        private:
+            //see https://www.unicode.org/versions/Unicode16.0.0/core-spec/chapter-3/#G61399
+            template<std::output_iterator<uint32_t> OutIt>
+            static auto decompose_hangul(char16_t s, OutIt dest) noexcept(noexcept(*dest++ = uint32_t())) -> OutIt
+            {
+                uint32_t SIndex = s - SBase;
+                
+                auto l = uint32_t(LBase + SIndex / NCount);
+                *dest++ = l;
+                auto v = uint32_t(VBase + (SIndex % NCount) / TCount);
+                *dest++ = v;
+                auto t = uint32_t(TBase + SIndex % TCount);
+                if (t != TBase)
+                    *dest++ = t;
+                return dest;
+            }
+
+            template<std::random_access_iterator It, std::sized_sentinel_for<It> EndIt>
+            requires(std::is_same_v<std::iter_value_t<It>, uint32_t>)
+            static void sort(It first, EndIt last)
+            {
+                auto len = last - first;
+                
+                if (len < 2)
+                    return;
+
+                if (len == 2)
+                {
+                    auto & a = *first;
+                    ++first;
+                    auto & b = *first;
+                    if ((a >> 21) > (b >> 21))
+                        std::swap(a, b);
+                    return;
+                }
+                
+                if (len >= 8)
+                {
+                    std::sort(first, last, [] (uint32_t lhs, uint32_t rhs) {
+                        return (lhs >> 21) < (rhs >> 21);
+                    });
+                    return;
+                }
+
+                for ( ; ; )
+                {
+                    bool swapped = false;
+                    for (auto cur_it = first; ; )
+                    {
+                        auto & prev = *cur_it;
+                        if (++cur_it == last)
                             break;
-                        dest = write_unsafe<OutEnc>(char32_t(val & 0x1FFFFF), dest);
+                        auto & cur = *cur_it;
+                        if ((prev >> 21) > (cur >> 21))
+                        {
+                            std::swap(prev, cur);
+                            swapped = true;
+                        }
                     }
-                    buffer.erase_front(copied);
-                }
-            }
-            if (!buffer.empty())
-            {
-                this->sort(buffer.begin(), buffer.end());
-                for(size_t i = 0; i < buffer.size(); ++i)
-                    dest = write_unsafe<OutEnc>(char32_t(buffer[i] & 0x1FFFFF), dest);
-            }
-            return dest;
-        }
-    private:
-        //see https://www.unicode.org/versions/Unicode16.0.0/core-spec/chapter-3/#G61399
-        template<std::output_iterator<uint32_t> OutIt>
-        static auto decomposeHangul(char16_t s, OutIt dest) noexcept(noexcept(*dest++ = uint32_t())) -> OutIt
-        {
-            uint32_t SIndex = s - SBase;
-            
-            auto l = uint32_t(LBase + SIndex / NCount);
-            *dest++ = l;
-            auto v = uint32_t(VBase + (SIndex % NCount) / TCount);
-            *dest++ = v;
-            auto t = uint32_t(TBase + SIndex % TCount);
-            if (t != TBase)
-                *dest++ = t;
-            return dest;
-        }
-
-        template<std::random_access_iterator It, std::sized_sentinel_for<It> EndIt>
-        requires(std::is_same_v<std::iter_value_t<It>, uint32_t>)
-        static void sort(It first, EndIt last)
-        {
-            auto len = last - first;
-            
-            if (len < 2)
-                return;
-
-            if (len == 2)
-            {
-                auto & a = *first;
-                ++first;
-                auto & b = *first;
-                if ((a >> 21) > (b >> 21))
-                    std::swap(a, b);
-                return;
-            }
-            
-            if (len >= 8)
-            {
-                std::sort(first, last, [] (uint32_t lhs, uint32_t rhs) {
-                    return (lhs >> 21) < (rhs >> 21);
-                });
-                return;
-            }
-
-            for ( ; ; )
-            {
-                bool swapped = false;
-                for (auto cur_it = first; ; )
-                {
-                    auto & prev = *cur_it;
-                    if (++cur_it == last)
+                    if (!swapped)
                         break;
-                    auto & cur = *cur_it;
-                    if ((prev >> 21) > (cur >> 21))
+                }
+            }
+        };
+
+        template<utf_encoding OutEnc>
+        class nfc
+        {
+        public:
+            template<std::ranges::forward_range Range, std::output_iterator<utf_char_of<OutEnc>> OutIt>
+            requires(utf_encoding_of<std::ranges::range_value_t<Range>> == utf32)
+            inline auto operator()(const Range & range, OutIt dest) -> OutIt
+            {
+                using namespace util;
+                using namespace util::unicode;
+
+                auto first = std::ranges::begin(range);
+                auto last = std::ranges::end(range);
+
+                while (first != last) 
+                {
+                    char32_t c = *first;
+                    auto next = first;
+                    if (++next == last)
                     {
-                        std::swap(prev, cur);
-                        swapped = true;
+                        *dest = c;
+                        ++dest;
+                        break;
+                    }
+
+                    if (find_hangul_replacement(c, next, last))
+                    {
+                        *dest = c;
+                        ++dest;
+                        first = next;
+                        continue;
+                    }
+
+                    size_t skips[32];
+
+                    size_t skips_len = find_replacements(c, next, last, skips);
+                    *dest = c;
+                    ++dest;
+                    ++first;
+
+                    if (skips_len == 0)
+                    {
+                        dest = std::copy(first, next, dest);
+                        first = next;
+                    }
+                    else
+                    {
+                        for(size_t idx = 0, skips_idx = 0; first != next; ++first, ++idx)
+                        {
+                            if (idx == skips[skips_idx])
+                            {
+                                ++skips_idx;
+                                continue;
+                            }
+                            *dest = *first;
+                            ++dest;
+                        }
                     }
                 }
-                if (!swapped)
-                    break;
+                return dest;
             }
-        }
+
+        private:
+            template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+            requires(std::is_same_v<std::iter_value_t<It>, char32_t>)
+            static auto find_replacements(char32_t & c, It & next, EndIt last, size_t skips[32]) -> size_t
+            {
+                using namespace util;
+                using namespace util::unicode;
+
+                auto * compositions = normalizer::get_compositions(c);
+                if (!compositions)
+                    return 0;
+
+                size_t skips_size = 0;
+                size_t it_idx = 0;
+                int last_ccc = -1;
+                It it = next;
+                
+                for ( ; ; )
+                {
+                    char32_t nc = *it;
+                    int ccc = normalizer::get_comb_class(nc);
+                    if (ccc > last_ccc)
+                    {
+                        auto repl = find_composition(nc | (ccc << 21), compositions);
+                        if (repl != 0)
+                        {
+                            auto repl_val = char32_t(repl & 0x1F'FFFF);
+                            auto repl_ccc = repl >> 21;
+                            c = repl_val;
+                            skips[skips_size] = it_idx;
+                            ++skips_size;
+                            ++it;
+                            ++it_idx;
+                            next = it;
+                            if (repl_ccc != 0 || next == last)
+                                return skips_size;
+                            compositions = normalizer::get_compositions(c);
+                            if (!compositions)
+                                return skips_size;
+                            continue;
+                        }
+                    }
+                    if (ccc == 0)
+                        return skips_size;
+                    if (++it == last)
+                        return skips_size;
+                    ++it_idx;
+                    last_ccc = ccc;
+                }
+                
+            }
+
+            static auto find_composition(uint32_t val , const uint32_t * compositions) -> uint32_t
+            {
+                for ( ; ; )
+                {
+                    uint32_t cur = compositions[0] & 0x1FFF'FFFF;
+                    if (cur == val)
+                        return compositions[1] & 0x1FFF'FFFF; //will be 0 if blocked
+                    bool is_last = (compositions[0] >> 29);
+                    if (is_last)
+                        return 0;
+                    compositions += 2;
+                }
+            }
+
+            template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+            requires(std::is_same_v<std::iter_value_t<It>, char32_t>)
+            static bool find_hangul_replacement(char32_t & c, It & next, EndIt last)
+            {
+                if (c < LBase || c >= LBase + LCount)
+                    return false;
+                
+                int LIndex = c - LBase;
+
+                char32_t second = *next;
+                if (second < VBase || second >= VBase + VCount)
+                    return true;
+                int VIndex = second - VBase;
+                
+                c = char32_t(SBase + (LIndex * VCount + VIndex) * TCount);
+                
+                if (++next == last)
+                    return true;
+
+                char32_t third = *next;
+                if (third < TBase || third >= TBase + TCount)
+                    return true;
+
+                int TIndex = third - TBase;
+                c += TIndex;
+                ++next;
+                
+                return true;
+            }
+        };
     };
 
 #endif

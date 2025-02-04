@@ -306,14 +306,22 @@ class trie_builder:
             static const std::array<value_type, {self.values_count()}> values;
 
         public:
+        '''
+        if values_enum_content is not None:
+            ret += f'''
             enum value : value_type
             {{
                 none = 0,
                 {indent_insert(values_enum_content, 16)}
             }};
-        
+        '''
+        else:
+            ret += '''
+            using value = value_type;
+        '''
+        ret += '''
             static constexpr size_t data_size = sizeof(entries) + sizeof(values);
-        }};
+        };
         '''
 
         return dedent(ret)

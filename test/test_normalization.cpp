@@ -32,11 +32,30 @@ namespace {
     void check_nfd(std::u32string_view src, const std::u32string_view & expected, std::source_location loc = std::source_location::current())
     {
         std::vector<char32_t> result;
-        normalize_nfd<utf32> normalizer;
+        normalize::nfd<utf32> normalizer;
         normalizer(src, std::back_inserter(result));
         INFO("source: ", std::string(loc.file_name()), std::string(":"), loc.line());
         bool res = std::ranges::equal(result, expected);
         CHECK(res);
+    }
+
+#if defined(__GNUC__)
+    [[gnu::noinline]]
+#elif defined(__MSVC__)
+    [[msvc::noinline]]
+#endif
+    void check_nfc(std::u32string_view src, const std::u32string_view & expected, std::source_location loc = std::source_location::current())
+    {
+        std::vector<char32_t> buf;
+        normalize::nfd<utf32> normalizer1;
+        normalizer1(src, std::back_inserter(buf));
+        
+        normalize::nfc<utf32> normalizer2;
+        std::vector<char32_t> result;
+        normalizer2(buf, std::back_inserter(result));
+        INFO("source: ", std::string(loc.file_name()), std::string(":"), loc.line());
+        bool res = std::ranges::equal(result, expected);
+        REQUIRE(res);
     }
 
 #if defined(__GNUC__)
@@ -57,6 +76,12 @@ namespace {
         check_nfd(nfd, nfd);
         check_nfd(nfkc, nfkd);
         check_nfd(nfkd, nfkd);
+        
+        check_nfc(src, nfc);
+        check_nfc(nfc, nfc);
+        check_nfc(nfd, nfc);
+        check_nfc(nfkc, nfkc);
+        check_nfc(nfkd, nfkc);
     }
 
 }
@@ -70,6 +95,9 @@ TEST_CASE("boundary") {
                U"\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323b", 
               U"q\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323"
                U"\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0307b");
+
+    check_nfc(U"", {});
+    check_nfc(std::u32string_view(U"\0\0", 2), std::u32string_view(U"\0\0", 2));
 }
 
 TEST_CASE("basics") {
@@ -77,6 +105,11 @@ TEST_CASE("basics") {
     check_nfd(U"q\u0307\u0323", U"q\u0323\u0307");
     check_nfd(U"가", U"ᄀ"s + U"ᅡ"s);
     check_nfd(U"Ω", U"Ω");
+
+    check_nfc(U"C"s + U"̧"s, U"Ç");
+    check_nfc(U"s\u0323\u0307", U"\u1e69");
+    check_nfc(U"ᄀ"s + U"ᅡ"s, U"가");
+    check_nfc(U"Ω", U"Ω");
 }
 
 TEST_CASE("generated") {

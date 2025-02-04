@@ -156,6 +156,11 @@ def parse_emoji_data(line):
         start, end = parse_char_range(char_range)
         grapheme_cluster_break_prop_prop_builder.add_chars(start, end, prop_val[0])
 
+def parse_composition_exclusions(line):
+    char = line[:line.index('# ')].rstrip()
+    code = int(char, 16)
+    norm_info_builder.set_exclusion(code)
+
 def parse_grapheme_tests(dest, line):
     comment_start = line.index('# ')
     data = line[:comment_start].strip()
@@ -265,6 +270,7 @@ def main():
     read_ucd_file(datadir/'DerivedCoreProperties.txt', parse_derived_properties)
     read_ucd_file(datadir/'GraphemeBreakProperty.txt', parse_grapheme_cluster_break_prop_properties)
     read_ucd_file(datadir/'emoji-data.txt', parse_emoji_data)
+    read_ucd_file(datadir/'CompositionExclusions.txt', parse_composition_exclusions)
     read_ucd_file(datadir/'GraphemeBreakTest.txt', lambda line: parse_grapheme_tests(test_cases[0], line))
     read_ucd_file(datadir/'GraphemeBreakTest-15.txt', lambda line: parse_grapheme_tests(test_cases[1], line))
     read_ucd_file(datadir/'NormalizationTest.txt', lambda line: parse_normalization_tests(test_cases[2], line))
@@ -344,8 +350,7 @@ namespace sysstr::util::unicode
         is_whitespace::data_size +
         case_info::data_size +
         sizeof(cased_data) +
-        decomp_info::data_size +
-        sizeof(decomp_data) +
+        normalizer::data_size +
         grapheme_cluster_break_prop::data_size;
     static_assert(total_data_size == {total_data_size});
 

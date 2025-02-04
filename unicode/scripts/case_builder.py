@@ -84,7 +84,7 @@ class case_builder:
     
     def print_header(self):
         ret = f'''
-        {indent_insert(self.__builder.print_header("case_info", ""), 8)}
+        {indent_insert(self.__builder.print_header("case_info", None), 8)}
         '''
         ret += '''
         extern const char16_t cased_data[];

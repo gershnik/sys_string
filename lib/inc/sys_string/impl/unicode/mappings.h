@@ -116,11 +116,8 @@ namespace sysstr::util::unicode
         static const std::array<value_type, 756> values;
     
     public:
-        enum value : value_type
-        {
-            none = 0,
     
-        };
+        using value = value_type;
     
         static constexpr size_t data_size = sizeof(entries) + sizeof(values);
     };
@@ -217,76 +214,144 @@ namespace sysstr::util::unicode
     };
 
 
-    class decomp_info : public trie_lookup<4, decomp_info>
+    class normalizer 
     {
-    friend trie_lookup<4,decomp_info>;
     private:
-        using entry_type = std::array<uint16_t, 16>;
-        using value_type = uint16_t;
-    
-        static const std::array<entry_type, 1451> entries;
-    
-        static const std::array<value_type, 1053> values;
-    
-    public:
-        enum value : value_type
+        class lookup : public trie_lookup<4, lookup>
         {
-            none = 0,
+        friend trie_lookup<4,lookup>;
+        private:
+            using entry_type = std::array<uint16_t, 16>;
+            using value_type = uint32_t;
     
+            static const std::array<entry_type, 885> entries;
+    
+            static const std::array<value_type, 501> values;
+    
+        public:
+    
+            using value = value_type;
+    
+            static constexpr size_t data_size = sizeof(entries) + sizeof(values);
         };
     
-        static constexpr size_t data_size = sizeof(entries) + sizeof(values);
-    };
     
+        static const uint32_t compositions[3478];
+        static const uint32_t values[2401];
     
-    extern const uint32_t decomp_data[];
+    public:
+        static constexpr size_t data_size = sizeof(compositions) + 
+                                            sizeof(values) +
+                                            lookup::data_size;
     
-    struct decomp_mapper 
-    {
         template<utf_encoding Enc, class OutIt>
-        static auto map_char(char32_t src, OutIt dest) noexcept(noexcept(*dest++ = uint32_t())) -> OutIt
+        static auto decompose(char32_t src, OutIt dest) noexcept(noexcept(*dest++ = uint32_t())) -> OutIt
         {
-            auto res = uint16_t(decomp_info::get(src));
+            auto res = lookup::get(src);
             if (res == 0)
             {
                 *dest = src;
                 return ++dest;
             }
-            uint16_t idx = res & 0x0FFF;
-            size_t entry_offset = (size_t(src) - idx) & 0x0FFF;
-            const uint32_t * entry = decomp_data + entry_offset;
-    
-            res >>= 12;
-            int len = res & 0x3;
-            if (len == 0)
+            if (res > 0x0FFF)
             {
-                uint32_t val = uint32_t(src) | *entry;
+                uint32_t shifted_ccc = res << 9;
+                uint32_t val = uint32_t(src) | shifted_ccc;
                 *dest = val;
                 return ++dest;
             }
     
-            bool final = res >> 2;
+            size_t value_offset = ((size_t(src) - res) & 0x0FFF) - 1;
+            uint32_t value = values[value_offset];
+            if (value & (1 << 30))
+            {
+                uint32_t shifted_ccc = (value & 0x0FF000) << 9;
+                uint32_t val = uint32_t(src) | shifted_ccc;
+                *dest = val;
+                return ++dest;
+            }
+    
+    
+            value >>= 12;
+            uint16_t decomp_start = value & 0xFFF;
+            value >>= 12;
+            uint16_t decomp_idx = value & 0x1F;
+            value >>= 5;
+            int final = value;
+    
+            auto * comps = compositions + decomp_start;
+    
+            uint32_t first = comps[0] & 0x1FFF'FFFF;
             if (!final) 
             {
-                dest = map_char<Enc>(*entry++, dest);
+                dest = decompose<Enc>(first & 0x1F'FFFF, dest);
             }
             else
             {
-                *dest = *entry++;
+                *dest = first;
                 ++dest;
             }
     
-            if (--len)
+            if (decomp_idx != 0)
             {
-                *dest = *entry++;
+                uint32_t second = comps[decomp_idx * 2 - 1] & 0x1FFF'FFFF;
+                *dest = second;
                 ++dest;
             }
     
             return dest;
         }
+    
+        static auto get_compositions(char32_t src) -> const uint32_t *
+        {
+            auto res = lookup::get(src);
+            if (res == 0)
+                return nullptr;
+    
+            if (res > 0x0FFF)
+                return nullptr;
+    
+            size_t value_offset = ((size_t(src) - res) & 0x0FFF) - 1;
+            uint32_t value = values[value_offset];
+    
+            uint16_t comp_idx = value & 0xFFF;
+            if (comp_idx == 0xFFF)
+                return nullptr;
+    
+            auto ret = compositions + comp_idx;
+            bool is_last = (ret[0] >> 29);
+            if (is_last)
+                return nullptr;
+            if (ret[0] >> 21)
+                return nullptr;
+    
+            ++ret;
+            return ret;
+        }
+    
+        static auto get_comb_class(char32_t c) -> uint8_t
+        {
+            auto res = lookup::get(c);
+            if (res == 0)
+                return 0;
+    
+            if (res > 0x0FFF)
+                return res >> 12;
+    
+            size_t value_offset = ((size_t(c) - res) & 0x0FFF) - 1;
+            uint32_t value = values[value_offset];
+    
+            if (value & 0x2000000)
+                return (value >> 12) & 0xFF;
+    
+            uint16_t comp_idx = value & 0xFFF;
+            if (comp_idx == 0xFFF)
+                return 0;
+    
+            auto * comps = compositions + comp_idx;
+            return (comps[0] >> 21) & 0xFF;
+        }
     };
-    
-    
 
 
     class grapheme_cluster_break_prop : public trie_lookup<4, grapheme_cluster_break_prop>
@@ -301,6 +366,7 @@ namespace sysstr::util::unicode
         static const std::array<value_type, 16> values;
     
     public:
+    
         enum value : value_type
         {
             none = 0,

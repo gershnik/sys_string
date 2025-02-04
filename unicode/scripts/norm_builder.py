@@ -258,7 +258,7 @@ class norm_builder:
                     return 0;
                 
                 if (res > 0x0FFF)
-                    return res >> 12;
+                    return uint8_t(res >> 12);
 
                 size_t value_offset = ((size_t(c) - res) & 0x0FFF) - 1;
                 uint32_t value = values[value_offset];

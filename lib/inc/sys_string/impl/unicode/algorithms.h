@@ -972,8 +972,7 @@ namespace sysstr
                                 ++skips_idx;
                                 continue;
                             }
-                            *dest = *first;
-                            ++dest;
+                            dest = write_unsafe<OutEnc>(*first, dest);
                         }
                     }
                 }

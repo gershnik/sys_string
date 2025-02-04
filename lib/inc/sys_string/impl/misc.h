@@ -113,11 +113,7 @@ namespace sysstr
             break; case normalization::nfd:
                 normalize::nfd<utf_encoding_of<storage_type>>()(access, std::back_inserter(builder.chars()));
             break; case normalization::nfc:
-            {
-                std::vector<char32_t> buf;
-                normalize::nfd<utf_encoding_of<storage_type>>()(access, std::back_inserter(buf));
-                normalize::nfc<utf_encoding_of<storage_type>>()(buf, std::back_inserter(builder.chars()));
-            }
+                normalize::nfc<utf_encoding_of<storage_type>>()(access, std::back_inserter(builder.chars()));
         }
         
     #else

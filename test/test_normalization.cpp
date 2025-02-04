@@ -46,13 +46,9 @@ namespace {
 #endif
     void check_nfc(std::u32string_view src, const std::u32string_view & expected, std::source_location loc = std::source_location::current())
     {
-        std::vector<char32_t> buf;
-        normalize::nfd<utf32> normalizer1;
-        normalizer1(src, std::back_inserter(buf));
-        
-        normalize::nfc<utf32> normalizer2;
         std::vector<char32_t> result;
-        normalizer2(buf, std::back_inserter(result));
+        normalize::nfc<utf32> normalizer;
+        normalizer(src, std::back_inserter(result));
         INFO("source: ", std::string(loc.file_name()), std::string(":"), loc.line());
         bool res = std::ranges::equal(result, expected);
         REQUIRE(res);

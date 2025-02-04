@@ -918,6 +918,17 @@ namespace sysstr
             requires(utf_encoding_of<std::ranges::range_value_t<Range>> == utf32)
             inline auto operator()(const Range & range, OutIt dest) -> OutIt
             {
+                std::vector<char32_t> buf;
+                if constexpr (std::ranges::sized_range<Range>)
+                    buf.reserve(std::ranges::size(range));
+                nfd<utf32>()(range, std::back_inserter(buf));
+                return convert(buf, dest);
+            }
+        private:
+            template<std::ranges::forward_range Range, std::output_iterator<utf_char_of<OutEnc>> OutIt>
+            requires(utf_encoding_of<std::ranges::range_value_t<Range>> == utf32)
+            inline auto convert(const Range & range, OutIt dest) -> OutIt
+            {
                 using namespace util;
                 using namespace util::unicode;
 
@@ -930,15 +941,13 @@ namespace sysstr
                     auto next = first;
                     if (++next == last)
                     {
-                        *dest = c;
-                        ++dest;
+                        dest = write_unsafe<OutEnc>(c, dest);
                         break;
                     }
 
                     if (find_hangul_replacement(c, next, last))
                     {
-                        *dest = c;
-                        ++dest;
+                        dest = write_unsafe<OutEnc>(c, dest);
                         first = next;
                         continue;
                     }
@@ -946,14 +955,13 @@ namespace sysstr
                     size_t skips[32];
 
                     size_t skips_len = find_replacements(c, next, last, skips);
-                    *dest = c;
-                    ++dest;
+                    dest = write_unsafe<OutEnc>(c, dest);
                     ++first;
 
                     if (skips_len == 0)
                     {
-                        dest = std::copy(first, next, dest);
-                        first = next;
+                        for ( ; first != next; ++first)
+                            dest = write_unsafe<OutEnc>(*first, dest);
                     }
                     else
                     {
@@ -972,7 +980,6 @@ namespace sysstr
                 return dest;
             }
 
-        private:
             template<std::forward_iterator It, std::sentinel_for<It> EndIt>
             requires(std::is_same_v<std::iter_value_t<It>, char32_t>)
             static auto find_replacements(char32_t & c, It & next, EndIt last, size_t skips[32]) -> size_t

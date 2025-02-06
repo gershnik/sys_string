@@ -110,6 +110,32 @@ namespace sysstr
                     m_data.heap.clear();
                 m_size = 0;
             }
+            
+            void reserve(size_t size)
+            {
+                if (size < StackLimit)
+                    return;
+                
+                if (m_size == 0)
+                {
+                    new (&m_data.heap) std::vector<T>();
+                    m_data.heap.reserve(size);
+                    m_first = m_data.heap.data();
+                }
+                else if (size <= StackLimit)
+                {
+                    std::vector<T> heap;
+                    heap.reserve(size);
+                    heap.insert(heap.begin(), m_first, m_first + m_size);
+                    new (&m_data.heap) std::vector<T>(std::move(heap));
+                    m_first = m_data.heap.data();
+                }
+                else
+                {
+                    m_data.heap.reserve(size);
+                    m_first = m_data.heap.data();
+                }
+            }
 
             void erase_front(size_t size)
             {
@@ -913,18 +939,107 @@ namespace sysstr
         template<utf_encoding OutEnc>
         class nfc
         {
+        private:
+            using nfc_qc_status = util::unicode::normalizer::nfc_qc_status;
         public:
             template<std::ranges::forward_range Range, std::output_iterator<utf_char_of<OutEnc>> OutIt>
             requires(utf_encoding_of<std::ranges::range_value_t<Range>> == utf32)
             inline auto operator()(const Range & range, OutIt dest) -> OutIt
             {
-                std::vector<char32_t> buf;
-                if constexpr (std::ranges::sized_range<Range>)
-                    buf.reserve(std::ranges::size(range));
-                nfd<utf32>()(range, std::back_inserter(buf));
-                return convert(buf, dest);
+                using namespace util;
+                using namespace util::unicode;
+                
+                auto first = std::ranges::begin(range);
+                auto last = std::ranges::end(range);
+                
+                if (first == last)
+                    return dest;
+                
+                stack_or_heap_buffer<char32_t, 32> buffer;
+                
+                auto status = get_nfc_qc_status(*first);
+
+                for ( ; ; )
+                {
+                    auto conv_range = find_conversion_range(status, first, last);
+                    for ( ; first != conv_range.begin(); ++first)
+                        dest = write_unsafe<OutEnc>(*first, dest);
+                    if (conv_range.empty())
+                    {
+                        assert(first == last);
+                        break;
+                    }
+                    
+                    if constexpr (std::ranges::sized_range<decltype(conv_range)>)
+                        buffer.reserve(conv_range.size());
+                    nfd<utf32>()(conv_range, std::back_inserter(buffer));
+                    dest = convert(buffer, dest);
+                    first = conv_range.end();
+                    if (first == last)
+                        break;
+                    status = nfc_qc_status::stable;
+                    buffer.clear();
+                }
+                
+                return dest;
             }
+
         private:
+            template<std::forward_iterator It, std::sentinel_for<It> EndIt>
+            requires(std::is_same_v<std::iter_value_t<It>, char32_t>)
+            inline auto find_conversion_range(nfc_qc_status first_status,
+                                              It first, EndIt last) -> std::ranges::subrange<It>
+            {
+                using namespace util;
+                using namespace util::unicode;
+
+                auto status = first_status;
+                It start = first;
+                for ( ; ; )
+                {
+                    if (status == nfc_qc_status::bad)
+                    {
+                        for (++first; first != last; ++first)
+                        {
+                            status = get_nfc_qc_status(*first);
+                            if (status == nfc_qc_status::stable)
+                                break;
+                        }
+                        return {start, first};
+                    }
+                    if (status == nfc_qc_status::stable)
+                    {
+                        start = first;
+                        if (++first == last)
+                            return {first, first};
+                    }
+                    else
+                    {
+                        if (++first == last)
+                            return {start, first};
+                    }
+                    
+                    status = get_nfc_qc_status(*first);
+                }
+                return {first, first}; // == {last, last}
+            }
+            
+            static auto get_nfc_qc_status(char32_t c) -> nfc_qc_status
+            {
+                using namespace util;
+                using namespace util::unicode;
+                
+                if (c >= SBase && c < SBase + SCount)
+                    return nfc_qc_status::good;
+                    
+                if ((c >= LBase && c < LBase + LCount) ||
+                    (c >= VBase && c < VBase + VCount) ||
+                    (c >= TBase && c < TBase + TCount))
+                    return nfc_qc_status::bad;
+                
+                return normalizer::get_nfc_qc_status(c);
+            }
+
             template<std::ranges::forward_range Range, std::output_iterator<utf_char_of<OutEnc>> OutIt>
             requires(utf_encoding_of<std::ranges::range_value_t<Range>> == utf32)
             inline auto convert(const Range & range, OutIt dest) -> OutIt

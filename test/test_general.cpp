@@ -403,6 +403,10 @@ TEST_CASE( "Case conversion" ) {
 TEST_CASE( "Normalization" ) {
 
     CHECK(S("\u00C5").normalize(normalization::nfd) == S("\u0041\u030A"));
+    CHECK(S("\u0041\u030A").normalize(normalization::nfc) == S("\u00C5"));
+    
+    CHECK(S("nörmalization").normalize(normalization::nfc) == S("nörmalization"));
+    CHECK(S("No\u0308rmalization").normalize(normalization::nfc) == S("Nörmalization"));
 }
 
 TEST_CASE( "Trim" ) {

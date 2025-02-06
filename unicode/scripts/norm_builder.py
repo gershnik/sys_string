@@ -13,6 +13,7 @@ class norm_builder:
     class __char_info:
         decomp: list[int] = None
         comb_class: int = 0
+        nfc_qc_not_yes: bool = False
 
     @dataclass
     class __composition:
@@ -25,7 +26,6 @@ class norm_builder:
     def __init__(self):
         self.__info_map: dict[int, norm_builder.__char_info] = {}
         self.__exclusions = set()
-        self.__nfc_qc_not_yes = set()
         self.__decomp_builder = trie_builder(4)
         self.__values = None
         self.__compositions = None
@@ -45,8 +45,9 @@ class norm_builder:
         self.__exclusions.add(c)
 
     def set_nfc_qc_not_yes(self, c: int):
-        self.__nfc_qc_not_yes.add(c)
-
+        info = self.__info_map.setdefault(c, norm_builder.__char_info([], 0))
+        info.nfc_qc_not_yes = True
+        
     def __get_ccc(self, char):
         char_info = self.__info_map.get(char)
         ccc = char_info.comb_class if char_info is not None else 0
@@ -118,7 +119,9 @@ class norm_builder:
                 comp_start = comp[0]
             else:
                 comp_start = 0x0FFF
-            
+
+            nfc_qc_not_yes = info.nfc_qc_not_yes
+
             decomp_len = len(info.decomp)
             
             if decomp_len != 0:
@@ -134,19 +137,20 @@ class norm_builder:
                             decomp_idx = idx + 1
                             break
                     
-                values.append((final << 29) | (decomp_idx << 24) | (decomp_start << 12) | comp_start)
                 value_idx = len(values)
-                if value_idx > 0x0FFF:
-                    raise RuntimeError('value_idx exceeds 12 bits')
+                values.append((nfc_qc_not_yes << 30) | (final << 29) | (decomp_idx << 24) | (decomp_start << 12) | comp_start)
+                if len(values) > 0x0FFF:
+                    raise RuntimeError('values count exceeds 12 bits')
                 value = ((char - value_idx) & 0x0FFF)
             elif comp_start != 0x0FFF:
-                values.append((1 << 30) | (info.comb_class << 12) | comp_start)
                 value_idx = len(values)
-                if value_idx > 0x0FFF:
-                    raise RuntimeError('value_idx exceeds 12 bits')
+                values.append((1 << 31) | (nfc_qc_not_yes << 30) | (info.comb_class << 12) | comp_start)
+                if len(values) > 0x0FFF:
+                    raise RuntimeError('values count exceeds 12 bits')
                 value = ((char - value_idx) & 0x0FFF)
             else:
-                value = info.comb_class << 12
+                # if we are here either comb_class is not 0 or nfc_qc_not_yes is True which are the same thing
+                value = (1 << 12) | info.comb_class
 
             self.__decomp_builder.add_chars(char, char + 1, value)
 
@@ -154,10 +158,10 @@ class norm_builder:
         for char, comp in compositions.items():
             if len(comp[3]) > 0 and self.__decomp_builder.get_char(char) == 0:
                 comp_start = comp[0]
-                values.append((1 << 30) | comp_start)
                 value_idx = len(values)
-                if value_idx > 0x0FFF:
-                    raise RuntimeError('value_idx exceeds 12 bits')
+                values.append((1 << 31) | comp_start)
+                if len(values) > 0x0FFF:
+                    raise RuntimeError('values count exceeds 12 bits')
                 value = ((char - value_idx) & 0x0FFF)
                 self.__decomp_builder.add_chars(char, char + 1, value)
 
@@ -208,17 +212,17 @@ class norm_builder:
                     *dest = src;
                     return ++dest;
                 }
-                if (res > 0x0FFF)
+                if (res & 0x1000)
                 {
-                    uint32_t shifted_ccc = res << 9;
+                    uint32_t shifted_ccc = uint32_t(res) << 21;
                     uint32_t val = uint32_t(src) | shifted_ccc;
                     *dest = val;
                     return ++dest;
                 }
 
-                size_t value_offset = ((size_t(src) - res) & 0x0FFF) - 1;
+                size_t value_offset = ((size_t(src) - res) & 0x0FFF);
                 uint32_t value = values[value_offset];
-                if (value & (1 << 30))
+                if (value & (1 << 31))
                 {
                     uint32_t shifted_ccc = (value & 0x0FF000) << 9;
                     uint32_t val = uint32_t(src) | shifted_ccc;
@@ -231,8 +235,7 @@ class norm_builder:
                 uint16_t decomp_start = value & 0xFFF;
                 value >>= 12;
                 uint16_t decomp_idx = value & 0x1F;
-                value >>= 5;
-                int final = value;
+                int final = ((value & (1 << 5)) != 0);
                 
                 auto * comps = compositions + decomp_start;
                 
@@ -263,10 +266,10 @@ class norm_builder:
                 if (res == 0)
                     return nullptr;
                 
-                if (res > 0x0FFF)
+                if (res & 0x1000)
                     return nullptr;
 
-                size_t value_offset = ((size_t(src) - res) & 0x0FFF) - 1;
+                size_t value_offset = ((size_t(src) - res) & 0x0FFF);
                 uint32_t value = values[value_offset];
 
                 uint16_t comp_idx = value & 0xFFF;
@@ -274,10 +277,10 @@ class norm_builder:
                     return nullptr;
 
                 auto ret = compositions + comp_idx;
-                bool is_last = (ret[0] >> 29);
+                bool is_last = (ret[0] & (uint32_t(1) << 29));
                 if (is_last)
                     return nullptr;
-                if (ret[0] >> 21)
+                if (ret[0] & (uint32_t(0xFF) << 21))
                     return nullptr;
                 
                 ++ret;
@@ -286,25 +289,66 @@ class norm_builder:
 
             static auto get_comb_class(char32_t c) -> uint8_t
             {
+                if (c < 128)
+                    return 0;
+
                 auto res = lookup::get(c);
                 if (res == 0)
                     return 0;
                 
-                if (res > 0x0FFF)
-                    return uint8_t(res >> 12);
+                if (res & 0x1000)
+                    return uint8_t(res);
 
-                size_t value_offset = ((size_t(c) - res) & 0x0FFF) - 1;
+                size_t value_offset = ((size_t(c) - res) & 0x0FFF);
                 uint32_t value = values[value_offset];
 
-                if (value & 0x2000000)
-                    return (value >> 12) & 0xFF;
-
+                // possible but an extra if...
+                //if (value & (uint32_t(1) << 30))
+                //    return (value >> 12) & 0xFF;
+                
                 uint16_t comp_idx = value & 0xFFF;
                 if (comp_idx == 0xFFF)
                     return 0;
 
                 auto * comps = compositions + comp_idx;
                 return (comps[0] >> 21) & 0xFF;
+            }
+
+            enum class nfc_qc_status
+            {
+                bad,
+                good,
+                stable
+            };
+
+            static auto get_nfc_qc_status(char32_t c) -> nfc_qc_status
+            {
+                if (c < 128)
+                    return nfc_qc_status::stable;
+
+                auto res = lookup::get(c);
+                if (res == 0)
+                    return nfc_qc_status::stable;
+
+                if (res & 0x1000)
+                {
+                    bool is_ccc_zero = uint8_t(res) == 0;
+                    return nfc_qc_status(0 + is_ccc_zero);
+                }
+
+                size_t value_offset = ((size_t(c) - res) & 0x0FFF);
+                uint32_t value = values[value_offset];
+
+                bool is_nfc_qc_yes = !(value & (1 << 30));
+
+                uint16_t comp_idx = value & 0xFFF;
+                if (comp_idx == 0xFFF)
+                    return nfc_qc_status(1 + is_nfc_qc_yes);
+
+                auto * comps = compositions + comp_idx;
+                bool is_ccc_zero = !(comps[0] & (uint32_t(0xFF) << 21));
+                
+                return nfc_qc_status(0 + is_nfc_qc_yes + is_ccc_zero);
             }
         };
         '''

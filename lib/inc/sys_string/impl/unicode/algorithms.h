@@ -962,6 +962,7 @@ namespace sysstr
                 {
                     auto status = get_nfc_qc_status(*cur);
                     
+                check_again:
                     if (status == nfc_qc_status::bad)
                     {
                         for (++cur; ; ++cur)
@@ -988,7 +989,7 @@ namespace sysstr
                                 return write_unsafe<OutEnc>(*first, dest);
                             status = get_nfc_qc_status(*cur);
                             if (status != nfc_qc_status::stable)
-                                break;
+                                goto check_again;
                             write_unsafe<OutEnc>(*first, dest);
                             ++first;
                         }
@@ -996,7 +997,11 @@ namespace sysstr
                     else
                     {
                         if (++cur == last)
-                            return convert_slow(buffer, first, cur, dest);
+                        {
+                            for ( ; first != last; ++first)
+                                dest = write_unsafe<OutEnc>(*first, dest);
+                            return dest;
+                        }
                     }
                 }
             }

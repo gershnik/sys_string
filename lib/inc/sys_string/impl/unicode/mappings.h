@@ -224,9 +224,9 @@ namespace sysstr::util::unicode
             using entry_type = std::array<uint16_t, 16>;
             using value_type = uint16_t;
     
-            static const std::array<entry_type, 891> entries;
+            static const std::array<entry_type, 899> entries;
     
-            static const std::array<value_type, 496> values;
+            static const std::array<value_type, 503> values;
     
         public:
     
@@ -255,7 +255,7 @@ namespace sysstr::util::unicode
             }
             if (res & 0x1000)
             {
-                uint32_t shifted_ccc = uint32_t(res) << 21;
+                uint32_t shifted_ccc = uint32_t(res & 0xFF) << 21;
                 uint32_t val = uint32_t(src) | shifted_ccc;
                 *dest = val;
                 return ++dest;
@@ -373,8 +373,9 @@ namespace sysstr::util::unicode
     
             if (res & 0x1000)
             {
-                bool is_ccc_zero = uint8_t(res) == 0;
-                return nfc_qc_status(0 + is_ccc_zero);
+                int is_ccc_zero = uint8_t(res) == 0;
+                int is_nfc_qc_yes = !(res >> 8);
+                return nfc_qc_status(0 + (is_nfc_qc_yes << is_ccc_zero));
             }
     
             size_t value_offset = ((size_t(c) - res) & 0x0FFF);
@@ -384,12 +385,12 @@ namespace sysstr::util::unicode
     
             uint16_t comp_idx = value & 0xFFF;
             if (comp_idx == 0xFFF)
-                return nfc_qc_status(1 + is_nfc_qc_yes);
+                return nfc_qc_status(0 + (is_nfc_qc_yes << 1));
     
             auto * comps = compositions + comp_idx;
             bool is_ccc_zero = !(comps[0] & (uint32_t(0xFF) << 21));
     
-            return nfc_qc_status(0 + is_nfc_qc_yes + is_ccc_zero);
+            return nfc_qc_status(0 + (is_nfc_qc_yes << is_ccc_zero));
         }
     };
 

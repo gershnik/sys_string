@@ -947,13 +947,42 @@ namespace sysstr
             inline auto operator()(const Range & range, OutIt dest) -> OutIt
             {
                 using namespace util;
+                
+                struct sink
+                {
+                    OutIt dest;
+                    
+                    SYS_STRING_FORCE_INLINE
+                    void copy(std::ranges::iterator_t<Range> it)
+                        { dest = write_unsafe<OutEnc>(*it, this->dest); }
+                    SYS_STRING_FORCE_INLINE
+                    void copy(std::ranges::iterator_t<Range> first, std::ranges::iterator_t<Range> last)
+                    {
+                        for ( ; first != last; ++first)
+                            dest = write_unsafe<OutEnc>(*first, this->dest);
+                    }
+                    SYS_STRING_FORCE_INLINE
+                    void write(char32_t c)
+                        { dest = write_unsafe<OutEnc>(c, dest); }
+                } s {dest};
+                
+                (*this)(range, s);
+                return s.dest;
+            }
+            
+            
+            template<std::ranges::forward_range Range, class Sink>
+            requires(utf_encoding_of<std::ranges::range_value_t<Range>> == utf32)
+            inline void operator()(const Range & range, Sink & sink)
+            {
+                using namespace util;
                 using namespace util::unicode;
                 
                 auto first = std::ranges::begin(range);
                 auto last = std::ranges::end(range);
                 
                 if (first == last)
-                    return dest;
+                    return;
                 
                 stack_or_heap_buffer<char32_t, 32> buffer;
 
@@ -968,53 +997,63 @@ namespace sysstr
                         for (++cur; ; ++cur)
                         {
                             if (cur == last)
-                                return convert_slow(buffer, first, cur, dest);
+                            {
+                                convert_slow(buffer, first, cur, sink);
+                                return;
+                            }
                             status = get_nfc_qc_status(*cur);
                             if (status == nfc_qc_status::stable)
                                 break;
                         }
-                        dest = convert_slow(buffer, first, cur, dest);
+                        convert_slow(buffer, first, cur, sink);
                         buffer.clear();
                         first = cur;
                         if (++cur == last)
-                            return write_unsafe<OutEnc>(*first, dest);
+                        {
+                            sink.copy(first);
+                            return;
+                        }
                     }
                     else if (status == nfc_qc_status::stable)
                     {
-                        for ( ; first != cur; ++first)
-                            dest = write_unsafe<OutEnc>(*first, dest);
+                        auto prev = cur;
                         for (++cur; ; ++cur)
                         {
                             if (cur == last)
-                                return write_unsafe<OutEnc>(*first, dest);
+                            {
+                                sink.copy(first, cur);
+                                return;
+                            }
                             status = get_nfc_qc_status(*cur);
                             if (status != nfc_qc_status::stable)
+                            {
+                                sink.copy(first, prev);
+                                first = prev;
                                 goto check_again;
-                            write_unsafe<OutEnc>(*first, dest);
-                            ++first;
+                            }
+                            prev = cur;
                         }
                     }
                     else
                     {
                         if (++cur == last)
                         {
-                            for ( ; first != last; ++first)
-                                dest = write_unsafe<OutEnc>(*first, dest);
-                            return dest;
+                            sink.copy(first, cur);
+                            return;
                         }
                     }
                 }
             }
 
         private:
-            template<std::forward_iterator It, std::sentinel_for<It> EndIt, std::output_iterator<utf_char_of<OutEnc>> OutIt>
+            template<std::forward_iterator It, std::sentinel_for<It> EndIt, class Sink>
             requires(std::is_same_v<std::iter_value_t<It>, char32_t>)
-            static auto convert_slow(util::stack_or_heap_buffer<char32_t, 32> & buffer,It first, EndIt last, OutIt dest) -> OutIt
+            static void convert_slow(util::stack_or_heap_buffer<char32_t, 32> & buffer,It first, EndIt last, Sink & sink)
             {
                 if constexpr (std::sized_sentinel_for<It, EndIt>)
                     buffer.reserve(last - first);
                 nfd<utf32>()(std::ranges::subrange{first, last}, std::back_inserter(buffer));
-                return convert(buffer, dest);
+                convert_from_nfd(buffer, sink);
             }
             
             
@@ -1035,9 +1074,9 @@ namespace sysstr
                 return normalizer::get_nfc_qc_status(c);
             }
 
-            template<std::ranges::forward_range Range, std::output_iterator<utf_char_of<OutEnc>> OutIt>
+            template<std::ranges::forward_range Range, class Sink>
             requires(utf_encoding_of<std::ranges::range_value_t<Range>> == utf32)
-            static inline auto convert(const Range & range, OutIt dest) -> OutIt
+            static inline void convert_from_nfd(const Range & range, Sink & sink)
             {
                 using namespace util;
                 using namespace util::unicode;
@@ -1051,13 +1090,13 @@ namespace sysstr
                     auto next = first;
                     if (++next == last)
                     {
-                        dest = write_unsafe<OutEnc>(c, dest);
+                        sink.write(c);
                         break;
                     }
 
                     if (find_hangul_replacement(c, next, last))
                     {
-                        dest = write_unsafe<OutEnc>(c, dest);
+                        sink.write(c);
                         first = next;
                         continue;
                     }
@@ -1065,13 +1104,13 @@ namespace sysstr
                     size_t skips[32];
 
                     size_t skips_len = find_replacements(c, next, last, skips);
-                    dest = write_unsafe<OutEnc>(c, dest);
+                    sink.write(c);
                     ++first;
 
                     if (skips_len == 0)
                     {
                         for ( ; first != next; ++first)
-                            dest = write_unsafe<OutEnc>(*first, dest);
+                            sink.write(*first);
                     }
                     else
                     {
@@ -1082,11 +1121,10 @@ namespace sysstr
                                 ++skips_idx;
                                 continue;
                             }
-                            dest = write_unsafe<OutEnc>(*first, dest);
+                            sink.write(*first);
                         }
                     }
                 }
-                return dest;
             }
 
             template<std::forward_iterator It, std::sentinel_for<It> EndIt>

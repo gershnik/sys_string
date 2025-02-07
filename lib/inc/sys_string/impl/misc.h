@@ -113,7 +113,47 @@ namespace sysstr
             break; case normalization::nfd:
                 normalize::nfd<utf_encoding_of<storage_type>>()(access, std::back_inserter(builder.chars()));
             break; case normalization::nfc:
-                normalize::nfc<utf_encoding_of<storage_type>>()(access, std::back_inserter(builder.chars()));
+            {
+                struct sink
+                {
+                    const sys_string_t<Storage>::utf32_access & access;
+                    decltype(builder.chars()) chars;
+                    
+                    
+                    SYS_STRING_FORCE_INLINE
+                    void copy(sys_string_t<Storage>::utf32_access::iterator it)
+                    {
+                        auto sfirst = it.storage_current();
+                        auto slast = it.storage_next();
+                        
+                        for ( ; sfirst != slast; ++sfirst)
+                            this->chars.push_back(*sfirst);
+                    }
+                    
+                    SYS_STRING_FORCE_INLINE
+                    void copy(sys_string_t<Storage>::utf32_access::iterator first, sys_string_t<Storage>::utf32_access::iterator last)
+                    {
+                        if (chars.empty())
+                        {
+                            if (first == access.begin() && last == access.end())
+                                return;
+                        }
+                        auto sfirst = first.storage_current();
+                        auto slast = last.storage_current();
+                        
+                        for ( ; sfirst != slast; ++sfirst)
+                            this->chars.push_back(*sfirst);
+                    }
+                    SYS_STRING_FORCE_INLINE
+                    void write(char32_t c)
+                        { write_unsafe<utf_encoding_of<storage_type>>(c, std::back_inserter(chars)); }
+                    
+                } s{access, builder.chars()};
+                
+                normalize::nfc<utf_encoding_of<storage_type>>()(access, s);
+                if (s.chars.empty())
+                    return *this;
+            }
         }
         
     #else

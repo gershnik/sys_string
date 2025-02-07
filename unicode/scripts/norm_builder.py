@@ -339,14 +339,14 @@ class norm_builder:
                 size_t value_offset = ((size_t(c) - res) & 0x0FFF);
                 uint32_t value = values[value_offset];
 
-                bool is_nfc_qc_yes = !(value & (1 << 30));
+                int is_nfc_qc_yes = !(value & (1 << 30));
 
                 uint16_t comp_idx = value & 0xFFF;
                 if (comp_idx == 0xFFF)
                     return nfc_qc_status(0 + (is_nfc_qc_yes << 1));
 
                 auto * comps = compositions + comp_idx;
-                bool is_ccc_zero = !(comps[0] & (uint32_t(0xFF) << 21));
+                int is_ccc_zero = !(comps[0] & (uint32_t(0xFF) << 21));
                 
                 return nfc_qc_status(0 + (is_nfc_qc_yes << is_ccc_zero));
             }

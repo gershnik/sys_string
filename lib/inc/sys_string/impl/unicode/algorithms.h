@@ -956,74 +956,64 @@ namespace sysstr
                     return dest;
                 
                 stack_or_heap_buffer<char32_t, 32> buffer;
-                
-                auto status = get_nfc_qc_status(*first);
 
+                auto cur = first;
                 for ( ; ; )
                 {
-                    auto conv_range = find_conversion_range(status, first, last);
-                    for ( ; first != conv_range.begin(); ++first)
-                        dest = write_unsafe<OutEnc>(*first, dest);
-                    if (conv_range.empty())
-                    {
-                        assert(first == last);
-                        break;
-                    }
+                    auto status = get_nfc_qc_status(*cur);
                     
-                    if constexpr (std::ranges::sized_range<decltype(conv_range)>)
-                        buffer.reserve(conv_range.size());
-                    nfd<utf32>()(conv_range, std::back_inserter(buffer));
-                    dest = convert(buffer, dest);
-                    first = conv_range.end();
-                    if (first == last)
-                        break;
-                    status = nfc_qc_status::stable;
-                    buffer.clear();
-                }
-                
-                return dest;
-            }
-
-        private:
-            template<std::forward_iterator It, std::sentinel_for<It> EndIt>
-            requires(std::is_same_v<std::iter_value_t<It>, char32_t>)
-            inline auto find_conversion_range(nfc_qc_status first_status,
-                                              It first, EndIt last) -> std::ranges::subrange<It>
-            {
-                using namespace util;
-                using namespace util::unicode;
-
-                auto status = first_status;
-                It start = first;
-                for ( ; ; )
-                {
                     if (status == nfc_qc_status::bad)
                     {
-                        for (++first; first != last; ++first)
+                        for (++cur; ; ++cur)
                         {
-                            status = get_nfc_qc_status(*first);
+                            if (cur == last)
+                                return convert_slow(buffer, first, cur, dest);
+                            status = get_nfc_qc_status(*cur);
                             if (status == nfc_qc_status::stable)
                                 break;
                         }
-                        return {start, first};
+                        dest = convert_slow(buffer, first, cur, dest);
+                        buffer.clear();
+                        first = cur;
+                        if (++cur == last)
+                            return write_unsafe<OutEnc>(*first, dest);
                     }
-                    if (status == nfc_qc_status::stable)
+                    else if (status == nfc_qc_status::stable)
                     {
-                        start = first;
-                        if (++first == last)
-                            return {first, first};
+                        for ( ; first != cur; ++first)
+                            dest = write_unsafe<OutEnc>(*first, dest);
+                        for (++cur; ; ++cur)
+                        {
+                            if (cur == last)
+                                return write_unsafe<OutEnc>(*first, dest);
+                            status = get_nfc_qc_status(*cur);
+                            if (status != nfc_qc_status::stable)
+                                break;
+                            write_unsafe<OutEnc>(*first, dest);
+                            ++first;
+                        }
                     }
                     else
                     {
-                        if (++first == last)
-                            return {start, first};
+                        if (++cur == last)
+                            return convert_slow(buffer, first, cur, dest);
                     }
-                    
-                    status = get_nfc_qc_status(*first);
                 }
-                return {first, first}; // == {last, last}
+            }
+
+        private:
+            template<std::forward_iterator It, std::sentinel_for<It> EndIt, std::output_iterator<utf_char_of<OutEnc>> OutIt>
+            requires(std::is_same_v<std::iter_value_t<It>, char32_t>)
+            static auto convert_slow(util::stack_or_heap_buffer<char32_t, 32> & buffer,It first, EndIt last, OutIt dest) -> OutIt
+            {
+                if constexpr (std::sized_sentinel_for<It, EndIt>)
+                    buffer.reserve(last - first);
+                nfd<utf32>()(std::ranges::subrange{first, last}, std::back_inserter(buffer));
+                return convert(buffer, dest);
             }
             
+            
+            SYS_STRING_FORCE_INLINE
             static auto get_nfc_qc_status(char32_t c) -> nfc_qc_status
             {
                 using namespace util;
@@ -1042,7 +1032,7 @@ namespace sysstr
 
             template<std::ranges::forward_range Range, std::output_iterator<utf_char_of<OutEnc>> OutIt>
             requires(utf_encoding_of<std::ranges::range_value_t<Range>> == utf32)
-            inline auto convert(const Range & range, OutIt dest) -> OutIt
+            static inline auto convert(const Range & range, OutIt dest) -> OutIt
             {
                 using namespace util;
                 using namespace util::unicode;
@@ -1145,6 +1135,7 @@ namespace sysstr
                 
             }
 
+            SYS_STRING_FORCE_INLINE
             static auto find_composition(uint32_t val , const uint32_t * compositions) -> uint32_t
             {
                 for ( ; ; )

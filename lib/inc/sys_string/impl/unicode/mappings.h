@@ -48,78 +48,45 @@ namespace sysstr::util::unicode
     };
 
 
-    template<size_t N, class Derived>
-    class trie_lookup;
     
-    template<class Derived>
-    class trie_lookup<4, Derived>
+
+    class case_info 
     {
+    private:
+        static const std::array<uint32_t, 128> ascii;
+    
+        static const std::array<uint8_t, 2048> stage1;
+    
+        static const std::array<std::array<uint16_t, 32>, 64> stage2;
+    
+        static const std::array<std::array<uint16_t, 16>, 359> stage3;
+    
+        static const std::array<uint32_t, 754> stage4;
+    
     public:
+        using value = decltype(stage4)::value_type;
+    
         SYS_STRING_FORCE_INLINE
         static auto get(char32_t c) noexcept
         {
-            size_t idx = Derived::values.size();
+            if (c < 128)
+                return value(ascii[c]);
     
-            {
-                int char_idx = (c >> 20) & 0xF;
-                auto & entry = Derived::entries[idx];
-                idx = entry[char_idx];
-            }
-    
-            {
-                int char_idx = (c >> 16) & 0xF;
-                auto & entry = Derived::entries[idx];
-                idx = entry[char_idx];
-            }
-    
-            {
-                int char_idx = (c >> 12) & 0xF;
-                auto & entry = Derived::entries[idx];
-                idx = entry[char_idx];
-            }
-    
-            {
-                int char_idx = (c >> 8) & 0xF;
-                auto & entry = Derived::entries[idx];
-                idx = entry[char_idx];
-            }
-    
-            {
-                int char_idx = (c >> 4) & 0xF;
-                auto & entry = Derived::entries[idx];
-                idx = entry[char_idx];
-            }
-    
-            {
-                int char_idx = (c >> 0) & 0xF;
-                auto & entry = Derived::entries[idx];
-                idx = entry[char_idx];
-            }
-    
-           assert(idx < Derived::values.size());
-           return typename Derived::value(Derived::values[idx]);
+            size_t stage_idx = (c >> 9) & 0x7FF;
+            size_t base = stage1[stage_idx];
+            stage_idx = (c >> 4) & 0x1F;
+            base = stage2[base][stage_idx];
+            stage_idx = c & 0xF;
+            base = stage3[base][stage_idx];
+            return value(stage4[base]);
         }
-    };
     
-
-    
-
-    class case_info : public trie_lookup<4, case_info>
-    {
-    friend trie_lookup<4,case_info>;
-    private:
-        using entry_type = std::array<uint16_t, 16>;
-        using value_type = uint32_t;
-    
-        static const std::array<entry_type, 1218> entries;
-    
-        static const std::array<value_type, 756> values;
-    
-    public:
-    
-        using value = value_type;
-    
-        static constexpr size_t data_size = sizeof(entries) + sizeof(values);
+        static constexpr size_t data_size =                          
+                                            sizeof(stage1) +                         
+                                            sizeof(stage2) +                         
+                                            sizeof(stage3) +                         
+                                            sizeof(stage4) +                              
+                                            sizeof(ascii);
     };
     
     
@@ -217,22 +184,43 @@ namespace sysstr::util::unicode
     class normalizer 
     {
     private:
-        class lookup : public trie_lookup<4, lookup>
+        class lookup 
         {
-        friend trie_lookup<4,lookup>;
         private:
-            using entry_type = std::array<uint16_t, 16>;
-            using value_type = uint16_t;
+            static const std::array<uint16_t, 128> ascii;
     
-            static const std::array<entry_type, 899> entries;
+            static const std::array<uint8_t, 2048> stage1;
     
-            static const std::array<value_type, 503> values;
+            static const std::array<std::array<uint16_t, 32>, 54> stage2;
+    
+            static const std::array<std::array<uint16_t, 16>, 308> stage3;
+    
+            static const std::array<uint16_t, 498> stage4;
     
         public:
+            using value = decltype(stage4)::value_type;
     
-            using value = value_type;
+            SYS_STRING_FORCE_INLINE
+            static auto get(char32_t c) noexcept
+            {
+                if (c < 128)
+                    return value(ascii[c]);
     
-            static constexpr size_t data_size = sizeof(entries) + sizeof(values);
+                size_t stage_idx = (c >> 9) & 0x7FF;
+                size_t base = stage1[stage_idx];
+                stage_idx = (c >> 4) & 0x1F;
+                base = stage2[base][stage_idx];
+                stage_idx = c & 0xF;
+                base = stage3[base][stage_idx];
+                return value(stage4[base]);
+            }
+    
+            static constexpr size_t data_size =                          
+                                                sizeof(stage1) +                         
+                                                sizeof(stage2) +                         
+                                                sizeof(stage3) +                         
+                                                sizeof(stage4) +                              
+                                                sizeof(ascii);
         };
     
     
@@ -395,20 +383,21 @@ namespace sysstr::util::unicode
     };
 
 
-    class grapheme_cluster_break_prop : public trie_lookup<4, grapheme_cluster_break_prop>
+    class grapheme_cluster_break_prop 
     {
-    friend trie_lookup<4,grapheme_cluster_break_prop>;
     private:
-        using entry_type = std::array<uint16_t, 16>;
-        using value_type = uint8_t;
+        static const std::array<uint8_t, 128> ascii;
     
-        static const std::array<entry_type, 417> entries;
+        static const std::array<uint8_t, 2048> stage1;
     
-        static const std::array<value_type, 16> values;
+        static const std::array<std::array<uint16_t, 32>, 74> stage2;
+    
+        static const std::array<std::array<uint8_t, 16>, 286> stage3;
+    
+        static const std::array<uint8_t, 16> stage4;
     
     public:
-    
-        enum value : value_type
+        enum value : decltype(stage4)::value_type
         {
             none = 0,
             control = 1,
@@ -430,7 +419,27 @@ namespace sysstr::util::unicode
             in_cb_mask = 48
         };
     
-        static constexpr size_t data_size = sizeof(entries) + sizeof(values);
+        SYS_STRING_FORCE_INLINE
+        static auto get(char32_t c) noexcept
+        {
+            if (c < 128)
+                return value(ascii[c]);
+    
+            size_t stage_idx = (c >> 9) & 0x7FF;
+            size_t base = stage1[stage_idx];
+            stage_idx = (c >> 4) & 0x1F;
+            base = stage2[base][stage_idx];
+            stage_idx = c & 0xF;
+            base = stage3[base][stage_idx];
+            return value(stage4[base]);
+        }
+    
+        static constexpr size_t data_size =                          
+                                            sizeof(stage1) +                         
+                                            sizeof(stage2) +                         
+                                            sizeof(stage3) +                         
+                                            sizeof(stage4) +                              
+                                            sizeof(ascii);
     };
 
 }

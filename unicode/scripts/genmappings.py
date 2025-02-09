@@ -11,7 +11,6 @@ from pathlib import Path
 from textwrap import dedent
 from common import read_ucd_file, write_file, char_name, parse_char_range, indent_insert
 from table_builder import table_builder
-from trie_builder import trie_builder
 from lookup_builder import lookup_builder
 from case_builder import case_builder
 from norm_builder import norm_builder
@@ -76,7 +75,7 @@ grapheme_masks = {
     'in_cb_mask': 0x30
 }
 
-grapheme_cluster_break_prop_prop_builder = trie_builder(4)
+grapheme_cluster_break_prop_prop_builder = table_builder()
 
 def parse_unicode_data(line:str):
     fields = line.split(';')
@@ -322,9 +321,6 @@ namespace sysstr::util::unicode
     {indent_insert(lookup_builder.print_common_header(), 4)}
 
     {indent_insert(whitespaces.print_header('is_whitespace'), 4)}
-
-    {indent_insert(trie_builder.print_common_header(), 4)}
-    {indent_insert(table_builder.print_common_header(), 4)}
 
     {indent_insert(case_info_builder.print_header(), 4)}
 

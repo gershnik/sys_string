@@ -7,109 +7,150 @@
 #
 
 from textwrap import dedent
-from common import bytes_for_bits, type_for_bits, char_name, indent_insert
+from common import bytes_for_bits, type_for_bits, indent_insert
 
 
 class table_builder:
 
     used = False
     
-    def __init__(self, block_size = 256, separate_values=False):
+    def __init__(self):
         table_builder.used = True
 
-        self.block_size = block_size
-        self.separate_values = separate_values
+        self.__split = (11,5,4)
 
-        self.stage1 = []
-        self.blocks = {}
-        self.blocks_by_index = []
+        self.__ascii = [0] * 128
+        self.__stages = [None] * (1 << self.__split[0])
+        self.__values = None
+        self.__bits_for_values = None
+        self.__bits_for_ascii = None
 
-        self.max_known_char = 0
-        self.max_stage2_value = 0
-        self.max_block_idx = 0
+        self.__max_known_char = 0
 
-        if separate_values:
-            self.values = [0]
-            self.value_idx_by_value = {0: 0}
-            self.max_value = 0
+    def add_char(self, char, flag):
 
-        self.data_size = 0
+        if char < 128:
+            self.__ascii[char] |= flag
+        else:
+            current = self.__stages
+            for bits_idx, bits in enumerate(self.__split[:-1]):
+                shift = sum(self.__split[bits_idx + 1:])
+                current_idx = (char >> shift) & ((1 << bits) - 1)
+                current_val = current[current_idx]
+                if current_val is None:
+                    current_val = [None] * (1 << self.__split[bits_idx + 1])
+                    current[current_idx] = current_val
+                current = current_val
+            
+            current_idx = char & ((1 << self.__split[-1]) - 1)
+            current_val = current[current_idx]
+            if current_val is None:
+                current_val = 0
+            current[current_idx] = current_val | flag
 
+        self.__max_known_char = max(self.__max_known_char, char)
+
+        
     def add_chars(self, start, end, flag):
         for c in range(start, end):
-            bucket = c // self.block_size
-            in_block_idx = c % self.block_size
+            self.add_char(c, flag)
 
-            while bucket >= len(self.stage1):
-                self.stage1.append([0] * self.block_size)
-            
-            if not self.separate_values:
-                self.stage1[bucket][in_block_idx] |= flag
+    def get_char(self, char):
+        if char < 128:
+            return self.__ascii[char]
+        
+        current = self.__stages
+        for bits_idx, bits in enumerate(self.__split[:-1]):
+            shift = sum(self.__split[bits_idx + 1:])
+            current_idx = (char >> shift) & ((1 << bits) - 1)
+            current = current[current_idx]
+            if current is None:
+                return 0
+        
+        current_idx = char & ((1 << self.__split[-1]) - 1)
+        current_val = current[current_idx]
+        if current_val is None:
+            return 0
+        return current_val
+
+    def __collect_values(self, mapping: list, target_level: int, level: int, values: set):
+        for val in mapping:
+            if val is None:
+                continue
+            if level < target_level:
+                self.__collect_values(val, target_level, level + 1, values)
             else:
-                value_idx = self.stage1[bucket][in_block_idx]
-                value = self.values[value_idx]
-                value |= flag
-                value_idx = self.value_idx_by_value.get(value)
-                if value_idx is None:
-                    value_idx = len(self.values)
-                    self.values.append(value)
-                    self.value_idx_by_value[value] = value_idx
-                self.stage1[bucket][in_block_idx] = value_idx
-                self.max_value = max(self.max_value, value)
+                values.add(val if isinstance(val, int) else tuple(val))
 
-            self.max_stage2_value = max(self.max_stage2_value, self.stage1[bucket][in_block_idx])
+    def __assign_values(self, mapping: list, target_level: int, level: int, values_index: dict):
+        if level < target_level:
+            for val in mapping:
+                if val is None:
+                    continue
+                self.__assign_values(val, target_level, level + 1, values_index)
+        else:
+            for idx, val in enumerate(mapping):
+                if val is None:
+                    mapping[idx] = 0
+                else:
+                    mapping[idx] = values_index[val if isinstance(val, int) else tuple(val)]
 
-        self.max_known_char = end - 1
 
     def generate(self):
-        for idx, block in enumerate(self.stage1):
-            block = tuple(block)
-            block_idx = self.blocks.get(block)
-            if block_idx is None:
-                block_idx = len(self.blocks_by_index)
-                self.blocks[block] = block_idx
-                self.blocks_by_index.append(block)
-                self.max_block_idx = max(self.max_block_idx, block_idx)
-            self.stage1[idx] = block_idx
 
-        stage1_block_bytes = len(self.stage1) * bytes_for_bits(self.stage1_bits_per_value())
-        total_data_size = stage1_block_bytes
-        
-        stage2_block_bytes = self.block_size * bytes_for_bits(self.stage2_bits_per_value())
-        total_data_size += stage2_block_bytes * len(self.blocks_by_index)
+        values_lists = []
 
-        if self.separate_values:
-            values_block_bytes = len(self.values) * bytes_for_bits(self.values_bits_per_value())
-            total_data_size += values_block_bytes
+        for level in range(2, -1, -1):
+            values = set()
+            values.add(0 if level == 2 else (0,) * (1 << self.__split[level + 1]))
+            self.__collect_values(self.__stages, level, 0, values)
+            values_lists.append(sorted(values))
+            values_index = { val: idx for idx, val in enumerate(values_lists[-1]) }
+            self.__assign_values(self.__stages, level, 0, values_index)
 
-        return total_data_size
+        values_lists.append(self.__stages)
+        values_lists.reverse()
+        self.__values = values_lists
+        self.__stages = None
 
-    def make_stage1(self):
-        ret = '\n'
-        for idx, block_idx in enumerate(self.stage1):
-            if idx > 0:
-                ret += ', '
-                if idx % 32 == 0:
-                    ret += '\n'
-            ret += f'{block_idx}'
-        return ret
+        self.__bits_for_values = []
+        total_size = 0
+        for values_list in values_lists:
+            if isinstance(values_list[0], int):
+                max_value:int = max(values_list)
+                list_len = len(values_list)
+            else:
+                max_value:int = max(max(x) for x in values_list)
+                list_len = len(values_list) * len(values_list[0])
 
-    def make_stage2(self):
+            bit_length = max_value.bit_length()
+            self.__bits_for_values.append(bit_length)
+            bytes_per_value = bytes_for_bits(bit_length)
+            total_size += bytes_per_value * list_len
+
+        self.__bits_for_ascii = max(self.__ascii).bit_length()
+        total_size += bytes_for_bits(self.__bits_for_ascii) * len(self.__ascii)
+
+        return total_size
+
+    def __make_nested(self, values):
         ret = ''
-        for block_idx, block in enumerate(self.blocks_by_index):
+        for block_idx, block in enumerate(values):
             if block_idx > 0:
                 ret += ','
             ret += '\n'
+            ret += '{'
             for idx, val in enumerate(block):
                 if idx > 0:
                     ret += ', '
                 #ret += f'0x{val:01X}'
                 ret += f'{val}'
+            ret += '}'
         return ret
     
-    def make_values(self):
+    def __make_simple(self, values):
         ret = '{'
-        for idx, value in enumerate(self.values):
+        for idx, value in enumerate(values):
             if idx > 0:
                 ret += ', '
                 if idx % 32 == 0:
@@ -118,93 +159,67 @@ class table_builder:
         ret += '}'
         return ret
     
-    def stage1_bits_per_value(self):
-        return self.max_block_idx.bit_length()
-    
-    def stage1_size(self):
-        return len(self.stage1)
-    
-    def stage2_bits_per_value(self):
-        return self.max_stage2_value.bit_length()
-    
-    def stage2_size(self):
-        return len(self.blocks_by_index) * self.block_size
-    
-    def values_bits_per_value(self):
-        return self.max_value.bit_length() if self.separate_values else -1
-
-    def values_size(self):
-        return len(self.values)
-    
-    @staticmethod
-    def print_common_header():
-        if not table_builder.used:
-            return ''
-        
-        ret = '''
-        template<class Derived>
-        class prop_lookup
-        {
-        public:
-            static auto get(char32_t c) noexcept
-            {
-                if (c > Derived::max_char)
-                    return typename Derived::value(0);
-                auto stage2_block_offset = Derived::stage1[c / Derived::block_len] * Derived::block_len;
-                auto stage2_char_idx = c % Derived::block_len;
-                auto value_idx = Derived::stage2[stage2_block_offset + stage2_char_idx];
-                if constexpr (Derived::separate_values)
-                    return typename Derived::value(Derived::values[value_idx]);
-                else
-                    return typename Derived::value(value_idx);
-            }
-        };
-        '''
-        return dedent(ret)
-    
     def print_header(self, name, values_enum_content):
         ret = f'''
-        class {name} : public prop_lookup<{name}>
+        class {name} 
         {{
-        friend prop_lookup<{name}>;
         private:
-            static constexpr size_t block_len = {self.block_size};
-            static constexpr char32_t max_char = U'{char_name(self.max_known_char)}';
-
-            static const std::array<{type_for_bits(self.stage1_bits_per_value())}, {self.stage1_size()}> stage1;
-            static const std::array<{type_for_bits(self.stage2_bits_per_value())}, {self.stage2_size()}> stage2;
+            static const std::array<{type_for_bits(self.__bits_for_ascii)}, {len(self.__ascii)}> ascii;
+        '''
+        for idx, values in enumerate(self.__values):
+            if isinstance(values[0], int):
+                ret += f'''
+            static const std::array<{type_for_bits(self.__bits_for_values[idx])}, {len(values)}> stage{idx + 1};
+        '''
+            else:
+                ret += f'''
+            static const std::array<std::array<{type_for_bits(self.__bits_for_values[idx])}, {len(values[0])}>, {len(values)}> stage{idx + 1};
         '''
 
-        if self.separate_values:
+        if values_enum_content is not None:
             ret += f'''
-            static const std::array<{type_for_bits(self.values_bits_per_value())}, {self.values_size()}> values;
-
-            static constexpr bool separate_values = true;
-        '''
-        else:
-            ret += '''
-            static constexpr bool separate_values = false;
-        '''
-
-        ret += f'''
         public:
-            enum value : decltype(stage2)::value_type
+            enum value : decltype(stage{len(self.__values)})::value_type
             {{
                 none = 0,
                 {indent_insert(values_enum_content, 16)}
             }};
         '''
-
-        if self.separate_values:
-            ret += '''
-            static constexpr size_t data_size = sizeof(stage1) + sizeof(stage2) + sizeof(values);
-        '''
         else:
-            ret += '''
-            static constexpr size_t data_size = sizeof(stage1) + sizeof(stage2);
+            ret += f'''
+        public:
+            using value = decltype(stage{len(self.__values)})::value_type;
         '''
-        
+            
+        shift = sum(self.__split[1:])
+        ret += f'''
+            SYS_STRING_FORCE_INLINE
+            static auto get(char32_t c) noexcept
+            {{
+                if (c < 128)
+                    return value(ascii[c]);
+                
+                size_t stage_idx = (c >> {shift}) & 0x{(1 << self.__split[0]) - 1:X};
+                size_t base = stage1[stage_idx];'''
+        for idx, bits in enumerate(self.__split[1:-1]):
+            shift = sum(self.__split[idx + 2:])
+            ret += f'''
+                stage_idx = (c >> {shift}) & 0x{(1 << bits) - 1:X};
+                base = stage{idx + 2}[base][stage_idx];'''
+        ret += f'''
+                stage_idx = c & 0x{(1 << self.__split[-1]) - 1:X};
+                base = stage{idx + 3}[base][stage_idx];
+                return value(stage{idx + 4}[base]);
+            }}
+        '''
+            
         ret += '''
+            static constexpr size_t data_size = '''
+        for idx in range(0, len(self.__values)):
+            ret += f'''                         
+                                                sizeof(stage{idx + 1}) +'''
+        ret += '''                              
+                                                sizeof(ascii);
         };
         '''
 
@@ -212,19 +227,23 @@ class table_builder:
 
     def print_impl(self, name):
         ret = f'''
-        const std::array<{type_for_bits(self.stage1_bits_per_value())}, {self.stage1_size()}> {name}::stage1({{
-            {indent_insert(self.make_stage1(), 12)}
+        const std::array<{type_for_bits(self.__bits_for_ascii)}, {len(self.__ascii)}> {name}::ascii({{
+            {indent_insert(self.__make_simple(self.__ascii), 12)}
         }});
-
-        const std::array<{type_for_bits(self.stage2_bits_per_value())}, {self.stage2_size()}> {name}::stage2({{
-            {indent_insert(self.make_stage2(), 12)}
+        '''
+        for idx, values in enumerate(self.__values):
+            if isinstance(values[0], int):
+                ret += f'''
+        const std::array<{type_for_bits(self.__bits_for_values[idx])}, {len(values)}> {name}::stage{idx + 1}({{
+            {indent_insert(self.__make_simple(values), 12)}
         }});
-
+        '''
+            else:
+                ret += f'''
+        const std::array<std::array<{type_for_bits(self.__bits_for_values[idx])}, {len(values[0])}>, {len(values)}> {name}::stage{idx + 1}({{
+            {indent_insert(self.__make_nested(values), 12)}
+        }});
         '''
 
-        if self.separate_values:
-            ret += f'''
-        const std::array<{type_for_bits(self.values_bits_per_value())}, {self.values_size()}> {name}::values({indent_insert(self.make_values(), 12)});
-        '''
             
         return dedent(ret)

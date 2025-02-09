@@ -4,7 +4,6 @@ from textwrap import dedent
 from typing import Optional
 
 from common import char_name, chars_len_in_utf16, indent_insert
-from trie_builder import trie_builder
 from table_builder import table_builder
 
 
@@ -19,8 +18,7 @@ class case_builder:
     def __init__(self):
         self.__info_map: dict[int, case_builder.__char_info] = {}
         self.__mapped_data = []
-        self.__builder = trie_builder(4)
-            #table_builder(block_size=256, separate_values=True)
+        self.__builder = table_builder()
         self.index_mask = 0x0FFF
 
     def set_uppercase(self, c: int, val: list[int]):

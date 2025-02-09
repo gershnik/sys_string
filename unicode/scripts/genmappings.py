@@ -359,8 +359,7 @@ namespace sysstr::util::unicode
     
     constexpr auto total_data_size = 
         is_whitespace::data_size +
-        case_info::data_size +
-        sizeof(cased_data) +
+        case_mapper::data_size +
         normalizer::data_size +
         grapheme_cluster_break_prop::data_size;
     static_assert(total_data_size == {total_data_size});

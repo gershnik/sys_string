@@ -181,12 +181,12 @@ namespace sysstr
     template<utf_encoding OutEnc>
     struct casefold
     {
-        static constexpr auto max_output_length = util::unicode::case_fold_mapper::max_mapped_length;
+        static constexpr auto max_output_length = util::unicode::case_mapper::fold::max_mapped_length;
         
         template<std::output_iterator<utf_char_of<OutEnc>> OutIt>
         auto operator()(char32_t c, OutIt dest) const noexcept(noexcept(*dest++ = utf_char_of<OutEnc>())) -> OutIt
         {
-            return util::unicode::case_fold_mapper::map_char<OutEnc>(c, dest);
+            return util::unicode::case_mapper::fold::map_char<OutEnc>(c, dest);
         }
     };
 
@@ -218,10 +218,10 @@ namespace sysstr
                 for( ; first != last; ++first)
                 {
                     auto c = *first;
-                    auto props = unicode::case_prop::get(c);
-                    if (props & unicode::case_prop::case_ignorable)
+                    auto props = unicode::case_mapper::props::get(c);
+                    if (props & unicode::case_mapper::props::case_ignorable)
                         continue;
-                    return (props & unicode::case_prop::cased);
+                    return (props & unicode::case_mapper::props::cased);
                 }
                 return false;
             }
@@ -245,7 +245,7 @@ namespace sysstr
                 auto c = *first;
                 if (c != U'\u03A3') // not Σ
                 {
-                    dest = to_lower_case_mapper::map_char<OutEnc>(c, dest);
+                    dest = case_mapper::to_lower::map_char<OutEnc>(c, dest);
                 }
                 else
                 {
@@ -274,7 +274,7 @@ namespace sysstr
             for( ; first != last; ++first)
             {
                 auto c = *first;
-                dest = to_upper_case_mapper::map_char<OutEnc>(c, dest);
+                dest = case_mapper::to_upper::map_char<OutEnc>(c, dest);
             }
 
             return dest;

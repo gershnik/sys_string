@@ -48,136 +48,141 @@ namespace sysstr::util::unicode
     };
 
 
-    
-
-    class case_info 
+    class case_mapper 
     {
     private:
-        static const std::array<uint32_t, 128> ascii;
-    
-        static const std::array<uint8_t, 2048> stage1;
-    
-        static const std::array<std::array<uint16_t, 32>, 64> stage2;
-    
-        static const std::array<std::array<uint16_t, 16>, 359> stage3;
-    
-        static const std::array<uint32_t, 754> stage4;
-    
-    public:
-        using value = decltype(stage4)::value_type;
-    
-        SYS_STRING_FORCE_INLINE
-        static auto get(char32_t c) noexcept
+        class lookup 
         {
-            if (c < 128)
-                return value(ascii[c]);
+        private:
+            static const std::array<uint32_t, 128> ascii;
     
-            size_t stage_idx = (c >> 9) & 0x7FF;
-            size_t base = stage1[stage_idx];
-            stage_idx = (c >> 4) & 0x1F;
-            base = stage2[base][stage_idx];
-            stage_idx = c & 0xF;
-            base = stage3[base][stage_idx];
-            return value(stage4[base]);
-        }
+            static const std::array<uint8_t, 2048> stage1;
     
-        static constexpr size_t data_size =                          
-                                            sizeof(stage1) +                         
-                                            sizeof(stage2) +                         
-                                            sizeof(stage3) +                         
-                                            sizeof(stage4) +                              
-                                            sizeof(ascii);
-    };
+            static const std::array<std::array<uint16_t, 32>, 64> stage2;
     
+            static const std::array<std::array<uint16_t, 16>, 359> stage3;
     
-    extern const char16_t cased_data[];
+            static const std::array<uint32_t, 754> stage4;
     
-    struct case_fold_mapper 
-    {
-        static constexpr size_t max_mapped_length = 8; 
+        public:
+            using value = decltype(stage4)::value_type;
     
-        template<utf_encoding Enc, class OutIt>
-        SYS_STRING_FORCE_INLINE
-        static auto map_char(char32_t src, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<Enc>())) -> OutIt
-        {
-            auto res = case_info::get(src);
-            uint8_t fold_len = (res >> 24) & 0x0F;
-            if (fold_len == 0)
-                return write_unsafe<Enc>(src, dest);
-            uint8_t fold_offset;
-            if (fold_len == 0x0F)
+            SYS_STRING_FORCE_INLINE
+            static auto get(char32_t c) noexcept
             {
-                fold_len = (res >> 16) & 0x0F;
-                fold_offset = 0;
+                if (c < 128)
+                    return value(ascii[c]);
+    
+                size_t stage_idx = (c >> 9) & 0x7FF;
+                size_t base = stage1[stage_idx];
+                stage_idx = (c >> 4) & 0x1F;
+                base = stage2[base][stage_idx];
+                stage_idx = c & 0xF;
+                base = stage3[base][stage_idx];
+                return value(stage4[base]);
             }
-            else if (fold_len == 0x0E)
-            {
-                fold_len = (res >> 20) & 0x0F;
-                fold_offset = (res >> 16) & 0x0F;
-            }
-            else
-            {
-                fold_offset = ((res >> 16) & 0x0F) + ((res >> 20) & 0x0F);
-            }
-            size_t entry_offset = (size_t(src) - (res & 0xFFFF)) & 0x0FFF;
-            const char16_t * entry = cased_data + entry_offset;
-            return write_unsafe<Enc>(entry + fold_offset, entry + fold_offset + fold_len, dest);
-        }
-    };
     
-    struct to_lower_case_mapper 
-    {
-        static constexpr size_t max_mapped_length = 8; 
-    
-        template<utf_encoding Enc, class OutIt>
-        SYS_STRING_FORCE_INLINE
-        static auto map_char(char32_t src, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<Enc>())) -> OutIt
-        {
-            auto res = case_info::get(src);
-            uint8_t lower_len = (res >> 16) & 0x0F;
-            if (lower_len == 0)
-                return write_unsafe<Enc>(src, dest);
-            size_t entry_offset = (size_t(src) - (res & 0xFFFF)) & 0x0FFF;
-            const char16_t * entry = cased_data + entry_offset;
-            return write_unsafe<Enc>(entry, entry + lower_len, dest);
-        }
-    };
-    
-    struct to_upper_case_mapper 
-    {
-        static constexpr size_t max_mapped_length = 8; 
-    
-        template<utf_encoding Enc, class OutIt>
-        SYS_STRING_FORCE_INLINE
-        static auto map_char(char32_t src, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<Enc>())) -> OutIt
-        {
-            auto res = case_info::get(src);
-            uint8_t upper_len = (res >> 20) & 0x0F;
-            if (upper_len == 0)
-                return write_unsafe<Enc>(src, dest);
-            uint8_t upper_offset = (res >> 16) & 0x0F;
-            size_t entry_offset = (size_t(src) - (res & 0xFFFF)) & 0x0FFF;
-            const char16_t * entry = cased_data + entry_offset;
-            return write_unsafe<Enc>(entry + upper_offset, entry + upper_offset + upper_len, dest);
-        }
-    };
-    
-    class case_prop
-    {
-    public:
-        enum value : uint8_t
-        {
-            none = 0,
-            cased = 1,
-            case_ignorable = 2
+            static constexpr size_t data_size =                          
+                                                sizeof(stage1) +                         
+                                                sizeof(stage2) +                         
+                                                sizeof(stage3) +                         
+                                                sizeof(stage4) +                              
+                                                sizeof(ascii);
         };
     
-        SYS_STRING_FORCE_INLINE
-        static auto get(char32_t c) noexcept
+    
+        static const char16_t cased_data[3940];
+    
+    public:
+        static constexpr size_t data_size = lookup::data_size + sizeof(cased_data);
+    
+        struct fold 
         {
-            auto res = case_info::get(c);
-            return value(res >> 28);
-        }
+            static constexpr size_t max_mapped_length = 8; 
+    
+            template<utf_encoding Enc, class OutIt>
+            SYS_STRING_FORCE_INLINE
+            static auto map_char(char32_t src, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<Enc>())) -> OutIt
+            {
+                auto res = lookup::get(src);
+                uint8_t fold_len = (res >> 24) & 0x0F;
+                if (fold_len == 0)
+                    return write_unsafe<Enc>(src, dest);
+                uint8_t fold_offset;
+                if (fold_len == 0x0F)
+                {
+                    fold_len = (res >> 16) & 0x0F;
+                    fold_offset = 0;
+                }
+                else if (fold_len == 0x0E)
+                {
+                    fold_len = (res >> 20) & 0x0F;
+                    fold_offset = (res >> 16) & 0x0F;
+                }
+                else
+                {
+                    fold_offset = ((res >> 16) & 0x0F) + ((res >> 20) & 0x0F);
+                }
+                size_t entry_offset = (size_t(src) - (res & 0xFFFF)) & 0x0FFF;
+                const char16_t * entry = cased_data + entry_offset;
+                return write_unsafe<Enc>(entry + fold_offset, entry + fold_offset + fold_len, dest);
+            }
+        };
+    
+        struct to_lower
+        {
+            static constexpr size_t max_mapped_length = 8; 
+    
+            template<utf_encoding Enc, class OutIt>
+            SYS_STRING_FORCE_INLINE
+            static auto map_char(char32_t src, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<Enc>())) -> OutIt
+            {
+                auto res = lookup::get(src);
+                uint8_t lower_len = (res >> 16) & 0x0F;
+                if (lower_len == 0)
+                    return write_unsafe<Enc>(src, dest);
+                size_t entry_offset = (size_t(src) - (res & 0xFFFF)) & 0x0FFF;
+                const char16_t * entry = cased_data + entry_offset;
+                return write_unsafe<Enc>(entry, entry + lower_len, dest);
+            }
+        };
+    
+        struct to_upper
+        {
+            static constexpr size_t max_mapped_length = 8; 
+    
+            template<utf_encoding Enc, class OutIt>
+            SYS_STRING_FORCE_INLINE
+            static auto map_char(char32_t src, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<Enc>())) -> OutIt
+            {
+                auto res = lookup::get(src);
+                uint8_t upper_len = (res >> 20) & 0x0F;
+                if (upper_len == 0)
+                    return write_unsafe<Enc>(src, dest);
+                uint8_t upper_offset = (res >> 16) & 0x0F;
+                size_t entry_offset = (size_t(src) - (res & 0xFFFF)) & 0x0FFF;
+                const char16_t * entry = cased_data + entry_offset;
+                return write_unsafe<Enc>(entry + upper_offset, entry + upper_offset + upper_len, dest);
+            }
+        };
+    
+        class props
+        {
+        public:
+            enum value : uint8_t
+            {
+                none = 0,
+                cased = 1,
+                case_ignorable = 2
+            };
+    
+            SYS_STRING_FORCE_INLINE
+            static auto get(char32_t c) noexcept
+            {
+                auto res = lookup::get(c);
+                return value(res >> 28);
+            }
+        };
     };
 
 

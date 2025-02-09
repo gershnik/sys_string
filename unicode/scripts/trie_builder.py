@@ -11,13 +11,9 @@ import textwrap
 from common import bytes_for_bits, format_array, type_for_bits, indent_insert
 
 
-class table_builder:
+class trie_builder:
 
-    used = False
-    
     def __init__(self):
-        table_builder.used = True
-
         self.__split = (11,5,4)
 
         self.__ascii = [0] * 128

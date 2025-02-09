@@ -10,7 +10,7 @@ import argparse
 from pathlib import Path
 from textwrap import dedent
 from common import read_ucd_file, write_file, char_name, parse_char_range, indent_insert
-from table_builder import table_builder
+from trie_builder import trie_builder
 from lookup_builder import lookup_builder
 from case_builder import case_builder
 from norm_builder import norm_builder
@@ -47,7 +47,7 @@ case_prop_values = {
     'Case_Ignorable':   (0b10, 'case_ignorable')
 }
 
-grapheme_cluster_break_prop_prop_values = {
+grapheme_cluster_break_prop_values = {
     'Control':               (1, 'control'),
     'Extend':                (2, 'extend'),
     'Regional_Indicator':    (3, 'regional_indicator'),
@@ -75,7 +75,7 @@ grapheme_masks = {
     'in_cb_mask': 0x30
 }
 
-grapheme_cluster_break_prop_prop_builder = table_builder()
+grapheme_cluster_break_prop_builder = trie_builder()
 
 def parse_unicode_data(line:str):
     fields = line.split(';')
@@ -134,17 +134,17 @@ def parse_derived_properties(line):
         case_info_builder.set_props(start, end, prop_val[0])
     elif (prop_val := grapheme_related_prop_values.get(props)) is not None:
         start, end = parse_char_range(char_range)
-        grapheme_cluster_break_prop_prop_builder.add_chars(start, end, prop_val[0])
+        grapheme_cluster_break_prop_builder.add_chars(start, end, prop_val[0])
 
 
-def parse_grapheme_cluster_break_prop_properties(line):
+def parse_grapheme_cluster_break_properties(line):
     (char_range, prop) = line[:line.index('# ')].split('; ')
     char_range = char_range.strip()
     prop = prop.strip()
-    prop_val = grapheme_cluster_break_prop_prop_values.get(prop)
+    prop_val = grapheme_cluster_break_prop_values.get(prop)
     if not prop_val is None:
         start, end = parse_char_range(char_range)
-        grapheme_cluster_break_prop_prop_builder.add_chars(start, end, prop_val[0])
+        grapheme_cluster_break_prop_builder.add_chars(start, end, prop_val[0])
 
 def parse_emoji_data(line):
     (char_range, prop) = line[:line.index('# ')].split('; ')
@@ -153,7 +153,7 @@ def parse_emoji_data(line):
     prop_val = grapheme_related_emoji_values.get(prop)
     if not prop_val is None:
         start, end = parse_char_range(char_range)
-        grapheme_cluster_break_prop_prop_builder.add_chars(start, end, prop_val[0])
+        grapheme_cluster_break_prop_builder.add_chars(start, end, prop_val[0])
 
 def parse_composition_exclusions(line):
     char = line[:line.index('# ')].rstrip()
@@ -281,7 +281,7 @@ def main():
     read_ucd_file(datadir/'SpecialCasing.txt', parse_special_casing)
     read_ucd_file(datadir/'PropList.txt', parse_properties)
     read_ucd_file(datadir/'DerivedCoreProperties.txt', parse_derived_properties)
-    read_ucd_file(datadir/'GraphemeBreakProperty.txt', parse_grapheme_cluster_break_prop_properties)
+    read_ucd_file(datadir/'GraphemeBreakProperty.txt', parse_grapheme_cluster_break_properties)
     read_ucd_file(datadir/'emoji-data.txt', parse_emoji_data)
     read_ucd_file(datadir/'CompositionExclusions.txt', parse_composition_exclusions)
     read_ucd_file(datadir/'DerivedNormalizationProps.txt', parse_normalization_props)
@@ -294,7 +294,7 @@ def main():
     total_data_size += case_info_builder.generate()
     total_data_size += norm_info_builder.generate()
     total_data_size += whitespaces.generate()
-    total_data_size += grapheme_cluster_break_prop_prop_builder.generate()
+    total_data_size += grapheme_cluster_break_prop_builder.generate()
 
     write_file(hfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 
@@ -324,8 +324,8 @@ namespace sysstr::util::unicode
 
     {indent_insert(norm_info_builder.print_header(), 4)}
 
-    {indent_insert(grapheme_cluster_break_prop_prop_builder.print_header("grapheme_cluster_break_prop", 
-                        print_enum((grapheme_cluster_break_prop_prop_values, grapheme_related_emoji_values, grapheme_related_prop_values), 
+    {indent_insert(grapheme_cluster_break_prop_builder.print_header("grapheme_cluster_break_prop", 
+                        print_enum((grapheme_cluster_break_prop_values, grapheme_related_emoji_values, grapheme_related_prop_values), 
                                     grapheme_masks)),
                    4)}
 }}
@@ -353,7 +353,7 @@ namespace sysstr::util::unicode
     {indent_insert(whitespaces.print_impl('is_whitespace'), 4)}
     {indent_insert(case_info_builder.print_impl(), 4)}
     {indent_insert(norm_info_builder.print_impl(), 4)}
-    {indent_insert(grapheme_cluster_break_prop_prop_builder.print_impl("grapheme_cluster_break_prop"), 4)}
+    {indent_insert(grapheme_cluster_break_prop_builder.print_impl("grapheme_cluster_break_prop"), 4)}
     
     constexpr auto total_data_size = 
         is_whitespace::data_size +

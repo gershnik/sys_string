@@ -4,7 +4,7 @@ from textwrap import dedent
 from typing import Optional
 
 from common import chars_len_in_utf16, format_utf16_string, indent_insert
-from table_builder import table_builder
+from trie_builder import trie_builder
 
 
 class case_builder:
@@ -18,7 +18,7 @@ class case_builder:
     def __init__(self):
         self.__info_map: dict[int, case_builder.__char_info] = {}
         self.__mapped_data = []
-        self.__builder = table_builder()
+        self.__builder = trie_builder()
         self.__cased_data_len = 0
         self.index_mask = 0x0FFF
 

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from textwrap import dedent
 
 from common import format_array, indent_insert
-from table_builder import table_builder
+from trie_builder import trie_builder
 
 
 class norm_builder:
@@ -26,7 +26,7 @@ class norm_builder:
     def __init__(self):
         self.__info_map: dict[int, norm_builder.__char_info] = {}
         self.__exclusions = set()
-        self.__decomp_builder = table_builder()
+        self.__decomp_builder = trie_builder()
         self.__values = None
         self.__compositions = None
 

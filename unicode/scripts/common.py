@@ -8,12 +8,20 @@
 # 
 
 import textwrap
+from math import log10
 
 def char_name(code):
     if code < 0x10000:
         return f"\\u{code:04X}"
     else:
         return f"\\U{code:08X}"
+    
+def split_utf16(code):
+    if code < 0x10000:
+        return (code, )
+    first = ((code - 0x010000) >> 10)     + 0x00D800
+    second = ((code - 0x010000) & 0x03FF) + 0x00DC00
+    return (first, second)
 
 def parse_char_range(text):
     char_range = [int(x, 16) for x in text.split('..')]
@@ -56,6 +64,39 @@ def chars_len_in_utf16(chars):
     ret = 0
     for char in chars:
         ret += char_len_in_utf16(char)
+    return ret
+
+def format_utf16_string(chars):
+    ret = '\nu"'
+    line_len = 0
+    for char in chars:
+        cur = char_name(char)
+        ret += cur
+        line_len += len(cur)
+        if line_len >= 100:
+            ret += '"\nu"'
+            line_len = 0
+    ret += '"'
+    return ret
+
+def format_array(values, ishex=False, bits=0, max_width=120):
+    if ishex:
+        hf = hex_format_for_bits(bits)
+        fmt = '0x{:' + hf + '}'
+    else:
+        digits = int(log10(1 << bits)) + 1
+        fmt = '{:>' + str(digits) + '}'
+    
+    entry_len = len(fmt.format(0) + ', ')
+    max_count_per_line = max_width // entry_len
+        
+    ret = ''
+    for idx, value in enumerate(values):
+        if idx > 0:
+            ret += ', '
+            if idx % max_count_per_line == 0:
+                ret += '\n'
+        ret += fmt.format(value)
     return ret
 
 def indent_insert(text: str, count: int):

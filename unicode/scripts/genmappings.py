@@ -318,8 +318,6 @@ def main():
 
 namespace sysstr::util::unicode 
 {{
-    {indent_insert(lookup_builder.print_common_header(), 4)}
-
     {indent_insert(whitespaces.print_header('is_whitespace'), 4)}
 
     {indent_insert(case_info_builder.print_header(), 4)}

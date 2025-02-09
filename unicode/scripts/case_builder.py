@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from textwrap import dedent
 from typing import Optional
 
-from common import char_name, chars_len_in_utf16, indent_insert
+from common import chars_len_in_utf16, format_utf16_string, indent_insert
 from table_builder import table_builder
 
 
@@ -186,21 +186,10 @@ class case_builder:
         '''
         return dedent(ret)
     
-    def __print_cased_data(self):
-        ret = '\nu"'
-        char_count = 0
-        for char in self.__mapped_data:
-            ret += char_name(char)
-            char_count += 1
-            if char_count > 0 and char_count % 16 == 0:
-                ret += '"\nu"'
-        ret += '"'
-        return ret
-
     def print_impl(self):
         ret = f'''
         const char16_t case_mapper::cased_data[{self.__cased_data_len}] = 
-            {indent_insert(self.__print_cased_data(), 12)};
+            {indent_insert(format_utf16_string(self.__mapped_data), 12)};
 
         {indent_insert(self.__builder.print_impl("case_mapper::lookup"), 8)}
         '''

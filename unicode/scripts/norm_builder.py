@@ -3,8 +3,7 @@
 from dataclasses import dataclass
 from textwrap import dedent
 
-from common import indent_insert
-#from trie_builder import trie_builder
+from common import format_array, indent_insert
 from table_builder import table_builder
 
 
@@ -356,34 +355,14 @@ class norm_builder:
         return dedent(ret)
     
 
-    def __print_compositions(self):
-        ret = '\n'
-        val_count = 0
-        for val in self.__compositions:
-            ret += f'0x{val:08X}, '
-            val_count += 1
-            if val_count > 0 and val_count % 16 == 0:
-                ret += '\n'
-        return ret
-    
-    def __print_values(self):
-        ret = '\n'
-        val_count = 0
-        for val in self.__values:
-            ret += f'0x{val:08X}, '
-            val_count += 1
-            if val_count > 0 and val_count % 16 == 0:
-                ret += '\n'
-        return ret
-    
     def print_impl(self):
         ret = f'''
         const uint32_t normalizer::compositions[] = {{
-            {indent_insert(self.__print_compositions(), 12)}
+            {indent_insert(format_array(self.__compositions, ishex=True, bits=32), 12)}
         }};
 
         const uint32_t normalizer::values[] = {{
-            {indent_insert(self.__print_values(), 12)}
+            {indent_insert(format_array(self.__values, ishex=True, bits=32), 12)}
         }};
 
         {indent_insert(self.__decomp_builder.print_impl("normalizer::lookup"), 8)}

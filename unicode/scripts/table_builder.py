@@ -7,7 +7,8 @@
 #
 
 from textwrap import dedent
-from common import bytes_for_bits, type_for_bits, indent_insert
+import textwrap
+from common import bytes_for_bits, format_array, type_for_bits, indent_insert
 
 
 class table_builder:
@@ -133,30 +134,17 @@ class table_builder:
 
         return total_size
 
-    def __make_nested(self, values):
+    def __make_nested(self, values, bits=0):
         ret = ''
         for block_idx, block in enumerate(values):
             if block_idx > 0:
                 ret += ','
-            ret += '\n'
-            ret += '{'
-            for idx, val in enumerate(block):
-                if idx > 0:
-                    ret += ', '
-                #ret += f'0x{val:01X}'
-                ret += f'{val}'
-            ret += '}'
-        return ret
-    
-    def __make_simple(self, values):
-        ret = '{'
-        for idx, value in enumerate(values):
-            if idx > 0:
-                ret += ', '
-                if idx % 32 == 0:
-                    ret += '\n'
-            ret += f'{value}'
-        ret += '}'
+            ret += '\n{{'
+            arr = format_array(block, bits=bits, max_width=200)
+            if arr.find('\n') != -1:
+                arr = '\n' + textwrap.indent(arr, '  ') + '\n'
+            ret += arr
+            ret += '}}'
         return ret
     
     def print_header(self, name, values_enum_content):
@@ -227,22 +215,22 @@ class table_builder:
 
     def print_impl(self, name):
         ret = f'''
-        const std::array<{type_for_bits(self.__bits_for_ascii)}, {len(self.__ascii)}> {name}::ascii({{
-            {indent_insert(self.__make_simple(self.__ascii), 12)}
-        }});
+        const std::array<{type_for_bits(self.__bits_for_ascii)}, {len(self.__ascii)}> {name}::ascii({{{{
+            {indent_insert(format_array(self.__ascii, ishex=True, bits=self.__bits_for_ascii), 12)}
+        }}}});
         '''
         for idx, values in enumerate(self.__values):
             if isinstance(values[0], int):
                 ret += f'''
-        const std::array<{type_for_bits(self.__bits_for_values[idx])}, {len(values)}> {name}::stage{idx + 1}({{
-            {indent_insert(self.__make_simple(values), 12)}
-        }});
+        const std::array<{type_for_bits(self.__bits_for_values[idx])}, {len(values)}> {name}::stage{idx + 1}({{{{
+            {indent_insert(format_array(values, ishex=idx!=0, bits=self.__bits_for_values[idx]), 12)}
+        }}}});
         '''
             else:
                 ret += f'''
-        const std::array<std::array<{type_for_bits(self.__bits_for_values[idx])}, {len(values[0])}>, {len(values)}> {name}::stage{idx + 1}({{
-            {indent_insert(self.__make_nested(values), 12)}
-        }});
+        const std::array<std::array<{type_for_bits(self.__bits_for_values[idx])}, {len(values[0])}>, {len(values)}> {name}::stage{idx + 1}({{{{
+            {indent_insert(self.__make_nested(values, bits=self.__bits_for_values[idx]), 12)}
+        }}}});
         '''
 
             

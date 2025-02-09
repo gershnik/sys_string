@@ -20,29 +20,22 @@
 
 namespace sysstr::util::unicode 
 {
-    template<class Derived>
-    class lookup
+    class is_whitespace 
     {
-    public:
-        static bool test(char32_t c) noexcept
-        {
-            if (c > Derived::max_char)
-                return false;
-            for(auto p = Derived::chars; *p; ++p)
-                if (*p == c)
-                    return true;
-            return false;
-        }
-    };
-
-
-    class is_whitespace : public lookup<is_whitespace>
-    {
-    friend lookup<is_whitespace>;
     private:
         static const char16_t chars[26];
     public:
         static constexpr char32_t max_char = U'\u3000';
+    
+        static bool test(char32_t c) noexcept
+        {
+            if (c > max_char)
+                return false;
+            for(auto p = chars; *p; ++p)
+                if (*p == c)
+                    return true;
+            return false;
+        }
     
         static constexpr size_t data_size = sizeof(chars);
     };

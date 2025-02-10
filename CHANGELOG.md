@@ -5,6 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Added
+
+- `sys_string` can now be `normalize()`-ed to NFC and NFD.
+- It is now possible to use ICU instead of internal data/code for case conversion, grapheme
+  iteration and normalization. This makes those operations a tiny bit slower but saves 
+  ~100kB in a final executable.
+
+### Fixed
+
+- Addressed some false positive sanitizer warnings.
+
 ## [3.1] - 2025-01-10
 
 ### Added

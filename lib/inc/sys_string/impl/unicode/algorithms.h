@@ -12,6 +12,7 @@
 #include <sys_string/impl/unicode/utf_util.h>
 
 #include <vector>
+#include <cstring>
 
 namespace sysstr
 {

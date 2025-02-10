@@ -5,116 +5,71 @@
 # license that can be found in the LICENSE file or at
 # https://github.com/gershnik/sys_string/blob/master/LICENSE
 # 
-import sys
-import re
+
+import argparse
 from pathlib import Path
-from common import read_ucd_file, write_file, char_name, parse_char_range
+from textwrap import dedent
+from common import read_ucd_file, write_file, char_name, parse_char_range, indent_insert
+from lookup_builder import lookup_builder
+from case_builder import case_builder
+from norm_builder import norm_builder
 
-datadir = Path(sys.argv[1])
-cppfile = Path(sys.argv[2])
+parser = argparse.ArgumentParser()
 
+parser.add_argument('datadir')
+parser.add_argument('cppfile')
+parser.add_argument('hfile')
+parser.add_argument('test_normalization_data_h')
 
-folding_char_info = {} 
-uppercase_char_info = {} 
-lowercase_char_info = {}
-max_mappings_len = 1
+args = parser.parse_args()
 
-whitespaces = []
+datadir = Path(args.datadir)
+cppfile = Path(args.cppfile)
+hfile = Path(args.hfile)
+testfiles = (
+    Path(args.test_normalization_data_h),
+)
 
-prop_values = {
-    'Cased':            0b01,
-    'Case_Ignorable':   0b10
+test_cases = ([],)
+
+case_info_builder = case_builder()
+norm_info_builder = norm_builder()
+
+whitespaces = lookup_builder()
+
+case_prop_values = {
+    'Cased':            (0b01, 'cased'),
+    'Case_Ignorable':   (0b10, 'case_ignorable')
 }
 
-total_data_size = 0
 
-class table_builder:
-    block_size = 256
-    count_per_byte = 4
-
-    def __init__(self):
-        self.stage1 = []
-        self.blocks = {}
-        self.blocks_by_index = []
-        self.max_known_char = 0
-
-    def add_chars(self, start, end, flag):
-        for c in range(start, end):
-            bucket = c // self.block_size
-            while bucket >= len(self.stage1):
-                self.stage1.append([0] * self.block_size)
-            in_block_idx = c % self.block_size
-            self.stage1[bucket][in_block_idx] |= flag
-        self.max_known_char = end - 1
-
-    def generate(self):
-        for idx, block in enumerate(self.stage1):
-            block = tuple(block)
-            block_idx = self.blocks.get(block)
-            if block_idx is None:
-                block_idx = len(self.blocks_by_index)
-                self.blocks[block] = block_idx
-                self.blocks_by_index.append(block)
-            self.stage1[idx] = block_idx
-
-    def make_stage1(self):
-        global total_data_size
-        ret = '{\n        '
-        for idx, block_idx in enumerate(self.stage1):
-            if idx > 0:
-                ret += ', '
-                if idx % 32 == 0:
-                    ret += '\n        '
-            ret += f'{block_idx}'
-            total_data_size += 1
-        ret += '}'
-        return ret
-
-    def make_stage2(self):
-        global total_data_size
-        ret = '{'
-        for block_idx, block in enumerate(self.blocks_by_index):
-            if block_idx > 0:
-                ret += ','
-            ret += '\n        '
-            for idx in range(0, len(block), self.count_per_byte):
-                if idx > 0:
-                    ret += ', '
-                val = 0
-                for i in range(0, self.count_per_byte):
-                    val = val << (8 // self.count_per_byte)
-                    val = val | block[idx + i]
-                ret += f'0x{val:02X}'
-                total_data_size += 1
-        ret += '\n    }'
-        return ret
-
-prop_builder = table_builder()
-
-def parse_case_info(line):
+def parse_unicode_data(line:str):
     fields = line.split(';')
     char = int(fields[0].strip(), 16)
+    comb_class = fields[3].strip()
+    decomp = fields[5].strip()
     uppercase = fields[12].strip()
     lowercase = fields[13].strip()
     if len(uppercase) != 0:
-        lowercase_char_info[char] = [int(uppercase, 16)]
+        case_info_builder.set_uppercase(char, [int(uppercase, 16)])
     if len(lowercase) != 0:
-        uppercase_char_info[char] = [int(lowercase, 16)]
+        case_info_builder.set_lowercase(char, [int(lowercase, 16)])
+    if len(comb_class) != 0:
+        norm_info_builder.set_comb_class(char, int(comb_class))
+    if len(decomp) != 0 and not decomp.startswith('<'):
+        values = [int(x, 16) for x in decomp.split(' ')]
+        norm_info_builder.set_decomp(char, values)
         
 
 def parse_case_folding(line):
-    global max_mappings_len
     (code, status, folding, _) = line.split('; ')
     if status != 'C' and status != 'F':
         return
     code = int(code, 16)
     folding = [int(x, 16) for x in folding.split(' ')]
-    if len(folding) > max_mappings_len:
-        max_mappings_len = len(folding)
-    folding_char_info[code] = folding
+    case_info_builder.set_folding(code, folding)
 
 def parse_special_casing(line):
-    global max_mappings_len
     fields = line.split('; ')
     if len(fields) == 6: #has condition
         return
@@ -122,13 +77,9 @@ def parse_special_casing(line):
     uppercase = [int(x, 16) for x in fields[3].strip().split(' ')]
     lowercase = [int(x, 16) for x in fields[1].strip().split(' ')]
     if len(uppercase) != 1 or uppercase[0] != code:
-        if len(uppercase) > max_mappings_len:
-            max_mappings_len = len(uppercase)
-        lowercase_char_info[code] = uppercase
+        case_info_builder.set_uppercase(code, uppercase)
     if len(lowercase) != 1 or lowercase[0] != code:
-        if len(lowercase) > max_mappings_len:
-            max_mappings_len = len(lowercase)
-        uppercase_char_info[code] = lowercase
+        case_info_builder.set_lowercase(code, lowercase)
 
 def parse_properties(line):
     (char_range, prop) = line[:line.index('# ')].split('; ')
@@ -136,101 +87,157 @@ def parse_properties(line):
     prop = prop.strip()
     if prop == 'White_Space':
         start, end = parse_char_range(char_range)
-        for char in range(start, end):
-            whitespaces.append(char)
+        whitespaces.add_chars(start, end)
 
 def parse_derived_properties(line):
-    (char_range, prop) = line[:line.index('# ')].split('; ')
+    (char_range, props) = line[:line.index('# ')].split('; ', 1)
     char_range = char_range.strip()
-    prop = prop.strip()
-    prop_val = prop_values.get(prop)
-    if not prop_val is None:
+    props = tuple(prop.strip() for prop in props.split('; '))
+    if len(props) == 1:
+        props = props[0]
+    if (prop_val := case_prop_values.get(props)) is not None:
         start, end = parse_char_range(char_range)
-        prop_builder.add_chars(start, end, prop_val)
-            
+        case_info_builder.set_props(start, end, prop_val[0])
+    
 
-def make_source_chars(char_info):
-    global total_data_size 
-    ret = '{\n        '
-    range_start = 0
-    for idx, code in enumerate(sorted(char_info.keys())):
-        if idx > 0:
-            ret += ', '
-            if idx % 16 == 0:
-                ret += '\n        '
+def parse_composition_exclusions(line):
+    char = line[:line.index('# ')].rstrip()
+    code = int(char, 16)
+    norm_info_builder.set_exclusion(code)
 
-        ret += f"{{{range_start} ,U'{char_name(code)}'}}"
-        total_data_size += 4
+def parse_normalization_props(line):
+    parts = line[:line.index(' #')].split('; ')
+    if len(parts) != 3:
+        return
+    char_range, prop, val = parts
+    prop = prop.strip()
+    if prop == 'NFC_QC':
+        val = val.strip()
+        if val in ('N', 'M'):
+            char_range = char_range.strip()
+            start, end = parse_char_range(char_range)
+            for char in range(start, end):
+                norm_info_builder.set_nfc_qc_not_yes(char) 
 
-        chars = char_info[code]
-        range_len = 0
-        for char in chars:
-            range_len += (1 if char < 0x10000 else 2)
-        range_start += range_len
 
-    ret += f", {{{range_start} , 0}}"
-    total_data_size += 4
+def parse_normalization_tests(dest, line):
+    if line.startswith('@'):
+        return
+    comment_start = line.index('# ')
+    data = line[:comment_start].strip()
+    comment = line[comment_start + 1:].strip()
+    entries = data.split(';')
+    values = []
+    for entry in entries[0:5]:
+        chars = [char_name(int(code.strip(), 16)) for code in entry.split(' ')]
+        values.append(''.join(chars))
+    dest.append((values, comment))
+    
 
-    ret += '\n    }'
-    return ret
-
-def make_values_string(char_info):
-    global total_data_size 
-    ret = '\n        u"'
-    char_count = 0
-    for char in sorted(char_info.keys()):
-        values = char_info[char]
-        for value in values:
-            ret += char_name(value)
-            char_count += 1
-            total_data_size += 2 if value < 0x10000 else 4
-            if char_count > 0 and char_count % 16 == 0:
-                ret += '"\n        u"'
-    ret += '"'
-    total_data_size += 2
-    return ret
-
-def make_index(char_info):
-    global total_data_size 
+def print_enum(mappings, masks=None):
+    if masks is None:
+        masks = {}
     ret = ''
-    for idx, code in enumerate(sorted(char_info.keys())):
-        if idx > 0:
-            ret += ', '
-            if idx % 8 == 0:
-                ret += '\n        '
+    if isinstance(mappings, dict):
+        mappings = [mappings]
 
-        chars = char_info[code]
-        range_len = 0
-        for char in chars:
-            range_len += (1 if char < 0x10000 else 2)
-        ret += f'{range_len}'
-        total_data_size += 1
+    first = True
+    for mapping in mappings:
+        for val, name in mapping.values():
+            if not first:
+                ret += ',\n'
+            first = False
+            ret += f'{name} = {val}'
+    if len(masks) != 0:
+        ret += ',\n\n'
+        first = True
+        for name, val in masks.items():
+            if not first:
+                ret += ',\n'
+            first = False
+            ret += f'{name} = {val}'
     return ret
 
-def make_whitespaces():
-    global total_data_size 
-    ret = ''
-    char_count = 0
-    for char in whitespaces:
-        ret += char_name(char)
-        char_count += 1
-        total_data_size += 2 if char < 0x10000 else 4
-        if char_count > 0 and char_count % 16 == 0:
-            ret += '"\n        u"'
-    total_data_size += 2
+
+def make_normalization_tests(tests):
+    ret = dedent('''
+    static struct 
+    {
+        const char32_t * src;
+        const char32_t * nfc;
+        const char32_t * nfd;
+        const char32_t * nfkc;
+        const char32_t * nfkd;
+    } data[] = {
+    ''')
+    for idx, test in enumerate(tests):
+        values, comment = test
+        source, NFC, NFD, NFKC, NFKD = values
+        ret += f'    //{idx}: {comment}\n'
+        ret += f'    {{ U"{source}", U"{NFC}", U"{NFD}", U"{NFKC}", U"{NFKD}" }},\n'
+    
+    ret += dedent('''
+    };
+    
+    for (size_t i = 0; i != std::size(data); ++i)
+    {
+        auto & entry = data[i];
+        check_generated(i, entry.src, entry.nfc, entry.nfd, entry.nfkc, entry.nfkd);
+    }
+    ''')
     return ret
 
-read_ucd_file(datadir/'UnicodeData.txt', parse_case_info)
-read_ucd_file(datadir/'CaseFolding.txt', parse_case_folding)
-read_ucd_file(datadir/'SpecialCasing.txt', parse_special_casing)
-read_ucd_file(datadir/'PropList.txt', parse_properties)
-read_ucd_file(datadir/'DerivedCoreProperties.txt', parse_derived_properties)
+def main():
+    read_ucd_file(datadir/'UnicodeData.txt', parse_unicode_data)
+    read_ucd_file(datadir/'CaseFolding.txt', parse_case_folding)
+    read_ucd_file(datadir/'SpecialCasing.txt', parse_special_casing)
+    read_ucd_file(datadir/'PropList.txt', parse_properties)
+    read_ucd_file(datadir/'DerivedCoreProperties.txt', parse_derived_properties)
+    read_ucd_file(datadir/'CompositionExclusions.txt', parse_composition_exclusions)
+    read_ucd_file(datadir/'DerivedNormalizationProps.txt', parse_normalization_props)
+    read_ucd_file(datadir/'NormalizationTest.txt', lambda line: parse_normalization_tests(test_cases[0], line))
 
-prop_builder.generate()
-#print(f'{prop_builder.block_size}: {len(prop_builder.stage1)}, {len(prop_builder.blocks)}, {len(prop_builder.stage1) + len(prop_builder.blocks) * prop_builder.block_size // prop_builder.count_per_byte}')
+
+    total_data_size = 0
+    total_data_size += case_info_builder.generate()
+    total_data_size += norm_info_builder.generate()
+    total_data_size += whitespaces.generate()
+
+    write_file(hfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
+
+//
+// Copyright 2020 Eugene Gershnik
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://github.com/gershnik/sys_string/blob/master/LICENSE
+//
+#ifndef HEADER_SYS_STRING_UNICODE_MAPPINGS_H_INCLUDED
+#define HEADER_SYS_STRING_UNICODE_MAPPINGS_H_INCLUDED
+
+#include <sys_string/impl/unicode/mappings_common.h>
+           
+#include <algorithm>
+#include <cstdlib>
+#include <climits>
+#include <array>
+#include <cassert>
+
+namespace sysstr::util::unicode 
+{{
+    {indent_insert(whitespaces.print_header('is_whitespace'), 4)}
+
+    {indent_insert(case_info_builder.print_header(), 4)}
+
+    {indent_insert(norm_info_builder.print_header(), 4)}
+}}
+
+#endif
+
+''')      
 
 
-write_file(cppfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
+    write_file(cppfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 
 //
 // Copyright 2020 Eugene Gershnik
@@ -245,52 +252,35 @@ write_file(cppfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 namespace sysstr::util::unicode 
 {{
 
-    static_assert(mapper::max_mapped_length >= {max_mappings_len});
-    static_assert(props_block_len == {prop_builder.block_size});
-    static_assert(props_count_per_byte == {prop_builder.count_per_byte});
-
-    const char_lookup folding_source_chars[] = {make_source_chars(folding_char_info)};
-
-    constexpr size_t folding_source_chars_length = {len(folding_char_info)};
-
-    const char16_t case_folded_chars[] = {make_values_string(folding_char_info)};
-
-    const char_lookup uppercase_source_chars[] = {make_source_chars(uppercase_char_info)};
-
-    constexpr size_t uppercase_source_chars_length = {len(uppercase_char_info)};
-
-    const char16_t lowercase_chars[] = {make_values_string(uppercase_char_info)};
-
-    const char_lookup lowercase_source_chars[] = {make_source_chars(lowercase_char_info)};
-
-    constexpr size_t lowercase_source_chars_length = {len(lowercase_char_info)};
-
-    const char16_t uppercase_chars[] = {make_values_string(lowercase_char_info)};
-
+    {indent_insert(whitespaces.print_impl('is_whitespace'), 4)}
+    {indent_insert(case_info_builder.print_impl(), 4)}
+    {indent_insert(norm_info_builder.print_impl(), 4)}
     
-    const mapper mapper::case_fold(folding_source_chars, folding_source_chars_length, case_folded_chars);
-    const mapper mapper::to_lower_case(uppercase_source_chars, uppercase_source_chars_length, lowercase_chars);
-    const mapper mapper::to_upper_case(lowercase_source_chars, lowercase_source_chars_length, uppercase_chars);
-
-    extern const char16_t whitespaces[] = 
-        u"{make_whitespaces()}";
-
-    extern const char32_t max_props_char = U'{char_name(prop_builder.max_known_char)}';
-    extern const uint8_t props_stage1[] = {prop_builder.make_stage1()};
-
-    extern const uint8_t props_stage2[] = {prop_builder.make_stage2()};
-
     constexpr auto total_data_size = 
-        sizeof(folding_source_chars) + 
-        sizeof(uppercase_source_chars) + 
-        sizeof(lowercase_source_chars) + 
-        sizeof(case_folded_chars) +
-        sizeof(uppercase_chars) + 
-        sizeof(lowercase_chars) + 
-        sizeof(whitespaces) +
-        sizeof(props_stage1) + 
-        sizeof(props_stage2);
+        is_whitespace::data_size +
+        case_mapper::data_size +
+        normalizer::data_size;
     static_assert(total_data_size == {total_data_size});
 
 }}
 ''')
+
+        
+    for testfile, tests in zip(testfiles[0:1], test_cases[0:1]):
+        write_file(testfile, f'''
+//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
+
+//
+// Copyright 2024 Eugene Gershnik
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://github.com/gershnik/sys_string/blob/master/LICENSE
+//
+
+{make_normalization_tests(tests)}
+
+'''.lstrip())
+
+if __name__ == '__main__':
+    main()

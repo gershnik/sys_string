@@ -78,6 +78,43 @@ namespace sysstr::util
         
         return std::equal(test.begin(), test.end(), access.begin());
     }
+
+    template<class Storage>
+    struct transform_sink
+    {
+        const typename sys_string_t<Storage>::utf32_view & access;
+        decltype(std::declval<sys_string_builder_t<Storage>>().chars()) chars;
+        
+        
+        SYS_STRING_FORCE_INLINE
+        void copy(typename sys_string_t<Storage>::utf32_view::iterator it)
+        {
+            auto cur = it.storage_cursor();
+            auto size = it.storage_size();
+            
+            for (decltype(size) i = 0; i < size; ++i, ++cur)
+                this->chars.push_back(*cur);
+        }
+        
+        SYS_STRING_FORCE_INLINE
+        void copy(typename sys_string_t<Storage>::utf32_view::iterator first, typename sys_string_t<Storage>::utf32_view::iterator last)
+        {
+            if (chars.empty())
+            {
+                if (first == access.begin() && last == access.end())
+                    return;
+            }
+            auto fcur = first.storage_cursor();
+            auto lcur = last.storage_cursor();
+            
+            for ( ; fcur != lcur; ++fcur)
+                this->chars.push_back(*fcur);
+        }
+        SYS_STRING_FORCE_INLINE
+        void write(char32_t c)
+            { write_unsafe<utf_encoding_of<typename sys_string_t<Storage>::storage_type>>(c, std::back_inserter(chars)); }
+        
+    };
 }
 
 namespace sysstr
@@ -140,6 +177,28 @@ auto sysstr::sys_string_t<Storage>::to_upper() const -> sys_string_t<Storage>
     return builder.build();
 }
 
+template<class Storage>
+inline
+auto sysstr::sys_string_t<Storage>::normalize(normalization norm) const -> sys_string_t
+{
+    
+    sys_string_builder_t<Storage> builder;
+    sys_string_t<Storage>::utf32_view access(*this);
+    switch (norm)
+    {
+        break; case normalization::nfd:
+            normalize::nfd<utf_encoding_of<storage_type>>()(access.begin(), access.end(), std::back_inserter(builder.chars()));
+        break; case normalization::nfc:
+        {
+            util::transform_sink<Storage> sink{access, builder.chars()};
+            normalize::nfc<utf_encoding_of<storage_type>>().call_with_sink(access.begin(), access.end(), sink);
+            if (sink.chars.empty())
+                return *this;
+        }
+        break; default: return *this;
+    }
+    return builder.build();
+}
 
 template<class Storage>
 template<class Pred>

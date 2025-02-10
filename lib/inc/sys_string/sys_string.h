@@ -46,6 +46,12 @@ namespace sysstr
         copy_content,
         attach_pointer
     };
+
+    enum class normalization
+    {
+        nfd,
+        nfc
+    };
 }
 
 namespace sysstr::util
@@ -239,6 +245,8 @@ namespace sysstr
         
         auto to_lower() const -> sys_string_t;
         auto to_upper() const -> sys_string_t;
+
+        auto normalize(normalization norm) const -> sys_string_t;
 
         template<class Pred = isspace>
         auto trim(Pred pred = Pred()) const -> sys_string_t;

@@ -246,6 +246,24 @@ TEST_CASE( "Case conversion", "[general]" ) {
     CHECK(S("βους").to_upper() == S("ΒΟΥΣ"));
 
     CHECK(S("\U00010400").to_lower() == S("\U00010428"));
+
+    CHECK(S("𐐀").to_lower() == S("𐐨"));
+
+    CHECK(S("İ").to_lower() == S("i̇"));
+
+    sys_string upper(u"\u0041\U000118A9\U00016E5F\U0001D7CA\U0001E921");
+    sys_string lower(u"\u0061\U000118C9\U00016E7F\U0001D7CA\U0001E943");
+    CHECK(upper.to_lower() == lower);
+    CHECK(lower.to_upper() == upper);
+}
+
+TEST_CASE( "Normalization", "[general]" ) {
+
+    CHECK(S("\u00C5").normalize(normalization::nfd) == S("\u0041\u030A"));
+    CHECK(S("\u0041\u030A").normalize(normalization::nfc) == S("\u00C5"));
+    
+    CHECK(S("nörmalization").normalize(normalization::nfc) == S("nörmalization"));
+    CHECK(S("No\u0308rmalization").normalize(normalization::nfc) == S("Nörmalization"));
 }
 
 TEST_CASE( "Trim", "[general]" ) {

@@ -211,20 +211,20 @@ class trie_builder:
 
     def print_impl(self, name):
         ret = f'''
-        const std::array<{type_for_bits(self.__bits_for_ascii)}, {len(self.__ascii)}> {name}::ascii({{{{
+        constexpr std::array<{type_for_bits(self.__bits_for_ascii)}, {len(self.__ascii)}> {name}::ascii({{{{
             {indent_insert(format_array(self.__ascii, ishex=True, bits=self.__bits_for_ascii), 12)}
         }}}});
         '''
         for idx, values in enumerate(self.__values):
             if isinstance(values[0], int):
                 ret += f'''
-        const std::array<{type_for_bits(self.__bits_for_values[idx])}, {len(values)}> {name}::stage{idx + 1}({{{{
+        constexpr std::array<{type_for_bits(self.__bits_for_values[idx])}, {len(values)}> {name}::stage{idx + 1}({{{{
             {indent_insert(format_array(values, ishex=idx!=0, bits=self.__bits_for_values[idx]), 12)}
         }}}});
         '''
             else:
                 ret += f'''
-        const std::array<std::array<{type_for_bits(self.__bits_for_values[idx])}, {len(values[0])}>, {len(values)}> {name}::stage{idx + 1}({{{{
+        constexpr std::array<std::array<{type_for_bits(self.__bits_for_values[idx])}, {len(values[0])}>, {len(values)}> {name}::stage{idx + 1}({{{{
             {indent_insert(self.__make_nested(values, bits=self.__bits_for_values[idx]), 12)}
         }}}});
         '''

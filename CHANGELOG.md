@@ -90,6 +90,21 @@ This is a major release with some breaking changes
   behavior applies to `wchar_t` on platform where it is UTF-16 or UTF-32.
 - `operator<<` no longer pollutes global namespace
 
+## [2.17] - 2025-02-10
+
+### Added
+
+- `sys_string` can now be `normalize()`-ed to NFC and NFD (back-ported from version 3).
+
+### Changed
+
+- Supported Unicode version has been bumped to 16 (back-ported from version 3).
+- Speed improvements to case conversions and case insensitive comparisons (back-ported from version 3).
+
+### Fixed
+
+- Addressed some false positive sanitizer warnings.
+
 ## [2.16] - 2025-01-10
 
 ### Fixed
@@ -258,5 +273,6 @@ This is a major release with some breaking changes
 [2.14]: https://github.com/gershnik/sys_string/releases/v2.14
 [2.15]: https://github.com/gershnik/sys_string/releases/v2.15
 [2.16]: https://github.com/gershnik/sys_string/releases/v2.16
+[2.17]: https://github.com/gershnik/sys_string/releases/v2.17
 [3.0]: https://github.com/gershnik/sys_string/releases/v3.0
 [3.1]: https://github.com/gershnik/sys_string/releases/v3.1

@@ -390,6 +390,8 @@ TEST_CASE( "Case conversion" ) {
     
     CHECK(S("βους").to_upper() == S("ΒΟΥΣ"));
 
+    CHECK(S("\U00010400").to_lower() == S("\U00010428"));
+
     CHECK(S("𐐀").to_lower() == S("𐐨"));
 
     CHECK(S("İ").to_lower() == S("i̇"));

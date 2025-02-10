@@ -124,7 +124,7 @@ endif()
 
 set(LIB_TYPES " ")
 if (ICU_FOUND AND ICU_UC_FOUND)
-    list(APPEND LIB_TYPES _headers)
+    list(APPEND LIB_TYPES _icu)
 endif()
     
 foreach(STANDARD_SUFFIX ${CXX_STANDARDS})
@@ -167,7 +167,7 @@ foreach(LIB_SUFFIX ${LIB_TYPES})
         ${STORAGE_FLAG_${STORAGE_SUFFIX}}
     )
 
-    if ("${LIB_SUFFIX}" STREQUAL "_headers")
+    if ("${LIB_SUFFIX}" STREQUAL "_icu")
         target_compile_definitions(test-${TEST_SUFFIX} PRIVATE
             SYS_STRING_USE_ICU=1
         )
@@ -198,7 +198,7 @@ foreach(LIB_SUFFIX ${LIB_TYPES})
 
     target_link_libraries(test-${TEST_SUFFIX} PRIVATE
         
-        sys_string::sys_string${LIB_SUFFIX}
+        sys_string::sys_string
 
         "$<$<PLATFORM_ID:Darwin>:-framework CoreFoundation>"
         "$<$<PLATFORM_ID:Windows>:runtimeobject.lib>"

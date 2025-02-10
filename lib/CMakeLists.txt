@@ -56,10 +56,8 @@ set(UNICODE_FILES
     ${SRCDIR}/inc/sys_string/impl/unicode/algorithms.h
     ${SRCDIR}/inc/sys_string/impl/unicode/mappings_common.h
     ${SRCDIR}/inc/sys_string/impl/unicode/mappings.h
+    ${SRCDIR}/inc/sys_string/impl/unicode/mappings_data.h
     ${SRCDIR}/inc/sys_string/impl/unicode/mappings_icu.h
-)
-set(SOURCES
-    ${SRCDIR}/src/unicode_mappings.cpp
 )
 source_group("Unicode" FILES ${UNICODE_FILES} ${SOURCES})
 
@@ -80,59 +78,25 @@ set(HEADERS
     ${UTIL_FILES}
 )
 
-add_library(${LIBNAME}_headers INTERFACE)
+add_library(${LIBNAME} INTERFACE)
 
-target_compile_features(${LIBNAME}_headers
+target_compile_features(${LIBNAME}
 INTERFACE 
     cxx_std_20
 )
 
-target_include_directories(${LIBNAME}_headers
+target_include_directories(${LIBNAME}
 INTERFACE
     $<BUILD_INTERFACE:${SRCDIR}/inc>
     $<INSTALL_INTERFACE:include>  # <prefix>/include
 )
 
-target_compile_definitions(${LIBNAME}_headers
-INTERFACE
-    $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>
-)
-
-target_sources(${LIBNAME}_headers
+target_sources(${LIBNAME}
 INTERFACE 
     FILE_SET HEADERS BASE_DIRS ${SRCDIR}/inc FILES
         ${HEADERS}
 PRIVATE 
     ${HEADERS}
-)
-
-add_library(${LIBNAME}::${LIBNAME}_headers ALIAS ${LIBNAME}_headers)
-
-add_library(${LIBNAME} STATIC)
-
-set_target_properties(${LIBNAME} PROPERTIES
-    CXX_EXTENSIONS OFF
-    CXX_VISIBILITY_PRESET hidden
-    VISIBILITY_INLINES_HIDDEN ON
-)
-
-target_link_libraries(${LIBNAME} 
-PUBLIC
-    ${LIBNAME}_headers
-)
-
-target_compile_options(${LIBNAME} 
-PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/W4;/WX>
-    $<$<CXX_COMPILER_ID:Clang>:-Wall;-Wextra;-pedantic>
-    $<$<CXX_COMPILER_ID:AppleClang>:-Wall;-Wextra;-pedantic>
-    $<$<CXX_COMPILER_ID:GNU>:-Wall;-Wextra;-pedantic>
-)
-
-
-target_sources(${LIBNAME} 
-PRIVATE 
-    ${SOURCES}
 )
 
 add_library(${LIBNAME}::${LIBNAME} ALIAS ${LIBNAME})

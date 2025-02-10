@@ -18,7 +18,7 @@ from norm_builder import norm_builder
 parser = argparse.ArgumentParser()
 
 parser.add_argument('datadir')
-parser.add_argument('cppfile')
+parser.add_argument('implfile')
 parser.add_argument('hfile')
 parser.add_argument('test_grapheme_data_h')
 parser.add_argument('test_grapheme_data_15_h')
@@ -27,7 +27,7 @@ parser.add_argument('test_normalization_data_h')
 args = parser.parse_args()
 
 datadir = Path(args.datadir)
-cppfile = Path(args.cppfile)
+implfile = Path(args.implfile)
 hfile = Path(args.hfile)
 testfiles = (
     Path(args.test_grapheme_data_h),
@@ -335,7 +335,7 @@ namespace sysstr::util::unicode
 ''')      
 
 
-    write_file(cppfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
+    write_file(implfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 
 //
 // Copyright 2020 Eugene Gershnik
@@ -344,8 +344,6 @@ namespace sysstr::util::unicode
 // license that can be found in the LICENSE file or at
 // https://github.com/gershnik/sys_string/blob/master/LICENSE
 //
-
-#include <sys_string/impl/unicode/mappings.h>
 
 namespace sysstr::util::unicode 
 {{

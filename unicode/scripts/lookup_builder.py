@@ -53,7 +53,7 @@ class lookup_builder:
     
     def print_impl(self, name):
         ret = f'''
-        constexpr char16_t {name}::chars[{self.length}] = 
+        inline constexpr char16_t {name}::chars[{self.length}] = 
             {indent_insert(format_utf16_string(self.chars), 12)};
         '''
         return dedent(ret)

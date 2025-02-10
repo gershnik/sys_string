@@ -188,7 +188,7 @@ class case_builder:
     
     def print_impl(self):
         ret = f'''
-        constexpr char16_t case_mapper::cased_data[{self.__cased_data_len}] = 
+        inline constexpr char16_t case_mapper::cased_data[{self.__cased_data_len}] = 
             {indent_insert(format_utf16_string(self.__mapped_data), 12)};
 
         {indent_insert(self.__builder.print_impl("case_mapper::lookup"), 8)}

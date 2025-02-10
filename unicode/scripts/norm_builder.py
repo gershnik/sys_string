@@ -391,11 +391,11 @@ class norm_builder:
 
     def print_impl(self):
         ret = f'''
-        constexpr uint32_t normalizer::compositions[] = {{
+        inline constexpr uint32_t normalizer::compositions[] = {{
             {indent_insert(format_array(self.__compositions, ishex=True, bits=32), 12)}
         }};
 
-        constexpr uint32_t normalizer::values[] = {{
+        inline constexpr uint32_t normalizer::values[] = {{
             {indent_insert(format_array(self.__values, ishex=True, bits=32), 12)}
         }};
 

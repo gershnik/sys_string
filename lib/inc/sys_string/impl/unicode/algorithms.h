@@ -11,6 +11,8 @@
 #include <sys_string/impl/unicode/mappings.h>
 #include <sys_string/impl/unicode/utf_util.h>
 
+#include <vector>
+
 namespace sysstr
 {
     namespace util

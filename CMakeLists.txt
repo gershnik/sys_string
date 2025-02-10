@@ -35,8 +35,8 @@ if(${Python3_Interpreter_FOUND})
     add_custom_command(
         COMMENT "Generating Unicoode mappings"
         OUTPUT ${UNICODE_GENERATED_FILES}
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/lib/scripts/genmappings.py 
-                        ${CMAKE_CURRENT_LIST_DIR}/lib/res 
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/unicode/scripts/genmappings.py 
+                        ${CMAKE_CURRENT_LIST_DIR}/unicode/data 
                         ${UNICODE_GENERATED_FILES}
         DEPENDS 
             ${UNICODE_DATA} 

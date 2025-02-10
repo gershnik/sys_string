@@ -78,6 +78,43 @@ namespace sysstr
         
             return std::ranges::equal(test.begin(), test.end(), access.begin(), access.begin() + test_size);
         }
+
+        template<class Storage>
+        struct transform_sink
+        {
+            const sys_string_t<Storage>::utf32_access & access;
+            decltype(std::declval<sys_string_builder_t<Storage>>().chars()) chars;
+            
+            
+            SYS_STRING_FORCE_INLINE
+            void copy(sys_string_t<Storage>::utf32_access::iterator it)
+            {
+                auto sfirst = it.storage_current();
+                auto slast = it.storage_next();
+                
+                for ( ; sfirst != slast; ++sfirst)
+                    this->chars.push_back(*sfirst);
+            }
+            
+            SYS_STRING_FORCE_INLINE
+            void copy(sys_string_t<Storage>::utf32_access::iterator first, sys_string_t<Storage>::utf32_access::iterator last)
+            {
+                if (chars.empty())
+                {
+                    if (first == access.begin() && last == access.end())
+                        return;
+                }
+                auto sfirst = first.storage_current();
+                auto slast = last.storage_current();
+                
+                for ( ; sfirst != slast; ++sfirst)
+                    this->chars.push_back(*sfirst);
+            }
+            SYS_STRING_FORCE_INLINE
+            void write(char32_t c)
+                { write_unsafe<utf_encoding_of<typename sys_string_t<Storage>::storage_type>>(c, std::back_inserter(chars)); }
+            
+        };
     }
 
     template<class Storage>
@@ -114,46 +151,12 @@ namespace sysstr
                 normalize::nfd<utf_encoding_of<storage_type>>()(access, std::back_inserter(builder.chars()));
             break; case normalization::nfc:
             {
-                struct sink
-                {
-                    const sys_string_t<Storage>::utf32_access & access;
-                    decltype(builder.chars()) chars;
-                    
-                    
-                    SYS_STRING_FORCE_INLINE
-                    void copy(sys_string_t<Storage>::utf32_access::iterator it)
-                    {
-                        auto sfirst = it.storage_current();
-                        auto slast = it.storage_next();
-                        
-                        for ( ; sfirst != slast; ++sfirst)
-                            this->chars.push_back(*sfirst);
-                    }
-                    
-                    SYS_STRING_FORCE_INLINE
-                    void copy(sys_string_t<Storage>::utf32_access::iterator first, sys_string_t<Storage>::utf32_access::iterator last)
-                    {
-                        if (chars.empty())
-                        {
-                            if (first == access.begin() && last == access.end())
-                                return;
-                        }
-                        auto sfirst = first.storage_current();
-                        auto slast = last.storage_current();
-                        
-                        for ( ; sfirst != slast; ++sfirst)
-                            this->chars.push_back(*sfirst);
-                    }
-                    SYS_STRING_FORCE_INLINE
-                    void write(char32_t c)
-                        { write_unsafe<utf_encoding_of<storage_type>>(c, std::back_inserter(chars)); }
-                    
-                } s{access, builder.chars()};
-                
-                normalize::nfc<utf_encoding_of<storage_type>>()(access, s);
-                if (s.chars.empty())
+                util::transform_sink<Storage> sink{access, builder.chars()};
+                normalize::nfc<utf_encoding_of<storage_type>>()(access, sink);
+                if (sink.chars.empty())
                     return *this;
             }
+            break; default: return *this;
         }
         
     #else
@@ -168,6 +171,7 @@ namespace sysstr
         {
             break; case normalization::nfd: normalizer = Normalizer2::getNFDInstance(ec);
             break; case normalization::nfc: normalizer = Normalizer2::getNFCInstance(ec);
+            break; default: return *this;
         }
         normalizer->normalizeUTF8(0, StringPiece(access.c_str()), sink, nullptr, ec);
         util::unicode::icu_error_to_exception(ec);

@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/license-BSD-brightgreen.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Tests](https://github.com/gershnik/sys_string/actions/workflows/test.yml/badge.svg)](https://github.com/gershnik/sys_string/actions/workflows/test.yml)
 
-This library provides a C++ string class template `sys_string_t` that is optimized for **interoperability with external native string types**. It is **immutable**, **Unicode-first** and exposes convenient **operations similar to Python or ECMAScript strings**. It uses a separate `sys_string_builder_t` class template to construct strings. It provides fast concatenation via `+` operator that **does not allocate temporary strings**. 
+This header-only library provides a C++ string class template `sys_string_t` that is optimized for **interoperability with external native string types**. It is **immutable**, **Unicode-first** and exposes convenient **operations similar to Python or ECMAScript strings**. It uses a separate `sys_string_builder_t` class template to construct strings. It provides fast concatenation via `+` operator that **does not allocate temporary strings**. 
 The library exposes bidirectional UTF-8/UTF-16/UTF-32 and grapheme cluster views of `sys_string_t` as well as of other C++ ranges of characters.
 
 ## What does it mean?
@@ -31,7 +31,7 @@ The library exposes bidirectional UTF-8/UTF-16/UTF-32 and grapheme cluster views
 
 * **Immutability.** String instances cannot be modified. To do modifications you use a separate "builder" class. This is similar to how many other languages do it and results in improved performance and elimination of whole class of errors. 
 
-* **Unicode-first.** Instances of `sys_string_t` always store Unicode characters in either UTF-8, UTF-16 or UTF-32, depending on their storage. Iteration can be done in all of these encodings and all operations (case conversion, case insensitive comparisons, trimming) are specified as actions on sequence of Unicode codepoints using Unicode algorithms. 
+* **Unicode-first.** Instances of `sys_string_t` always store Unicode characters in either UTF-8, UTF-16 or UTF-32, depending on their storage. Iteration can be done in all of these encodings and all operations (case conversion, case insensitive comparisons, trimming) are specified as actions on sequence of Unicode codepoints using Unicode algorithms. The library provides common Unicode string operation such as case conversion, normalization and grapheme cluster iteration.
 
 * **Operations similar to Python or ECMAScript strings.** You can do things like `rtrim`, `split`, `join`, `starts_with` etc. on `sys_string_t` in a way proven to be natural and productive in those languages.
 
@@ -64,7 +64,7 @@ The following requirements which other string classes often have are specificall
 
 * Support C++ allocators mechanism. Since `sys_string_t` is meant to interoperate with other string class/types, it necessarily has to use the same allocation mechanisms as those. Different allocation behavior can be accomplished via a custom `Storage` class.
 
-* Have an efficient `const char * c_str()` method on all platforms. The goal of the library is to provide an efficient conversion to the native string types rather than specifically `const char *`. While ability to obtain `const char *` *is* provided everywhere, it might involve additional memory allocations and other overhead. Of course, when the storage of `sys_string_t` is `char` it can be obtained with 0 cost.
+* Have a zero-cost `const char * c_str()` method on all platforms. The goal of the library is to provide an efficient conversion to the native string types rather than specifically `const char *`. While ability to obtain `const char *` *is* provided everywhere, it might involve additional memory allocations and other overhead. Of course, when the storage of `sys_string_t` is `char` it can be obtained with 0 cost.
 
 * Make `sys_string_t` an STL container. Conceptually a string is not a container. You can **view** contents of a string as a sequence of UTF-8 or UTF-16 or UTF-32 codepoints and the library provides such views which function as STL ranges. 
 
@@ -74,11 +74,29 @@ The following requirements which other string classes often have are specificall
 
 ## Performance
 
-In general `sys_string_t` aims to have the same performance of its operations as best hand-crafted code that uses corresponding native string types on every platforms. For example on macOS code using `sys_string` should be as fast as code manually using `NSString *`/`CFStringRef`. 
+In general `sys_string_t` aims to have the same performance of its operations as best hand-crafted code that uses corresponding native string types on every platforms. For example on macOS code using `sys_string` should be as fast as code manually using `NSString *`/`CFStringRef`.
 
-This needs to be kept in mind when evaluating whether `sys_string` is a better choice for your application than `std::string`. Continuing Apple's example, an `std::string` is generally faster for direct character access than `NSString *` and thus faster than `sys_string` too. If your code rarely transfers data from `NSString *` to `std::string` and spends most of the time iterating over `std::string` characters then using `std::string` might be the right choice.
+In particular, using `sys_string_generic` (which interoperates with `char *` and is the default `sys_string` on non-Apple Unix or if `SYS_STRING_USE_GENERIC` macro is set to 1) should be as fast as or better than using `std::string`
+
+This consideration needs to be kept in mind when evaluating whether `sys_string` is a better choice for your application than `std::string`. Continuing Apple's example, an `std::string` is generally faster for direct character access than `NSString *` and thus faster than default `sys_string` on Apple platforms too. 
+If your code rarely transfers data from `NSString *` to `std::string` and spends most of the time iterating over `std::string` characters then using `std::string` might be the right choice. Of course in such case using `sys_string_generic` might still be a better choice too.
 
 Another way to look at it is that `sys_string_t` sometimes trades micro-benchmarking performance of individual string operations for reduced copying, allocations and memory pressure overall. Whether this is a right tradeoff for you depends on specifics of your codebase.
+
+### Unicode tables
+
+Some `sys_string` Unicode operations, such as case conversions, case-insensitive comparisons and grapheme cluster iteration, require use of Unicode lookup
+tables. Currently the size of the tables is ~80kB, if you use all of these features. It will be less if you only use some of them and none if you use none.  
+
+If your application already contains ICU it is possible to use it instead for these features. This will save around ~100kB in the final executable (data and supporting code, again if using all of the features). On the other hand using ICU make these operations somewhat slower. 
+
+On the yet another hand, using ICU provides consistency w.r.t. Unicode standard supported with the rest of your application. Using internal tables will use
+the Unicode version of this library (currently 16) which might be different from what your ICU version uses.
+
+Of course, if you don't already use ICU, integrating it might be painful and its total size (unless you use a system provided version) is orders of magnitude
+larger than 100kB.
+
+Which approach to prefer thus depends on specifics of your application.
 
 ## Compatibility
 

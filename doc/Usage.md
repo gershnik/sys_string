@@ -18,10 +18,11 @@
     - [Grapheme iteration](#grapheme-iteration)
 - [Substrings](#substrings)
 - [Accessing C strings](#accessing-c-strings)
-- [Accessing storage as C array](#accessing-storage-as-c-array)
+- [Accessing storage as a C array](#accessing-storage-as-a-c-array)
 - [Building and modifications](#building-and-modifications)
 - [Utility methods](#utility-methods)
     - [Check if the string is empty](#check-if-the-string-is-empty)
+    - [Transformations](#transformations)
     - [Printf-style construction of a string](#printf-style-construction-of-a-string)
     - [std::format-style construction of a string](#stdformat-style-construction-of-a-string)
     - [Printing into std::ostream](#printing-into-stdostream)
@@ -57,8 +58,22 @@ Most methods in this library are `noexcept`. Methods that aren't, usually involv
 The two main classes provided by this library are `sys_string` and `sys_string_builder`. These are actually aliases (typedefs) to instantiations
 of `template<class Storage> class sys_string_t` and `template<class Storage> class sys_string_builder_t` with a `Storage` chosen based on platform
 and compilation options. A `Storage` is a policy class that defines what kind of system string type is stored inside a `sys_string`. 
-On every supported platform there is one or more storage types available. 
+On every supported platform there is one or more storage types available. You can always use other storage types in addition to 
+the default one. The following table describes the available `sys_string_t` instantiations, their availability and when they are made to be 
+the default `sys_string`
 
+| Type                     | Interoperates with         |  Availability   | Default `sys_string` when
+|--------------------------|----------------------------|-----------------|---------------
+| `sys_string_generic`     | Basic `char *`             | Always          | On non Apple Unix or anywhere if `SYS_STRING_USE_GENERIC` macro is set to 1
+| `sys_string_cfstr`       | `CFStringRef`/`NSString *` | Apple platforms | No other macros set
+| `sys_string_win_generic` | Basic `wchar_t *`          | Windows         | No other macros set
+| `sys_string_bstr`        | `BSTR`                     | Windows         | If `SYS_STRING_WIN_BSTR` macro is set to 1
+| `sys_string_hstring`     | `HSTRING`                  | Windows         | If `SYS_STRING_WIN_HSTRING` macro is set to 1
+| `sys_string_pystr`       | Python `PyObject *`        | If `SYS_STRING_ENABLE_PYTHON` or `SYS_STRING_USE_PYTHON` are set to 1 | If `SYS_STRING_USE_PYTHON` is set to 1
+| `sys_string_android`     | `jstring`                  | Android         | No other macros set
+| `sys_string_emscripten`  | Emscripten JavaScript strings (via `EM_VAL`) | Emscripten | No other macros set
+
+Apart from storage specific conversions all of these types have the same interface and are simply described below as being a `sys_string`.
 
 ## Construction
 
@@ -162,7 +177,11 @@ if (res == S("abcxyz"))
 assert(S("Cafe\u0301") != S("Café"));
 ```
 
-The comparisons are defined this way for performance. If you do need canonical equivalence you will need to normalize strings yourself.
+The comparisons are defined this way for performance. If you do need canonical equivalence see [`normalize()`](#transformations) method below.
+
+```cpp
+assert(S("Cafe\u0301").normalize(normalization::nfc) == S("Café").normalize(normalization::nfc));
+```
 
 This implies that while identical strings will compare equal and all strings are strongly ordered, the specific order might differ from the one a human would expect. If you do require human-oriented ordering, the correct thing to do is to use a full-fledged collator from another library such as ICU or Windows NLS.
 
@@ -181,11 +200,13 @@ Both `compare` and `compare_no_case` return `std::strong_ordering`.
 
 ## Iterating over string content
 
-You can iterate over `sys_string` in 4 possible ways:
+You can iterate over `sys_string` in 5 possible ways:
 * Over a sequence of UTF-32, `char32_t` codepoints. This iteration is unidirectional, either forward or reverse and 'sanitizing'.
 * Over a sequence of UTF-16, `char16_t` units. This iteration is unidirectional, either forward or reverse and 'sanitizing'.
 * Over a sequence of UTF-8, `char` units. This iteration is unidirectional, either forward or reverse and 'sanitizing'.
 * Over a sequence of "storage units". This iteration is random-access and NOT sanitizing.
+* Over a sequence of "grapheme clusters" (or graphemes) for short. This iteration is different from the others and is described fully
+  [below](#grapheme-iteration).
 
 A "storage unit" is a platform dependent type (either `char`, `char16_t` or `char32_t`) that is used to actually store the data in `sys_string`. 
 It is represented by type `sys_string::storage_type`. Iterating over storage units is the fastest way to iterate and the only way to get access 
@@ -451,7 +472,7 @@ The returned pointer is valid as long as `char_access` object is alive. The retu
 
 Note that if the underlying string storage is not made of `char`s the first call to `c_str()` will result in memory allocation and conversion of `sys_string` data to UTF-8. If you end up doing the above a lot and it becomes a performance issue this is a sign that `sys_string` is not a right class for your problem domain and `std::string` might be a better choice.
 
-## Accessing storage as C array
+## Accessing storage as a C array
 
 Sometimes you might want to access underlying storage units of `sys_string` as a C array. To do so there are 3 methods that are usually need to be called together in portable code. The first one is `data()`. It returns a direct pointer to underlying storage **if the underlying storage is, in fact, a contiguous array**. Otherwise it returns `nullptr`. In such case you will need to allocate contiguous storage yourself - the size is given by `storage_size()` - and copy data into it using `copy_data()`. For example:
 
@@ -541,6 +562,31 @@ In addition, `sys_string_builder` supports `as_utf8`, `as_utf16` and `as_utf32` 
 ### Check if the string is empty
 ```cpp
 auto empty() const noexcept -> bool
+```
+
+### Transformations
+
+`sys_string` supports common transformations:
+
+* `to_lower()` which returns the original string converted to lowercase
+* `to_upper()` which returns the original string converted to uppercase
+* `normalize(normalization)` which normalizes the string to standard NFC or NFD normalization forms.
+
+`to_lower()`/`to_upper()` implement *default Unicode case conversion* (see sections 3.13 and 5.18 of the Unicode standard). This
+conversion is non-locale specific. (E.g. final Greek `Σ` will convert to `ς` but uppercase of `i` is always `I` regardless of locale).
+
+```cpp
+assert(S("βους").to_upper() == S("ΒΟΥΣ"));
+assert(S("ΒΟΥΣ").to_lower() == S("βους"));
+assert(S("maße").to_upper() == S("MASSE"))
+```
+
+For normalization only NFC and NFD forms are supported being of practical importance to most applications. If you require other normalization
+forms you are likely to be doing some non-trivial text processing and likely already have a library such as ICU that can help with those.
+
+```cpp
+assert(S("\u00C5").normalize(normalization::nfd) == S("\u0041\u030A"));
+assert(S("\u0041\u030A").normalize(normalization::nfc) == S("\u00C5"));
 ```
 
 ### Printf-style construction of a string

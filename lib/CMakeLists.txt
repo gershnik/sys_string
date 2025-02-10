@@ -56,7 +56,6 @@ set(UNICODE_FILES
     ${SRCDIR}/inc/sys_string/impl/unicode/algorithms.h
     ${SRCDIR}/inc/sys_string/impl/unicode/mappings_common.h
     ${SRCDIR}/inc/sys_string/impl/unicode/mappings.h
-    ${SRCDIR}/inc/sys_string/impl/unicode/mappings_data.h
     ${SRCDIR}/inc/sys_string/impl/unicode/mappings_icu.h
 )
 source_group("Unicode" FILES ${UNICODE_FILES} ${SOURCES})

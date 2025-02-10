@@ -402,3 +402,4 @@ class norm_builder:
         {indent_insert(self.__decomp_builder.print_impl("normalizer::lookup"), 8)}
         '''
         return dedent(ret)
+    

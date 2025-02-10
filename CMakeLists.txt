@@ -36,7 +36,6 @@ if(${Python3_Interpreter_FOUND})
     file(GLOB UNICODE_SCRIPTS ${CMAKE_CURRENT_LIST_DIR}/unicode/scripts/*.py)
 
     set(UNICODE_GENERATED_FILES
-        ${CMAKE_CURRENT_LIST_DIR}/lib/inc/sys_string/impl/unicode/mappings_data.h
         ${CMAKE_CURRENT_LIST_DIR}/lib/inc/sys_string/impl/unicode/mappings.h
         ${CMAKE_CURRENT_LIST_DIR}/test/test_grapheme_data.h
         ${CMAKE_CURRENT_LIST_DIR}/test/test_grapheme_data_15.h
@@ -58,6 +57,13 @@ if(${Python3_Interpreter_FOUND})
         DEPENDS 
             ${UNICODE_GENERATED_FILES}
     )
+
+    target_sources(generate_unicode_mappings
+    PRIVATE
+        ${UNICODE_SCRIPTS}
+    )
+
+    set_source_files_properties(${UNICODE_SCRIPTS} PROPERTIES XCODE_EXPLICIT_FILE_TYPE text.script.python)
 
     add_dependencies(sys_string generate_unicode_mappings)
 

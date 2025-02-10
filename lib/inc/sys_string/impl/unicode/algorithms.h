@@ -12,7 +12,6 @@
     #include <sys_string/impl/unicode/mappings_icu.h>
 #else
     #include <sys_string/impl/unicode/mappings.h>
-    #include <sys_string/impl/unicode/mappings_data.h>
 #endif
 #include <sys_string/impl/unicode/utf_util.h>
 #include <sys_string/impl/util/iter_util.h>

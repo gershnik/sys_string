@@ -18,7 +18,6 @@ from norm_builder import norm_builder
 parser = argparse.ArgumentParser()
 
 parser.add_argument('datadir')
-parser.add_argument('implfile')
 parser.add_argument('hfile')
 parser.add_argument('test_grapheme_data_h')
 parser.add_argument('test_grapheme_data_15_h')
@@ -27,7 +26,6 @@ parser.add_argument('test_normalization_data_h')
 args = parser.parse_args()
 
 datadir = Path(args.datadir)
-implfile = Path(args.implfile)
 hfile = Path(args.hfile)
 testfiles = (
     Path(args.test_grapheme_data_h),
@@ -328,25 +326,7 @@ namespace sysstr::util::unicode
                         print_enum((grapheme_cluster_break_prop_values, grapheme_related_emoji_values, grapheme_related_prop_values), 
                                     grapheme_masks)),
                    4)}
-}}
 
-#endif
-
-''')      
-
-
-    write_file(implfile, f'''//THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
-
-//
-// Copyright 2020 Eugene Gershnik
-//
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file or at
-// https://github.com/gershnik/sys_string/blob/master/LICENSE
-//
-
-namespace sysstr::util::unicode 
-{{
 
     {indent_insert(whitespaces.print_impl('is_whitespace'), 4)}
     {indent_insert(case_info_builder.print_impl(), 4)}
@@ -359,9 +339,11 @@ namespace sysstr::util::unicode
         normalizer::data_size +
         grapheme_cluster_break_prop::data_size;
     static_assert(total_data_size == {total_data_size});
-
 }}
-''')
+
+#endif
+
+''')      
 
     for testfile, tests in zip(testfiles[:2], test_cases[:2]):
         write_file(testfile, f'''

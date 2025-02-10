@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [2.17] - 2025-02-10
+
 ### Added
 
 - `sys_string` can now be `normalize()`-ed to NFC and NFD (back-ported from version 3).
@@ -186,3 +188,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [2.14]: https://github.com/gershnik/sys_string/releases/v2.14
 [2.15]: https://github.com/gershnik/sys_string/releases/v2.15
 [2.16]: https://github.com/gershnik/sys_string/releases/v2.16
+[2.17]: https://github.com/gershnik/sys_string/releases/v2.17

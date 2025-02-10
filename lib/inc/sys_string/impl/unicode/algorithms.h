@@ -32,7 +32,7 @@ namespace sysstr
             ~stack_or_heap_buffer()
             {
                 if (m_first != m_data.stack)
-                    m_data.heap.~vector<T>();
+                    m_data.heap.~vector();
             }
 
             void push_back(T val)

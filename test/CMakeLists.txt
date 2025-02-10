@@ -225,6 +225,9 @@ foreach(LIB_SUFFIX ${LIB_TYPES})
         test_utf_util.cpp
         test_grapheme.cpp
         test_grapheme_data.h
+        test_grapheme_data_15.h
+        test_normalization.cpp
+        test_normalization_data.h
         test_generic.cpp
         test_python.cpp
         "$<$<PLATFORM_ID:Darwin>:test_apple.mm>"

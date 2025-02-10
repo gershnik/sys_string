@@ -12,10 +12,16 @@
 #include <unicode/ustring.h>
 #include <unicode/uset.h>
 #include <unicode/ucpmap.h>
+#include <unicode/normalizer2.h>
 
 static_assert(U_ICU_VERSION_MAJOR_NUM >= 67, "sys_string requires ICU 67 or higher");
 
 #include <exception>
+#include <stdexcept>
+#include <atomic>
+
+#include <sys_string/impl/unicode/mappings_common.h>
+
 
 extern "C" 
 {
@@ -126,74 +132,24 @@ extern "C"
     ucase_getTypeOrIgnorable(UChar32 c);
 }
 
-#include <atomic>
-
-#include <sys_string/impl/unicode/mappings_common.h>
 
 namespace sysstr::util::unicode 
 {
 
-    template<class Derived>
-    struct mapper 
+    inline void icu_error_to_exception(UErrorCode ec)
     {
-        static constexpr size_t max_mapped_length = UCASE_MAX_STRING_LENGTH; 
-
-        template<utf_encoding Enc, class OutIt>
-        static auto map_char(char32_t src, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<Enc>())) -> OutIt
+        if (U_FAILURE(ec))
         {
-            const char16_t * out = nullptr;
-            auto res = Derived::do_map(src, &out);
-            if (res < 0)
-            {
-                auto c = char32_t(~res);
-                return write_unsafe<Enc>(c, dest);
-            }
-            if (res > UCASE_MAX_STRING_LENGTH)
-            {
-                auto c = char32_t(res);
-                return write_unsafe<Enc>(c, dest);
-            }
-            return write_unsafe<Enc>(out, out + res, dest);
+            if (ec == U_MEMORY_ALLOCATION_ERROR)
+                throw std::bad_alloc();
+            throw std::runtime_error(u_errorName(ec));
         }
-    };
-
-    class case_fold_mapper : public mapper<case_fold_mapper>
+    }
+    inline void icu_error_to_abort(UErrorCode ec) noexcept
     {
-    friend mapper<case_fold_mapper>;
-    private:
-        static int32_t do_map(char32_t c, const char16_t ** out)
-        {
-            return ucase_toFullFolding(c, out, U_FOLD_CASE_DEFAULT);
-        }
-    };
-
-    class to_lower_case_mapper : public mapper<to_lower_case_mapper>
-    {
-    friend mapper<to_lower_case_mapper>;
-    private:
-        static int32_t do_map(char32_t c, const char16_t ** out)
-        {
-            return ucase_toFullLower(c, nullptr, nullptr, out, UCASE_LOC_ROOT);
-        }
-    };
-
-    class to_upper_case_mapper : public mapper<to_upper_case_mapper>
-    {
-    friend mapper<to_upper_case_mapper>;
-    private:
-        static int32_t do_map(char32_t c, const char16_t ** out)
-        {
-            return ucase_toFullUpper(c, nullptr, nullptr, out, UCASE_LOC_ROOT);
-        }
-    };
-
-    struct is_whitespace 
-    {
-        static bool test(char32_t c) noexcept
-        {
-            return u_isUWhiteSpace(c);
-        }
-    };
+        if (U_FAILURE(ec))
+            std::terminate();
+    }
 
     template<UProperty Prop>
     requires(Prop >= UCHAR_INT_START && Prop < UCHAR_INT_LIMIT)
@@ -212,8 +168,7 @@ namespace sysstr::util::unicode
             {
                 UErrorCode ec = U_ZERO_ERROR;
                 ret = u_getIntPropertyMap(Prop, &ec);
-                if (U_FAILURE(ec))
-                    std::terminate();
+                icu_error_to_abort(ec);
                 m_map.store(ret, std::memory_order_release);
             }
             return ret;
@@ -239,8 +194,7 @@ namespace sysstr::util::unicode
             {
                 UErrorCode ec = U_ZERO_ERROR;
                 ret = u_getBinaryPropertySet(Prop, &ec);
-                if (U_FAILURE(ec))
-                    std::terminate();
+                icu_error_to_abort(ec);
                 m_set.store(ret, std::memory_order_release);
             }
             return ret;
@@ -249,27 +203,93 @@ namespace sysstr::util::unicode
         static inline std::atomic<const USet *> m_set{nullptr};
     };
 
-    class case_prop 
+    struct is_whitespace 
     {
-    public:
-        enum value : uint8_t
+        static bool test(char32_t c) noexcept
         {
-            none = 0,
-            cased = 1,
-            case_ignorable = 2
-        };
-    
-        static auto get(char32_t c) noexcept
-        {
-            // uint8_t ret = uint8_t(icu_prop_set<UCHAR_CASED>::contains(c)) | 
-            //              (uint8_t(icu_prop_set<UCHAR_CASE_IGNORABLE>::contains(c)) << 1);
-            
-            auto res = ucase_getTypeOrIgnorable(c);
-            uint8_t ret = uint8_t((res & UCASE_TYPE_MASK) != UCASE_NONE) | 
-                         (uint8_t(bool(res >> 2)) << 1);
-
-            return value(ret);
+            return u_isUWhiteSpace(c);
         }
+    };
+
+    class case_mapper 
+    {
+    private:
+        template<class Derived>
+        struct mapper 
+        {
+            static constexpr size_t max_mapped_length = UCASE_MAX_STRING_LENGTH; 
+
+            template<utf_encoding Enc, class OutIt>
+            static auto map_char(char32_t src, OutIt dest) noexcept(noexcept(*dest++ = utf_char_of<Enc>())) -> OutIt
+            {
+                const char16_t * out = nullptr;
+                auto res = Derived::do_map(src, &out);
+                if (res < 0)
+                {
+                    auto c = char32_t(~res);
+                    return write_unsafe<Enc>(c, dest);
+                }
+                if (res > UCASE_MAX_STRING_LENGTH)
+                {
+                    auto c = char32_t(res);
+                    return write_unsafe<Enc>(c, dest);
+                }
+                return write_unsafe<Enc>(out, out + res, dest);
+            }
+        };
+    public:
+        class fold : public mapper<fold>
+        {
+        friend mapper<fold>;
+        private:
+            static int32_t do_map(char32_t c, const char16_t ** out)
+            {
+                return ucase_toFullFolding(c, out, U_FOLD_CASE_DEFAULT);
+            }
+        };
+
+        class to_lower : public mapper<to_lower>
+        {
+        friend mapper<to_lower>;
+        private:
+            static int32_t do_map(char32_t c, const char16_t ** out)
+            {
+                return ucase_toFullLower(c, nullptr, nullptr, out, UCASE_LOC_ROOT);
+            }
+        };
+
+        class to_upper : public mapper<to_upper>
+        {
+        friend mapper<to_upper>;
+        private:
+            static int32_t do_map(char32_t c, const char16_t ** out)
+            {
+                return ucase_toFullUpper(c, nullptr, nullptr, out, UCASE_LOC_ROOT);
+            }
+        };    
+
+        class props
+        {
+        public:
+            enum value : uint8_t
+            {
+                none = 0,
+                cased = 1,
+                case_ignorable = 2
+            };
+        
+            static auto get(char32_t c) noexcept
+            {
+                // uint8_t ret = uint8_t(icu_prop_set<UCHAR_CASED>::contains(c)) | 
+                //              (uint8_t(icu_prop_set<UCHAR_CASE_IGNORABLE>::contains(c)) << 1);
+                
+                auto res = ucase_getTypeOrIgnorable(c);
+                uint8_t ret = uint8_t((res & UCASE_TYPE_MASK) != UCASE_NONE) | 
+                            (uint8_t(bool(res >> 2)) << 1);
+
+                return value(ret);
+            }
+        };
     };
 
     class grapheme_cluster_break_prop 

@@ -4,330 +4,230 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file or at
 # https://github.com/gershnik/sys_string/blob/master/LICENSE
-# 
-
-import hashlib
+#
 
 from textwrap import dedent
-from common import bytes_for_bits, hex_format_for_bits, type_for_bits, indent_insert
+import textwrap
+from common import bytes_for_bits, format_array, type_for_bits, indent_insert
 
-class _trie_builder_config:
-    def __init__(self, bits: int):
-        if bits < 1 or bits > 7:
-            raise RuntimeError('bits must be between 1 and 7 inclusive')
-        self.bits_per_fanout = bits
-        self.fanout = 1 << self.bits_per_fanout
-        self.single_mask = (1 << self.bits_per_fanout) - 1
-        self.char_mask_start = ((21 // self.bits_per_fanout) + bool(21 % self.bits_per_fanout)) * self.bits_per_fanout
-
-    def print_base_class(self):
-        ret = f'''
-        template<class Derived>
-        class trie_lookup<{self.bits_per_fanout}, Derived>
-        {{
-        public:
-            SYS_STRING_FORCE_INLINE
-            static auto get(char32_t c) noexcept
-            {{
-                size_t idx = Derived::values.size();
-        '''
-        for bit_start in range(self.char_mask_start, 0, -self.bits_per_fanout):
-            ret += f'''
-                {{
-                    int char_idx = (c >> {bit_start - self.bits_per_fanout}) & 0x{self.single_mask:X};
-                    auto & entry = Derived::entries[idx];
-                    idx = entry[char_idx];
-                }}
-        '''
-
-        ret += '''
-               assert(idx < Derived::values.size());
-               return typename Derived::value(Derived::values[idx]);
-            }
-        };
-        '''
-
-        return dedent(ret)
 
 class trie_builder:
 
-    __configs: dict[int, _trie_builder_config] = {}
-    
+    def __init__(self):
+        self.__split = (11,5,4)
 
-    class node:
-        def __init__(self, child_count):
-            self.children = [None] * child_count
-            self.value = 0
-            self.hash = None
+        self.__ascii = [0] * 128
+        self.__stages = [None] * (1 << self.__split[0])
+        self.__values = None
+        self.__bits_for_values = None
+        self.__bits_for_ascii = None
 
-        def is_leaf(self):
-            for child in self.children:
-                if child is not None:
-                    return False
-            return True
+        self.__max_known_char = 0
 
-        def descend(self, idx):
-            ret = self.children[idx]
-            if ret is None:
-                ret = trie_builder.node(len(self.children))
-                self.children[idx] = ret
-            return ret
+    def add_char(self, char, flag):
+
+        if char < 128:
+            self.__ascii[char] |= flag
+        else:
+            current = self.__stages
+            for bits_idx, bits in enumerate(self.__split[:-1]):
+                shift = sum(self.__split[bits_idx + 1:])
+                current_idx = (char >> shift) & ((1 << bits) - 1)
+                current_val = current[current_idx]
+                if current_val is None:
+                    current_val = [None] * (1 << self.__split[bits_idx + 1])
+                    current[current_idx] = current_val
+                current = current_val
+            
+            current_idx = char & ((1 << self.__split[-1]) - 1)
+            current_val = current[current_idx]
+            if current_val is None:
+                current_val = 0
+            current[current_idx] = current_val | flag
+
+        self.__max_known_char = max(self.__max_known_char, char)
+
         
-        
-        def calc_size(self):
-            ret = 1
-            for child in self.children:
-                if child is not None:
-                    ret += child.calc_size()
-            return ret
-
-    
-    def __init__(self, bits):
-        self.config = trie_builder.__configs.setdefault(bits, _trie_builder_config(bits))
-        self.root = trie_builder.node(self.config.fanout)
-        self.byhash = {}
-        self.values = {0:0}
-        self.max_value = 0
-        self.linear = [[0]*self.config.fanout]
-
-    def bits_per_index(self):
-        return len(self.linear).bit_length()
-    
-    def entris_count(self):
-        return len(self.linear)
-    
-    def bits_per_value(self):
-        return self.max_value.bit_length()
-    
-    def values_count(self):
-        return len(self.values)
-
     def add_chars(self, start, end, flag):
-        
         for c in range(start, end):
-            node = self.root
-            for bit_start in range(self.config.char_mask_start, 0, -self.config.bits_per_fanout):
-                mask = self.config.single_mask << (bit_start - self.config.bits_per_fanout)
-                child_idx = (c & mask) >> (bit_start - self.config.bits_per_fanout)
-                node = node.descend(child_idx)
-            node.value |= flag
+            self.add_char(c, flag)
 
-    def get_char(self, c):
-        node = self.root
-        for bit_start in range(self.config.char_mask_start, 0, -self.config.bits_per_fanout):
-            mask = self.config.single_mask << (bit_start - self.config.bits_per_fanout)
-            child_idx = (c & mask) >> (bit_start - self.config.bits_per_fanout)
-            if node.children[child_idx] is not None:
-                node = node.children[child_idx]
+    def get_char(self, char):
+        if char < 128:
+            return self.__ascii[char]
+        
+        current = self.__stages
+        for bits_idx, bits in enumerate(self.__split[:-1]):
+            shift = sum(self.__split[bits_idx + 1:])
+            current_idx = (char >> shift) & ((1 << bits) - 1)
+            current = current[current_idx]
+            if current is None:
+                return 0
+        
+        current_idx = char & ((1 << self.__split[-1]) - 1)
+        current_val = current[current_idx]
+        if current_val is None:
+            return 0
+        return current_val
+
+    def __collect_values(self, mapping: list, target_level: int, level: int, values: set):
+        for val in mapping:
+            if val is None:
+                continue
+            if level < target_level:
+                self.__collect_values(val, target_level, level + 1, values)
             else:
-                break
-        return node.value
+                values.add(val if isinstance(val, int) else tuple(val))
+
+    def __assign_values(self, mapping: list, target_level: int, level: int, values_index: dict):
+        if level < target_level:
+            for val in mapping:
+                if val is None:
+                    continue
+                self.__assign_values(val, target_level, level + 1, values_index)
+        else:
+            for idx, val in enumerate(mapping):
+                if val is None:
+                    mapping[idx] = 0
+                else:
+                    mapping[idx] = values_index[val if isinstance(val, int) else tuple(val)]
+
 
     def generate(self):
-        #print(f"Original size: {self.root.calc_size()}")
-        self.__trim(self.root)
-        #print(f"After trim: {self.root.calc_size()}")
-        self.root = self.__hash(self.root)
-        #print(f"After hash: {len(self.byhash)}")
-        
-        self.__collect_values(self.root)
-        self.__calc_linear()
 
-        bytes_per_entry = bytes_for_bits(self.bits_per_index()) * self.config.fanout
-        total_data_size = len(self.linear) * bytes_per_entry
-        
-        bytes_per_value = bytes_for_bits(self.bits_per_value())
-        total_data_size += len(self.values) * bytes_per_value
+        values_lists = []
 
-        return total_data_size
-    
-    def __collect_values(self, current: node):
-        value_idx = self.values.get(current.value)
-        if value_idx is None:    
-            value_idx = len(self.values)
-            self.values[current.value] = value_idx
-            self.max_value = max(self.max_value, current.value)
-            terminal_idx = len(self.linear)
-            self.linear.append([terminal_idx] * self.config.fanout)
+        for level in range(2, -1, -1):
+            values = set()
+            values.add(0 if level == 2 else (0,) * (1 << self.__split[level + 1]))
+            self.__collect_values(self.__stages, level, 0, values)
+            values_lists.append(sorted(values))
+            values_index = { val: idx for idx, val in enumerate(values_lists[-1]) }
+            self.__assign_values(self.__stages, level, 0, values_index)
 
-        for child in current.children:
-            if child is not None:
-                self.__collect_values(child)
+        values_lists.append(self.__stages)
+        values_lists.reverse()
+        self.__values = values_lists
+        self.__stages = None
 
-
-    # def __calc_linear(self, current: node, indices_by_hash: dict):
-    #     current_idx = indices_by_hash.get(current.hash)
-    #     if current_idx is not None:
-    #         return current_idx
-        
-    #     value_idx = self.values.get(current.value)
-
-    #     if current.is_leaf():
-    #         indices_by_hash[current.hash] = value_idx
-    #         return value_idx
-            
-    #     current_idx = len(self.linear)
-    #     indices_by_hash[current.hash] = current_idx
-    #     self.linear.append([])
-    #     current_linear: list = self.linear[current_idx]
-
-    #     for child in current.children:
-    #         if child is not None:
-    #             current_linear.append(self.__calc_linear(child, indices_by_hash))
-    #         else:
-    #             current_linear.append(value_idx)
-        
-    #     return current_idx
-
-    def __calc_linear(self):
-        indices_by_hash = {}
-        queue = [(self.root, None, -1)]
-
-        while len(queue) != 0:
-            current_node, parent_linear, child_idx = queue[0]
-            del queue[0]
-            
-            current_idx = indices_by_hash.get(current_node.hash)
-            if current_idx is not None:
-                if parent_linear is not None:
-                    parent_linear[child_idx] = current_idx
-                continue
-
-            value_idx = self.values.get(current_node.value)
-
-            if current_node.is_leaf():
-                if parent_linear is not None:
-                    parent_linear[child_idx] = value_idx
-                indices_by_hash[current_node.hash] = value_idx
-                continue
-
-            
-            current_idx = len(self.linear)
-            indices_by_hash[current_node.hash] = current_idx
-            self.linear.append([value_idx] * self.config.fanout)
-            current_linear: list = self.linear[current_idx]
-            if parent_linear is not None:
-                parent_linear[child_idx] = current_idx
-            
-            for child_idx, child in enumerate(current_node.children):
-                if child is not None:
-                    queue.append((child, current_linear, child_idx))
-
-
-
-    def __trim(self, current: node):
-        for child in current.children:
-            if child is not None:
-                self.__trim(child)
-        if current.children[0] is None or not current.children[0].is_leaf():
-            return
-        for idx in range(1, len(current.children)):
-            if (current.children[idx] is None or not current.children[idx].is_leaf() or 
-                current.children[idx].value != current.children[0].value):
-                return
-        current.value = current.children[0].value
-        for i in range(0, self.config.fanout):
-            current.children[i] = None
-        
-
-    def __hash(self, current: node):
-        m = hashlib.sha256()
-        for idx in range(0, self.config.fanout):
-            if current.children[idx] is not None:
-                current.children[idx] = self.__hash(current.children[idx])
-                m.update(current.children[idx].hash)
+        self.__bits_for_values = []
+        total_size = 0
+        for values_list in values_lists:
+            if isinstance(values_list[0], int):
+                max_value:int = max(values_list)
+                list_len = len(values_list)
             else:
-                m.update(b'none')
-        
-        m.update(current.value.to_bytes(4, 'little'))
-        current.hash = m.digest()
-        existing = self.byhash.get(current.hash)
-        if existing is not None:
-            return existing
-        self.byhash[current.hash] = current
-        return current
-    
-    def make_entries(self):
+                max_value:int = max(max(x) for x in values_list)
+                list_len = len(values_list) * len(values_list[0])
+
+            bit_length = max_value.bit_length()
+            self.__bits_for_values.append(bit_length)
+            bytes_per_value = bytes_for_bits(bit_length)
+            total_size += bytes_per_value * list_len
+
+        self.__bits_for_ascii = max(self.__ascii).bit_length()
+        total_size += bytes_for_bits(self.__bits_for_ascii) * len(self.__ascii)
+
+        return total_size
+
+    def __make_nested(self, values, bits=0):
         ret = ''
-        line_len = 0
-        for idx, entry in enumerate(self.linear):
-            if idx > 0:
-                ret += ', '
-                line_len += 2
-                if line_len >= 120:
-                    ret += '\n'
-                    line_len = 0
-            indices = ', '.join([f'{val}' for val in entry])
-            addition = f'{{{{{indices}}}}}'
-            line_len += len(addition)
-            ret += addition
+        for block_idx, block in enumerate(values):
+            if block_idx > 0:
+                ret += ','
+            ret += '\n{{'
+            arr = format_array(block, bits=bits, max_width=200)
+            if arr.find('\n') != -1:
+                arr = '\n' + textwrap.indent(arr, '  ') + '\n'
+            ret += arr
+            ret += '}}'
         return ret
     
-    def make_values(self):
-        hf = hex_format_for_bits(self.bits_per_value())
-        ret = ''
-        for idx, value in enumerate(self.values):
-            if idx > 0:
-                ret += ', '
-                if idx % 8 == 0:
-                    ret += '\n'
-            ret += ('0x{:'+ hf + '}').format(value)
-            #f'0x{value:X}'
-        return ret
-    
-    @staticmethod
-    def print_common_header():
-        if len(trie_builder.__configs) == 0:
-            return ''
-        
-        ret = '''
-        template<size_t N, class Derived>
-        class trie_lookup;
-        '''
-
-        for config in trie_builder.__configs.values():
-            ret += f'''
-        {indent_insert(config.print_base_class(), 8)}
-        '''
-        
-        return dedent(ret)
-
     def print_header(self, name, values_enum_content):
         ret = f'''
-        class {name} : public trie_lookup<{self.config.bits_per_fanout}, {name}>
+        class {name} 
         {{
-        friend trie_lookup<{self.config.bits_per_fanout},{name}>;
         private:
-            using entry_type = std::array<{type_for_bits(self.bits_per_index())}, {self.config.fanout}>;
-            using value_type = {type_for_bits(self.bits_per_value())};
+            static const std::array<{type_for_bits(self.__bits_for_ascii)}, {len(self.__ascii)}> ascii;
+        '''
+        for idx, values in enumerate(self.__values):
+            if isinstance(values[0], int):
+                ret += f'''
+            static const std::array<{type_for_bits(self.__bits_for_values[idx])}, {len(values)}> stage{idx + 1};
+        '''
+            else:
+                ret += f'''
+            static const std::array<std::array<{type_for_bits(self.__bits_for_values[idx])}, {len(values[0])}>, {len(values)}> stage{idx + 1};
+        '''
 
-            static const std::array<entry_type, {self.entris_count()}> entries;
-        
-            static const std::array<value_type, {self.values_count()}> values;
-
+        if values_enum_content is not None:
+            ret += f'''
         public:
-            enum value : value_type
+            enum value : decltype(stage{len(self.__values)})::value_type
             {{
                 none = 0,
                 {indent_insert(values_enum_content, 16)}
             }};
-        
-            static constexpr size_t data_size = sizeof(entries) + sizeof(values);
-        }};
+        '''
+        else:
+            ret += f'''
+        public:
+            using value = decltype(stage{len(self.__values)})::value_type;
+        '''
+            
+        shift = sum(self.__split[1:])
+        ret += f'''
+            SYS_STRING_FORCE_INLINE
+            static auto get(char32_t c) noexcept
+            {{
+                if (c < 128)
+                    return value(ascii[c]);
+                
+                size_t stage_idx = (c >> {shift}) & 0x{(1 << self.__split[0]) - 1:X};
+                size_t base = stage1[stage_idx];'''
+        for idx, bits in enumerate(self.__split[1:-1]):
+            shift = sum(self.__split[idx + 2:])
+            ret += f'''
+                stage_idx = (c >> {shift}) & 0x{(1 << bits) - 1:X};
+                base = stage{idx + 2}[base][stage_idx];'''
+        ret += f'''
+                stage_idx = c & 0x{(1 << self.__split[-1]) - 1:X};
+                base = stage{idx + 3}[base][stage_idx];
+                return value(stage{idx + 4}[base]);
+            }}
+        '''
+            
+        ret += '''
+            static constexpr size_t data_size = '''
+        for idx in range(0, len(self.__values)):
+            ret += f'''                         
+                                                sizeof(stage{idx + 1}) +'''
+        ret += '''                              
+                                                sizeof(ascii);
+        };
         '''
 
         return dedent(ret)
 
     def print_impl(self, name):
         ret = f'''
-        const std::array<{name}::entry_type, {self.entris_count()}> {name}::entries = {{{{
-            {indent_insert(self.make_entries(), 12)}
-        }}}};
-    
-        const std::array<{name}::value_type, {self.values_count()}> {name}::values = {{{{
-            {indent_insert(self.make_values(), 12)}
-        }}}};
+        constexpr std::array<{type_for_bits(self.__bits_for_ascii)}, {len(self.__ascii)}> {name}::ascii({{{{
+            {indent_insert(format_array(self.__ascii, ishex=True, bits=self.__bits_for_ascii), 12)}
+        }}}});
         '''
+        for idx, values in enumerate(self.__values):
+            if isinstance(values[0], int):
+                ret += f'''
+        constexpr std::array<{type_for_bits(self.__bits_for_values[idx])}, {len(values)}> {name}::stage{idx + 1}({{{{
+            {indent_insert(format_array(values, ishex=idx!=0, bits=self.__bits_for_values[idx]), 12)}
+        }}}});
+        '''
+            else:
+                ret += f'''
+        constexpr std::array<std::array<{type_for_bits(self.__bits_for_values[idx])}, {len(values[0])}>, {len(values)}> {name}::stage{idx + 1}({{{{
+            {indent_insert(self.__make_nested(values, bits=self.__bits_for_values[idx]), 12)}
+        }}}});
+        '''
+
             
         return dedent(ret)
-

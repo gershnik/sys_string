@@ -5,6 +5,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Added
+
+- `sys_string` can now be `normalize()`-ed to NFC and NFD (back-ported from version 3).
+
+### Changed
+
+- Supported Unicode version has been bumped to 16 (back-ported from version 3).
+- Speed improvements to case conversions and case insensitive comparisons (back-ported from version 3).
+
+### Fixed
+
+- Addressed some false positive sanitizer warnings.
+
 ## [2.16] - 2025-01-10
 
 ### Fixed

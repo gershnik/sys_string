@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 
 - This library is now header only
+- Speed improvements to case conversions, case insensitive comparisons and grapheme iteration.
 
 ### Fixed
 

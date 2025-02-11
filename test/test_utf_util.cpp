@@ -206,6 +206,14 @@ TEST_CASE( "UTF-8 to UTF-16" ) {
     
     //From https://www.unicode.org/versions/Unicode10.0.0/ch03.pdf
     CHECK(utf16_from_utf8("\x61\xF1\x80\x80\xE1\x80\xC2\x62\x80\x63\x80\xBF\x64") == u"a���b�c��d");
+
+    //From https://www.unicode.org/versions/Unicode16.0.0/core-spec/chapter-3
+    CHECK(utf16_from_utf8("\xC2\x41\x42") == u"\uFFFD\u0041\u0042");
+    CHECK(utf16_from_utf8("\xF0\x80\x80\x41") == u"\uFFFD\uFFFD\uFFFD\u0041");
+    CHECK(utf16_from_utf8("\xC0\xAF\xE0\x80\xBF\xF0\x81\x82\x41") == u"\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\u0041");
+    CHECK(utf16_from_utf8("\xED\xA0\x80\xED\xBF\xBF\xED\xAF\x41") == u"\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\u0041");
+    CHECK(utf16_from_utf8("\xF4\x91\x92\x93\xFF\x41\x80\xBF\x42") == u"\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\u0041\uFFFD\uFFFD\u0042");
+    CHECK(utf16_from_utf8("\xE1\x80\xE2\xF0\x91\x92\xF1\xBF\x41") == u"\uFFFD\uFFFD\uFFFD\uFFFD\u0041");
 }
 
 }

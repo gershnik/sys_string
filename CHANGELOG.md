@@ -93,6 +93,12 @@ This is a major release with some breaking changes
   behavior applies to `wchar_t` on platform where it is UTF-16 or UTF-32.
 - `operator<<` no longer pollutes global namespace
 
+## [2.18] - 2025-02-27
+
+### Fixed
+
+- Unresolved symbols errors with GCC 10.2
+
 ## [2.17] - 2025-02-10
 
 ### Added
@@ -277,6 +283,7 @@ This is a major release with some breaking changes
 [2.15]: https://github.com/gershnik/sys_string/releases/v2.15
 [2.16]: https://github.com/gershnik/sys_string/releases/v2.16
 [2.17]: https://github.com/gershnik/sys_string/releases/v2.17
+[2.18]: https://github.com/gershnik/sys_string/releases/v2.18
 [3.0]: https://github.com/gershnik/sys_string/releases/v3.0
 [3.1]: https://github.com/gershnik/sys_string/releases/v3.1
 [3.2]: https://github.com/gershnik/sys_string/releases/v3.2

@@ -13,11 +13,11 @@
 namespace sysstr::util::unicode 
 {
 
-    constexpr char16_t is_whitespace::chars[26] = 
+    const char16_t is_whitespace::chars[26] = 
         u"\u0009\u000A\u000B\u000C\u000D\u0020\u0085\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007"
         u"\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000";
 
-    constexpr char16_t case_mapper::cased_data[3940] = 
+    const char16_t case_mapper::cased_data[3940] = 
         u"\u0061\u0062\u0063\u0064\u0065\u0066\u0067\u0068\u0069\u006A\u006B\u006C\u006D\u006E\u006F\u0070\u0071"
         u"\u0072\u0073\u0074\u0075\u0076\u0077\u0078\u0079\u007A\u0041\u0042\u0043\u0044\u0045\u0046\u0047\u0048"
         u"\u0049\u004A\u004B\u004C\u004D\u004E\u004F\u0050\u0051\u0052\u0053\u0054\u0055\u0056\u0057\u0058\u0059"
@@ -241,7 +241,7 @@ namespace sysstr::util::unicode
         u"\U0001E911\U0001E912\U0001E913\U0001E914\U0001E915\U0001E916\U0001E917\U0001E918\U0001E919\U0001E91A"
         u"\U0001E91B\U0001E91C\U0001E91D\U0001E91E\U0001E91F\U0001E920\U0001E921";
     
-    constexpr std::array<uint32_t, 128> case_mapper::lookup::ascii({{
+    const std::array<uint32_t, 128> case_mapper::lookup::ascii({{
         0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 
         0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 
         0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 
@@ -257,7 +257,7 @@ namespace sysstr::util::unicode
         0x10100047, 0x10100047, 0x10100047, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000
     }});
     
-    constexpr std::array<uint8_t, 2048> case_mapper::lookup::stage1({{
+    const std::array<uint8_t, 2048> case_mapper::lookup::stage1({{
         23, 54, 55, 60, 40, 49, 59, 30, 36,  6,  0, 10, 43, 39, 37, 57, 44,  0, 20,  0,  0,  0, 56, 33, 45,  0,  0,  0,  0,  0, 
          0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
          0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 41,  0, 14, 42, 46, 38,  0,  0,  0,  0, 
@@ -329,7 +329,7 @@ namespace sysstr::util::unicode
          0,  0,  0,  0,  0,  0,  0,  0
     }});
     
-    constexpr std::array<std::array<uint16_t, 32>, 64> case_mapper::lookup::stage2({{
+    const std::array<std::array<uint16_t, 32>, 64> case_mapper::lookup::stage2({{
         {{  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0}},
         {{  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   4}},
         {{  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  17}},
@@ -396,7 +396,7 @@ namespace sysstr::util::unicode
         {{347, 347, 347, 331, 347, 347, 343,  54,  61,  17, 123,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0}}
     }});
     
-    constexpr std::array<std::array<uint16_t, 16>, 359> case_mapper::lookup::stage3({{
+    const std::array<std::array<uint16_t, 16>, 359> case_mapper::lookup::stage3({{
         {{   0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}},
         {{   0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,  751}},
         {{   0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,  751,    0}},
@@ -758,7 +758,7 @@ namespace sysstr::util::unicode
         {{ 752,  752,  752,  752,  752,  752,  752,  752,  752,  752,  752,  752,  752,  752,  752,  752}}
     }});
     
-    constexpr std::array<uint32_t, 754> case_mapper::lookup::stage4({{
+    const std::array<uint32_t, 754> case_mapper::lookup::stage4({{
         0x00000000, 0x10000000, 0x10010F5C, 0x10100085, 0x10100086, 0x10100088, 0x10100089, 0x1010008A, 0x1010008B, 0x1010008C, 
         0x1010008D, 0x1010008E, 0x1010008F, 0x10100090, 0x10100091, 0x10100092, 0x10100095, 0x10100096, 0x10100097, 0x10100099, 
         0x1010009A, 0x1010009C, 0x101000A3, 0x101000A5, 0x101000A6, 0x101000A9, 0x101000AE, 0x101000B8, 0x10100111, 0x10100187, 
@@ -838,7 +838,7 @@ namespace sysstr::util::unicode
     }});
     
 
-    constexpr uint32_t normalizer::compositions[] = {
+    const uint32_t normalizer::compositions[] = {
         0x2000003B, 0x0000003C, 0x20200338, 0x0000226E, 0x0000003D, 0x20200338, 0x00002260, 0x0000003E, 0x20200338, 0x0000226F, 
         0x00000041, 0x1CC00300, 0x000000C0, 0x1CC00301, 0x000000C1, 0x1CC00302, 0x000000C2, 0x1CC00303, 0x000000C3, 0x1CC00308, 
         0x000000C4, 0x1CC0030A, 0x000000C5, 0x1CC00304, 0x00000100, 0x1CC00306, 0x00000102, 0x19400328, 0x00000104, 0x1CC0030C, 
@@ -1189,7 +1189,7 @@ namespace sysstr::util::unicode
         0x200295B6, 0x20029B30, 0x2002A0CE, 0x2002A105, 0x2002A20E, 0x2002A291, 0x2002A392, 0x2002A600
     };
     
-    constexpr uint32_t normalizer::values[] = {
+    const uint32_t normalizer::values[] = {
         0x2100AFFF, 0x2200AFFF, 0x2300A332, 0x2400AFFF, 0x2500A33B, 0x2600A33E, 0x21032346, 0x2104AFFF, 0x2204AFFF, 0x2304A349, 
         0x2404AFFF, 0x2108EFFF, 0x2208EFFF, 0x2308EFFF, 0x2408E352, 0x210CFFFF, 0x210E2FFF, 0x220E2FFF, 0x230E2355, 0x240E235E, 
         0x250E2365, 0x21137FFF, 0x22137FFF, 0x23137FFF, 0x2413736B, 0x21175FFF, 0x21196FFF, 0x22196FFF, 0x23196374, 0x24196FFF, 
@@ -1433,7 +1433,7 @@ namespace sysstr::util::unicode
         0x80000D1B
     };
     
-    constexpr std::array<uint16_t, 128> normalizer::lookup::ascii({{
+    const std::array<uint16_t, 128> normalizer::lookup::ascii({{
         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
@@ -1445,7 +1445,7 @@ namespace sysstr::util::unicode
         0x081C, 0x081C, 0x081C, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000
     }});
     
-    constexpr std::array<uint8_t, 2048> normalizer::lookup::stage1({{
+    const std::array<uint8_t, 2048> normalizer::lookup::stage1({{
         22, 46, 49, 42, 41, 40, 30, 32, 37,  5,  0, 10, 21, 39, 33, 51, 52, 45,  0,  0,  0, 16, 13,  0, 36,  0,  0,  0,  0,  0, 
          0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
          0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 24, 44, 18,  0,  0,  0,  0, 
@@ -1517,7 +1517,7 @@ namespace sysstr::util::unicode
          0,  0,  0,  0,  0,  0,  0,  0
     }});
     
-    constexpr std::array<std::array<uint16_t, 32>, 54> normalizer::lookup::stage2({{
+    const std::array<std::array<uint16_t, 32>, 54> normalizer::lookup::stage2({{
         {{  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0}},
         {{  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  16}},
         {{  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 254}},
@@ -1574,7 +1574,7 @@ namespace sysstr::util::unicode
         {{293, 296, 278,   0,   0,   0,   0,   0,   3,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 292,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0}}
     }});
     
-    constexpr std::array<std::array<uint16_t, 16>, 308> normalizer::lookup::stage3({{
+    const std::array<std::array<uint16_t, 16>, 308> normalizer::lookup::stage3({{
         {{  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0}},
         {{  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 179}},
         {{  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 439}},
@@ -1885,7 +1885,7 @@ namespace sysstr::util::unicode
         {{495, 495, 478, 478, 436, 436, 436, 436, 488, 478, 478, 478, 478, 483, 483, 483}}
     }});
     
-    constexpr std::array<uint16_t, 498> normalizer::lookup::stage4({{
+    const std::array<uint16_t, 498> normalizer::lookup::stage4({{
         0x0000, 0x0009, 0x0060, 0x0064, 0x0068, 0x006D, 0x006F, 0x0072, 0x0074, 0x00C0, 0x00C1, 0x00C2, 0x00C4, 0x00C6, 0x00C7, 
         0x00C8, 0x00CA, 0x00CB, 0x00CD, 0x00CF, 0x00D2, 0x00D3, 0x00D7, 0x00DA, 0x00DC, 0x00DE, 0x00E1, 0x00ED, 0x00FF, 0x0104, 
         0x010C, 0x0128, 0x0129, 0x012B, 0x012E, 0x0130, 0x0132, 0x0138, 0x0152, 0x0156, 0x0164, 0x016A, 0x016F, 0x01C2, 0x01F4, 

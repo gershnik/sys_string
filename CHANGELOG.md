@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [2.18] - 2025-02-27
+
 ### Fixed
 
 - Unresolved symbols errors with GCC 10.2
@@ -193,3 +195,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [2.15]: https://github.com/gershnik/sys_string/releases/v2.15
 [2.16]: https://github.com/gershnik/sys_string/releases/v2.16
 [2.17]: https://github.com/gershnik/sys_string/releases/v2.17
+[2.18]: https://github.com/gershnik/sys_string/releases/v2.18

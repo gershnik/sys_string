@@ -85,7 +85,7 @@ int main(int argc, char** argv)
         SetConsoleOutputCP(CP_UTF8);
     #endif
 
-    #if defined(SYS_STRING_USE_PYTHON)
+    #if defined(SYS_STRING_USE_PYTHON) && !defined(PYPY_VERSION)
         Py_Initialize();
     #endif
     

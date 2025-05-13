@@ -30,7 +30,7 @@ endif()
 
 add_subdirectory(lib)
 
-if(${Python3_Interpreter_FOUND})
+if(${Python3_Interpreter_FOUND} AND ${Python3_VERSION} VERSION_GREATER "3.8")
 
     file(GLOB UNICODE_DATA ${CMAKE_CURRENT_LIST_DIR}/unicode/data/*.txt)
     file(GLOB UNICODE_SCRIPTS ${CMAKE_CURRENT_LIST_DIR}/unicode/scripts/*.py)

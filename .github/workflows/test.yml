@@ -209,4 +209,35 @@ jobs:
       shell: bash
       run: cmake --build out --config ${{env.BUILD_TYPE}} --target run-test
     
+  pythons:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [
+          "3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.13t",
+          "pypy-3.9", "pypy-3.10", "pypy-3.11"
+        ]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      id: setup-python
+      with:
+        python-version: ${{matrix.python-version}}
     
+    - name: Configure
+      shell: bash
+      run: |
+        cmake -S . -B out -DCMAKE_BUILD_TYPE=$BUILD_TYPE 
+
+    - name: Build and Test
+      shell: bash
+      run: |
+        cmake --build out --config $BUILD_TYPE --target test-20python test-23python
+        echo Running test-20python
+        out/test/test-20python -ni -fc
+        echo Running test-23python
+        out/test/test-23python -ni -fc

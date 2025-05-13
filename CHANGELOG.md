@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [2.19] - 2025-05-12
+
 ### Fixed
 
 - Error on missing `std::char_traits<const char>` on newer compilers
@@ -203,3 +205,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [2.16]: https://github.com/gershnik/sys_string/releases/v2.16
 [2.17]: https://github.com/gershnik/sys_string/releases/v2.17
 [2.18]: https://github.com/gershnik/sys_string/releases/v2.18
+[2.19]: https://github.com/gershnik/sys_string/releases/v2.19

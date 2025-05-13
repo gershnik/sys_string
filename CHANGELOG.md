@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Fixed
+
+- Error on missing `std::char_traits<const char>` on newer compilers
+- CMake build now correctly handles when Python detected on the build machine is too old to be used
+- Tests now run correctly with PyPy Python installation
+
+
 ## [2.18] - 2025-02-27
 
 ### Fixed

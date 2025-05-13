@@ -235,4 +235,4 @@ jobs:
 
     - name: Build and Test
       shell: bash
-      run: cmake --build out --config $BUILD_TYPE --target run-test
+      run: cmake --build out --config $BUILD_TYPE --target test-20python

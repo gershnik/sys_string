@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Fixed
+- CMake build now correctly handles when Python detected on the build machine is too old to be used
+- Tests now run correctly with PyPy Python installation
+
 ## [3.2] - 2025-02-10
 
 ### Added

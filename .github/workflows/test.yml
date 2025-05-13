@@ -14,7 +14,7 @@ on:
       - 'tools/**'
 
 env:
-  BUILD_TYPE: Release
+  BUILD_TYPE: MinSizeRel
   NDK_VER: 21.3.6528147
   NDK_ARCH: x86_64
   NDK_API: 29
@@ -26,19 +26,25 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - os: macos-latest
+        - {os: macos-15, version: 16 }
+        - {os: macos-14, version: "15.4" }
+        
         - os: windows-latest
+
         - {os: ubuntu-22.04, compiler: gcc, version: 11 }
         - {os: ubuntu-22.04, compiler: gcc, version: 12 }
         - {os: ubuntu-22.04, compiler: gcc, version: 13 }
         - {os: ubuntu-24.04, compiler: gcc, version: 14 }
-          
+        #- {os: ubuntu-24.04, compiler: gcc, version: 15 }
+
         - {os: ubuntu-22.04, compiler: clang, version: 13 }
         - {os: ubuntu-22.04, compiler: clang, version: 14 }
         - {os: ubuntu-22.04, compiler: clang, version: 15 }
         - {os: ubuntu-22.04, compiler: clang, version: 16 }
-        - {os: ubuntu-24.04, compiler: clang, version: 17 }
-        - {os: ubuntu-24.04, compiler: clang, version: 18 }
+        - {os: ubuntu-latest, compiler: clang, version: 17 }
+        - {os: ubuntu-latest, compiler: clang, version: 18 }
+        - {os: ubuntu-latest, compiler: clang, version: 19 }
+        - {os: ubuntu-latest, compiler: clang, version: 20 }
     
     steps:
     - name: Checkout
@@ -47,11 +53,11 @@ jobs:
     - name: System Setup
       shell: bash
       run: |
-        if [[ '${{ matrix.os }}' == 'ubuntu-latest' ]]; then
+        if [[ '${{ matrix.os }}' == ubuntu-* ]]; then
           if [[ '${{ matrix.compiler }}' == 'clang' ]]; then
             wget https://apt.llvm.org/llvm.sh
             chmod u+x llvm.sh
-            sudo ./llvm.sh ${{ matrix.version }}
+            sudo ./llvm.sh ${{ matrix.version }} 
             sudo apt-get install -y clang-tools-${{ matrix.version }} libc++-${{ matrix.version }}-dev libc++abi-${{ matrix.version }}-dev
             echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
             echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
@@ -59,11 +65,18 @@ jobs:
           fi
 
           if [[ '${{ matrix.compiler }}' == 'gcc' ]]; then
+            sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
             sudo apt-get update
             sudo apt-get install -y gcc-${{ matrix.version }} g++-${{ matrix.version }}
             echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
             echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
           fi
+
+        fi
+        if [[ '${{ matrix.os }}' == macos-* ]]; then
+          brew install icu4c
+          echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.version }}.app" >> $GITHUB_ENV
+          echo "ICU_ROOT=$(brew --cellar icu4c)/$(brew info --json icu4c | jq -r '.[0].installed[0].version')" >> $GITHUB_ENV
         fi
 
     - name: Configure
@@ -74,6 +87,33 @@ jobs:
     - name: Build and Test
       shell: bash
       run: cmake --build out --config $BUILD_TYPE --target run-test
+
+  container:
+    runs-on: ubuntu-latest
+    container: ${{ matrix.container }}
+    strategy:
+      fail-fast: false
+      matrix: 
+        container: [gcc:15.1]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install pre-requisites
+      run: |
+        apt-get update
+        apt-get install -y ninja-build cmake
+        apt-get install -y python3-dev
+
+    - name: Configure
+      shell: bash
+      run: |
+        cmake -S . -B out -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} 
+
+    - name: Build and Test
+      shell: bash
+      run: cmake --build out --config ${{env.BUILD_TYPE}} --target run-test
 
   android:
     runs-on: ubuntu-latest
@@ -129,24 +169,63 @@ jobs:
 
   emscripten:
     runs-on: ubuntu-latest
+    container: emscripten/emsdk:3.1.70
 
     steps:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Set Up Emscripten
-      uses: mymindstorm/setup-emsdk@v14
-      with:
-        version: 3.1.26
-        actions-cache-folder: 'emsdk-cache'
+    - name: Install pre-requisites
+      run: |
+        apt-get update
+        apt-get install -y ninja-build
+        apt-get install -y python3-dev
+
+        export CMAKE_VERSION=3.27.1
+        wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
+          -q -O /tmp/cmake-install.sh \
+        && chmod u+x /tmp/cmake-install.sh \
+        && /tmp/cmake-install.sh --skip-license --prefix=/usr \
+        rm -f /tmp/cmake-install.sh
 
     - name: Configure
       shell: bash
-      run: cmake -S . -B out -DCMAKE_TOOLCHAIN_FILE=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+      run: cmake -S . -B out -DCMAKE_TOOLCHAIN_FILE=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
 
     - name: Build and Test
       shell: bash
-      run: cmake --build out --config $BUILD_TYPE --target run-test
+      run: cmake --build out --config ${{env.BUILD_TYPE}} --target run-test
     
+  pythons:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [
+          "3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.13t",
+          "pypy-3.9", "pypy-3.10", "pypy-3.11"
+        ]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      id: setup-python
+      with:
+        python-version: ${{matrix.python-version}}
     
+    - name: Configure
+      shell: bash
+      run: |
+        cmake -S . -B out -DCMAKE_BUILD_TYPE=$BUILD_TYPE 
+
+    - name: Build and Test
+      shell: bash
+      run: |
+        cmake --build out --config $BUILD_TYPE --target test-17python test-20python
+        echo Running test-17python
+        out/test/test-17python
+        echo Running test-20python
+        out/test/test-20python

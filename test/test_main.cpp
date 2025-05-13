@@ -70,6 +70,15 @@ JNIEnv * g_env;
 
 #endif
 
+#if defined(SYS_STRING_USE_PYTHON) && defined(PYPY_VERSION)
+
+extern "C" {
+    void rpython_startup_code(void);
+    int pypy_setup_home(char *home, int verbose);
+}
+
+#endif
+
 int main(int argc, char** argv)
 {
     #if defined(__ANDROID__)
@@ -77,15 +86,22 @@ int main(int argc, char** argv)
         g_vm = vm;
         g_env = env;
     #endif
-
+    
     #if defined (_WIN32)
         SetConsoleOutputCP(CP_UTF8);
     #endif
 
     #if defined(SYS_STRING_USE_PYTHON)
-        Py_Initialize();
+        #if !defined(PYPY_VERSION)
+            Py_Initialize();
+        #else
+            rpython_startup_code();
+            pypy_setup_home(nullptr, 1);
+        #endif
     #endif
 
+    
+    
     return Catch::Session().run( argc, argv );
 }
 

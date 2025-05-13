@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [3.3] - 2025-05-12
+
 ### Fixed
 
 - CMake build now correctly handles when Python detected on the build machine is too old to be used
@@ -302,3 +304,4 @@ This is a major release with some breaking changes
 [3.0]: https://github.com/gershnik/sys_string/releases/v3.0
 [3.1]: https://github.com/gershnik/sys_string/releases/v3.1
 [3.2]: https://github.com/gershnik/sys_string/releases/v3.2
+[3.3]: https://github.com/gershnik/sys_string/releases/v3.3

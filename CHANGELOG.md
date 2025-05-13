@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## Unreleased
 
 ### Fixed
+
 - CMake build now correctly handles when Python detected on the build machine is too old to be used
 - Tests now run correctly with PyPy Python installation
 
@@ -96,6 +97,15 @@ This is a major release with some breaking changes
   of the string is printed as-is. This allows faithful round-tripping and support for invalid Unicode for those scenarios. Similar
   behavior applies to `wchar_t` on platform where it is UTF-16 or UTF-32.
 - `operator<<` no longer pollutes global namespace
+
+## [2.19] - 2025-05-12
+
+### Fixed
+
+- Error on missing `std::char_traits<const char>` on newer compilers
+- CMake build now correctly handles when Python detected on the build machine is too old to be used
+- Tests now run correctly with PyPy Python installation
+
 
 ## [2.18] - 2025-02-27
 
@@ -288,6 +298,7 @@ This is a major release with some breaking changes
 [2.16]: https://github.com/gershnik/sys_string/releases/v2.16
 [2.17]: https://github.com/gershnik/sys_string/releases/v2.17
 [2.18]: https://github.com/gershnik/sys_string/releases/v2.18
+[2.19]: https://github.com/gershnik/sys_string/releases/v2.19
 [3.0]: https://github.com/gershnik/sys_string/releases/v3.0
 [3.1]: https://github.com/gershnik/sys_string/releases/v3.1
 [3.2]: https://github.com/gershnik/sys_string/releases/v3.2

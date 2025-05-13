@@ -316,9 +316,9 @@ namespace sysstr
     template<class Char, size_t N>
     struct utf_access_traits<Char [N]>
     {
-        using char_access = std::basic_string_view<const Char>;
+        using char_access = std::basic_string_view<std::remove_const_t<Char>>;
         
-        static constexpr std::basic_string_view<const Char> adapt(Char (& src) [N]) noexcept
+        static constexpr std::basic_string_view<std::remove_const_t<Char>> adapt(Char (& src) [N]) noexcept
             { return src; }
     };
 

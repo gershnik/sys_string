@@ -234,7 +234,7 @@ namespace sysstr
         
         friend auto compare(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> compare_result
             { return sys_string_t::compare(lhs, rhs); }
-        friend auto compare_no_case(const sys_string_t lhs, const sys_string_t & rhs) noexcept -> compare_result
+        friend auto compare_no_case(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> compare_result
             { return sys_string_t::compare_no_case(lhs, rhs); }
         
         template<class StringOrChar1, class StringOrChar2>
@@ -313,7 +313,7 @@ namespace sysstr
 
     private:
         static auto compare(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> compare_result;
-        static auto compare_no_case(const sys_string_t lhs, const sys_string_t & rhs) noexcept -> compare_result;
+        static auto compare_no_case(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> compare_result;
         
     };
 

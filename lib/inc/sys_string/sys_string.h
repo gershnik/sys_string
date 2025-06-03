@@ -320,7 +320,7 @@ namespace sysstr
         
         friend auto compare(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> std::strong_ordering
             { return sys_string_t::compare(lhs, rhs); }
-        friend auto compare_no_case(const sys_string_t lhs, const sys_string_t & rhs) noexcept -> std::strong_ordering
+        friend auto compare_no_case(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> std::strong_ordering
             { return sys_string_t::compare_no_case(lhs, rhs); }
         
         template<addable<Storage> Addend1, addable<Storage> Addend2>
@@ -419,7 +419,7 @@ namespace sysstr
 
     private:
         static auto compare(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> std::strong_ordering;
-        static auto compare_no_case(const sys_string_t lhs, const sys_string_t & rhs) noexcept -> std::strong_ordering;
+        static auto compare_no_case(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> std::strong_ordering;
 
         template <std::invocable<std::string_view> Func>
         auto print_with(Func func) const -> decltype(func(std::string_view{}));

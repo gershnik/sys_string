@@ -67,7 +67,7 @@ namespace sysstr
     }
 
     template<class Storage>
-    auto sys_string_t<Storage>::compare_no_case(const sys_string_t<Storage> lhs, const sys_string_t<Storage> & rhs) noexcept -> std::strong_ordering
+    auto sys_string_t<Storage>::compare_no_case(const sys_string_t<Storage> & lhs, const sys_string_t<Storage> & rhs) noexcept -> std::strong_ordering
     {
         utf32_access lhs_view(lhs);
         utf32_access rhs_view(rhs);

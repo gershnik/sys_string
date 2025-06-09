@@ -62,10 +62,14 @@ namespace sysstr
     };
 
     template<class T, class Storage>
-    concept addable = sys_string_or_char<T, Storage> || (
-                            std::ranges::forward_range<T> &&
-                            has_utf_encoding<std::ranges::range_value_t<T>>
-                      );
+    concept addable = sys_string_or_char<T, Storage> || 
+                  (
+                        std::ranges::forward_range<T> &&
+                        has_utf_encoding<std::ranges::range_value_t<T>>
+                  ) || (
+                        std::is_pointer_v<std::decay_t<T>> &&
+                        has_utf_encoding<std::remove_const_t<std::remove_pointer_t<std::decay_t<T>>>>
+                  );
 }
 
 namespace sysstr::util

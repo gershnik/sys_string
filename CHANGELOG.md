@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Fixed
+- Inadvertent pessimization in `compare_no_case`
+- Concepts rejecting `Char *` as eligible for addition to `sys_string`
+
 ## [3.3] - 2025-05-12
 
 ### Fixed

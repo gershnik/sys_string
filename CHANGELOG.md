@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [3.4] - 2025-06-27
+
 ### Fixed
 - Inadvertent pessimization in `compare_no_case`
 - Concepts rejecting `Char *` as eligible for addition to `sys_string`
@@ -309,3 +311,4 @@ This is a major release with some breaking changes
 [3.1]: https://github.com/gershnik/sys_string/releases/v3.1
 [3.2]: https://github.com/gershnik/sys_string/releases/v3.2
 [3.3]: https://github.com/gershnik/sys_string/releases/v3.3
+[3.4]: https://github.com/gershnik/sys_string/releases/v3.4

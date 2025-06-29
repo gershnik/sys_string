@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Fixed
+- Incorrect CMake test for Python presence at buildtime
+
 ## [2.19] - 2025-05-12
 
 ### Fixed

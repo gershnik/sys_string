@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [3.5] - 2025-07-16
+
 ### Fixed
 - Incorrect CMake test for Python presence at build time
 
@@ -321,3 +323,4 @@ This is a major release with some breaking changes
 [3.2]: https://github.com/gershnik/sys_string/releases/v3.2
 [3.3]: https://github.com/gershnik/sys_string/releases/v3.3
 [3.4]: https://github.com/gershnik/sys_string/releases/v3.4
+[3.5]: https://github.com/gershnik/sys_string/releases/v3.5

@@ -134,6 +134,7 @@ jobs:
 
     - name: Setup
       run: |
+        sudo apt-get update
         sudo apt-get install -y gcc-powerpc-linux-gnu g++-powerpc-linux-gnu qemu-user-binfmt
 
     - name: Configure

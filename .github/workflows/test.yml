@@ -146,7 +146,9 @@ jobs:
 
     - name: Build and Test
       shell: bash
-      run: cmake --build out --config ${{env.BUILD_TYPE}} --target run-test
+      run: |
+        export QEMU_LD_PREFIX=/usr/powerpc-linux-gnu/
+        cmake --build out --config ${{env.BUILD_TYPE}} --target run-test
 
   android:
     runs-on: ubuntu-latest

@@ -269,7 +269,7 @@ TEST_CASE( "Iteration" ) {
         CHECK(res);
         
         converted.clear();
-        for (char32_t c: sys_string::utf16_access(empty))
+        for (char32_t c: sys_string::utf32_access(empty))
         {
             converted.push_back(c);
         }

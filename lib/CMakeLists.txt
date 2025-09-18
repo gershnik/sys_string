@@ -58,7 +58,7 @@ set(UNICODE_FILES
     ${SRCDIR}/inc/sys_string/impl/unicode/mappings.h
     ${SRCDIR}/inc/sys_string/impl/unicode/mappings_icu.h
 )
-source_group("Unicode" FILES ${UNICODE_FILES} ${SOURCES})
+source_group("Unicode" FILES ${UNICODE_FILES})
 
 set(UTIL_FILES
 

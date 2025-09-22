@@ -463,7 +463,7 @@ namespace sysstr::util
     template<PyUnicode_Kind Kind>
     struct PyUnicodeObject_wrapper : PyUnicodeObject
     {
-        #ifdef __GNUC__
+        #if defined(__GNUC__) || defined(__clang__)
         #pragma GCC diagnostic push
         #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
         #endif
@@ -482,7 +482,7 @@ namespace sysstr::util
                 this->_base.utf8_length = size;
             }
         }
-        #ifdef __GNUC__
+        #if defined(__GNUC__) || defined(__clang__)
         #pragma GCC diagnostic pop
         #endif
         

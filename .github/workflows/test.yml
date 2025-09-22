@@ -13,31 +13,86 @@ on:
       - 'doc/**'
       - 'tools/**'
 
-env:
-  BUILD_TYPE: MinSizeRel
-
 jobs:
+  define-matrix:
+    runs-on: ubuntu-latest
+
+    outputs:
+      hosts: ${{ steps.matrix.outputs.hosts }}
+      containers: ${{ steps.matrix.outputs.containers }}
+
+    steps:
+      - name: Define Matrix
+        id: matrix
+        shell: python
+        run: |
+          import json
+          import os
+
+          macos_map = {
+            'macos-14': "15.4",
+            'macos-15': "16.2"
+          }
+
+          win_paltforms = ["x64", "Win32"]
+          win_clang_archs = ["x64", "x86"]
+
+          gcc_map = {
+            12: 'ubuntu-latest', 
+            13: 'ubuntu-latest',
+            14: 'ubuntu-24.04'
+          }
+          gcc_cont_map = {
+            15: 'gcc:15.1'
+          }
+          clang_map = {
+            16: 'ubuntu-22.04',
+            17: 'ubuntu-latest', 
+            18: 'ubuntu-latest', 
+            19: 'ubuntu-latest', 
+            20: 'ubuntu-latest',
+            21: 'ubuntu-latest'
+          }
+          
+          hosts = []
+          containers=[]
+          
+          #macOS
+          for runon, xcode in macos_map.items():
+            hosts.append({'os': runon, 'version': xcode, 'jobname': f'macOS - Xcode{xcode}'})
+          
+          #windows
+          for platform in win_paltforms:
+            hosts.append({'os': 'windows-latest', 'platform': platform, 'nopython': platform == "Win32", 'jobname': f'Windows - {platform}'})
+              
+          for arch in win_clang_archs:
+            hosts.append({'os': 'windows-latest', 'arch': arch, 'compiler': 'clang-cl', 'nopython': arch == "x86", 'jobname': f'Windows - clang - {arch}'})
+          
+          #gcc hosts
+          for gcc, runon in gcc_map.items():
+            hosts.append({'os': runon, 'compiler': 'gcc', 'version': gcc, 'jobname': f'Linux - GCC{gcc}'})
+
+          #gcc containers
+          for gcc, container in gcc_cont_map.items():
+              containers.append({'container': container, 'jobname': f'Linux - GCC{gcc}'})
+
+
+          #clang
+          for clang, runon in clang_map.items():
+            hosts.append({'os': runon, 'compiler': 'clang', 'version': clang, 'jobname': f'Linux - Clang{clang}'})
+
+          with open(os.environ['GITHUB_OUTPUT'], 'w') as env:
+            print('hosts=' + json.dumps(hosts), file=env) 
+            print('containers=' + json.dumps(containers), file=env)
+
   desktop:
+    needs: define-matrix
+    name: ${{ matrix.jobname }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-        - {os: macos-15, version: 16 }
-        - {os: macos-14, version: "15.4" }
-        
-        - os: windows-latest
-        
-        - {os: ubuntu-latest, compiler: gcc, version: 12 }
-        - {os: ubuntu-latest, compiler: gcc, version: 13 }
-        - {os: ubuntu-24.04, compiler: gcc, version: 14 }
-        #- {os: ubuntu-24.04, compiler: gcc, version: 15 }
-        
-        - {os: ubuntu-22.04, compiler: clang, version: 16 }
-        - {os: ubuntu-latest, compiler: clang, version: 17 }
-        - {os: ubuntu-latest, compiler: clang, version: 18 }
-        - {os: ubuntu-latest, compiler: clang, version: 19 }
-        - {os: ubuntu-latest, compiler: clang, version: 20 }
+        include: ${{ fromJSON(needs.define-matrix.outputs.hosts) }}
     
     steps:
     - name: Checkout
@@ -65,6 +120,13 @@ jobs:
             echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
           fi
 
+          mkdir bin
+          wget -qO- https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-linux.zip | \
+                gunzip > bin/ninja
+          chmod a+x bin/ninja
+          echo PATH=`pwd`/bin:$PATH >> $GITHUB_ENV
+          echo "CMAKE_GENERATOR=-GNinja" >> $GITHUB_ENV
+
           # wget https://github.com/unicode-org/icu/releases/download/release-76-1/icu4c-76_1-src.tgz
           # tar -xzf icu4c-76_1-src.tgz
           # cd icu/source
@@ -88,22 +150,34 @@ jobs:
           echo "ICU_ROOT=$(brew --cellar icu4c)/$(brew info --json icu4c | jq -r '.[0].installed[0].version')" >> $GITHUB_ENV
         fi
 
+        CMAKE_ARGS=( )
+
+        if [[ '${{ matrix.platform }}' != "" ]]; then
+          CMAKE_ARGS+=(-DCMAKE_GENERATOR_PLATFORM=${{ matrix.platform }})
+        fi
+
+        if [[ ${#CMAKE_ARGS[@]} != 0 ]]; then
+          echo "CMAKE_ARGS=${CMAKE_ARGS[@]}" >> $GITHUB_ENV
+        fi
+
     - name: Configure
       shell: bash
       run: |
-        cmake -S . -B out -DCMAKE_BUILD_TYPE=$BUILD_TYPE 
+        cmake $CMAKE_GENERATOR -S . -B out $CMAKE_ARGS -DCMAKE_BUILD_TYPE=MinSizeRel
 
     - name: Build and Test
       shell: bash
-      run: cmake --build out --config $BUILD_TYPE --target run-test
+      run: cmake --build out --config MinSizeRel --target run-test
 
   container:
+    needs: define-matrix
+    name: ${{ matrix.jobname }}
     runs-on: ubuntu-latest
     container: ${{ matrix.container }}
     strategy:
       fail-fast: false
       matrix: 
-        container: [gcc:15.1]
+        include: ${{ fromJSON(needs.define-matrix.outputs.containers) }}
 
     steps:
     - name: Checkout
@@ -118,11 +192,11 @@ jobs:
     - name: Configure
       shell: bash
       run: |
-        cmake -S . -B out -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} 
+        cmake -S . -B out -DCMAKE_BUILD_TYPE=MinSizeRel
 
     - name: Build and Test
       shell: bash
-      run: cmake --build out --config ${{env.BUILD_TYPE}} --target run-test
+      run: cmake --build out --config MinSizeRel --target run-test
 
 
   big-endian:
@@ -142,13 +216,13 @@ jobs:
         export CC=powerpc-linux-gnu-gcc
         export CXX=powerpc-linux-gnu-g++
         export QEMU_LD_PREFIX=/usr/powerpc-linux-gnu/
-        cmake -S . -B out -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_SYSTEM_PROCESSOR=powerpc
+        cmake -S . -B out -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_SYSTEM_PROCESSOR=powerpc
 
     - name: Build and Test
       shell: bash
       run: |
         export QEMU_LD_PREFIX=/usr/powerpc-linux-gnu/
-        cmake --build out --config ${{env.BUILD_TYPE}} --target run-test
+        cmake --build out --config MinSizeRel --target run-test
 
   android:
     runs-on: ubuntu-latest
@@ -202,10 +276,10 @@ jobs:
         disable-animations: true
         script: |
             echo "::group::Configure"
-            cmake -S . -B out -DCMAKE_BUILD_TYPE:STRING=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE:FILEPATH=$ANDROID_SDK_ROOT/ndk/${{ matrix.version }}/build/cmake/android.toolchain.cmake -DANDROID_ABI:STRING=${{ matrix.arch }} -DANDROID_PLATFORM:STRING=${{ matrix.version }} -DANDROID_STL:STRING=c++_static
+            cmake -S . -B out -DCMAKE_BUILD_TYPE:STRING=MinSizeRel -DCMAKE_TOOLCHAIN_FILE:FILEPATH=$ANDROID_SDK_ROOT/ndk/${{ matrix.version }}/build/cmake/android.toolchain.cmake -DANDROID_ABI:STRING=${{ matrix.arch }} -DANDROID_PLATFORM:STRING=${{ matrix.version }} -DANDROID_STL:STRING=c++_static
             echo "::endgroup::"
             echo "::group::Build and Test"
-            cmake --build out --config $BUILD_TYPE --target run-test
+            cmake --build out --config MinSizeRel --target run-test
             echo "::endgroup::"
 
   emscripten:
@@ -231,12 +305,12 @@ jobs:
 
     - name: Configure
       shell: bash
-      run: cmake -S . -B out -DCMAKE_TOOLCHAIN_FILE=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: cmake -S . -B out -DCMAKE_TOOLCHAIN_FILE=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=MinSizeRel
 
 
     - name: Build and Test
       shell: bash
-      run: cmake --build out --config ${{env.BUILD_TYPE}} --target run-test
+      run: cmake --build out --config MinSizeRel --target run-test
     
   pythons:
     runs-on: ubuntu-latest
@@ -260,12 +334,12 @@ jobs:
     - name: Configure
       shell: bash
       run: |
-        cmake -S . -B out -DCMAKE_BUILD_TYPE=$BUILD_TYPE 
+        cmake -S . -B out -DCMAKE_BUILD_TYPE=MinSizeRel
 
     - name: Build and Test
       shell: bash
       run: |
-        cmake --build out --config $BUILD_TYPE --target test-20python test-23python
+        cmake --build out --config MinSizeRel --target test-20python test-23python
         echo Running test-20python
         out/test/test-20python -ni -fc
         echo Running test-23python

@@ -19,7 +19,7 @@ FetchContent_MakeAvailable(doctest)
 
 find_package(ICU 67 COMPONENTS uc)
 
-if(${Python3_Development_FOUND})
+if(${Python3_Development_FOUND} AND ${Python3_Interpreter_FOUND})
     include_directories(
     SYSTEM
         ${Python3_INCLUDE_DIRS}
@@ -49,7 +49,7 @@ if (WIN32)
         unix_gen
     )
 
-    if (Python3_Development_FOUND)
+    if (${Python3_Development_FOUND} AND ${Python3_Interpreter_FOUND})
 
         list(APPEND STORAGE_TYPES python)
 
@@ -62,7 +62,7 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
         unix_gen
     )
 
-    if (Python3_Development_FOUND)
+    if (${Python3_Development_FOUND} AND ${Python3_Interpreter_FOUND})
 
         list(APPEND STORAGE_TYPES python)
 
@@ -88,7 +88,7 @@ else()
         def
     )
 
-    if (Python3_FOUND)
+    if (${Python3_Development_FOUND} AND ${Python3_Interpreter_FOUND})
 
         list(APPEND STORAGE_TYPES python)
 

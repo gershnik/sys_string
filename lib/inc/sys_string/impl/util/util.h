@@ -108,7 +108,10 @@ namespace sysstr::util
 
     #endif
 
-    template<std::unsigned_integral T>
+    //Preconditions: 
+    // 1. val, numerator >= 0
+    // 2. denominator > 0
+    template<std::integral T>
     constexpr T saturated_mul_div(T val, std::convertible_to<T> auto numerator, std::convertible_to<T> auto denominator) {
         T num = T(numerator);
         T denom = T(denominator);

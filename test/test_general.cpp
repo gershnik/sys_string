@@ -262,10 +262,10 @@ TEST_CASE( "Iteration" ) {
         static_assert(std::is_same_v<decltype(as_utf32(access))::iterator,
                                      sys_string::utf32_access::iterator>);
 
-        bool res = std::ranges::equal(as_utf32(access) | std::views::take(1), std::array{'a'});
+        bool res = std::ranges::equal(as_utf32(access) | std::views::take(1), std::array{U'a'});
         CHECK(res);
 
-        res = std::ranges::equal(std::views::all(view) | std::views::take(1), std::array{'a'});
+        res = std::ranges::equal(std::views::all(view) | std::views::take(1), std::array{U'a'});
         CHECK(res);
         
         converted.clear();

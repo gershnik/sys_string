@@ -108,6 +108,28 @@ namespace sysstr::util
 
     #endif
 
+    template<std::unsigned_integral T>
+    constexpr T saturated_mul_div(T val, std::convertible_to<T> auto numerator, std::convertible_to<T> auto denominator) {
+        T num = T(numerator);
+        T denom = T(denominator);
+        T whole = num / denom;
+        num = num % denom;
+
+        T quot = val / denom;
+        T rem = val % denom;
+        T increment = quot * num;
+
+        T extra = rem * num;
+        quot = extra / denom;
+        rem = extra % denom;
+        increment += quot;
+        increment += (2 * rem >= denom);
+
+        if (whole && (std::numeric_limits<T>::max() - increment) / whole < val)
+            return std::numeric_limits<T>::max();
+        return val * whole + increment;
+    }
+
 }
 
 #endif

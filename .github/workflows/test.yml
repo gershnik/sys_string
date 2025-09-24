@@ -342,6 +342,6 @@ jobs:
       run: |
         cmake --build out --config MinSizeRel --target test-17python test-20python
         echo Running test-17python
-        out/test/test-17python -ni -fc
+        out/test/test-17python
         echo Running test-20python
-        out/test/test-20python -ni -fc
+        out/test/test-20python

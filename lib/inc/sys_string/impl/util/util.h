@@ -13,6 +13,7 @@
 #include <iterator>
 #include <algorithm>
 #include <string>
+#include <limits>
 #if SYS_STRING_USE_SPACESHIP_OPERATOR
     #include <compare>
 #endif

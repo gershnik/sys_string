@@ -141,7 +141,7 @@ TEST_CASE( "Iteration", "[general]" ) {
         CHECK(converted == std::u32string{expected.rbegin(), expected.rend()});
         
         converted.clear();
-        for (char32_t c: sys_string::utf16_view(empty))
+        for (char32_t c: sys_string::utf32_view(empty))
         {
             converted.push_back(c);
         }

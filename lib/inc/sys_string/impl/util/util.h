@@ -125,6 +125,34 @@ namespace sysstr::util
         return dest;
     }
 
+    //Preconditions: 
+    // 1. val, numerator >= 0
+    // 2. denominator > 0
+    template<class T, class TN, class TD>
+    constexpr 
+    std::enable_if_t<
+        std::is_integral_v<T> && std::is_convertible_v<TN, T> && std::is_convertible_v<TD, T>,
+    T> saturated_mul_div(T val, TN numerator, TD denominator) {
+        T num = T(numerator);
+        T denom = T(denominator);
+        T whole = num / denom;
+        num = num % denom;
+
+        T quot = val / denom;
+        T rem = val % denom;
+        T increment = quot * num;
+
+        T extra = rem * num;
+        quot = extra / denom;
+        rem = extra % denom;
+        increment += quot;
+        increment += (2 * rem >= denom);
+
+        if (whole && (std::numeric_limits<T>::max() - increment) / whole < val)
+            return std::numeric_limits<T>::max();
+        return val * whole + increment;
+    }
+
 }
 
 #endif

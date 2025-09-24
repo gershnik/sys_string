@@ -57,10 +57,16 @@ if(${Python3_Interpreter_FOUND} AND "${Python3_VERSION}" VERSION_GREATER_EQUAL "
             ${UNICODE_GENERATED_FILES}
     )
 
+    target_sources(generate_unicode_mappings
+    PRIVATE
+        ${UNICODE_SCRIPTS}
+    )
+
+    set_source_files_properties(${UNICODE_SCRIPTS} PROPERTIES XCODE_EXPLICIT_FILE_TYPE text.script.python)
+
     add_dependencies(sys_string generate_unicode_mappings)
 
 endif()
-
 
 if (PROJECT_IS_TOP_LEVEL)
     

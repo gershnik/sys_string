@@ -41,7 +41,7 @@ class lookup_builder:
                 if (c > max_char)
                     return false;
                 for(auto p = chars; *p; ++p)
-                    if (*p == c)
+                    if (*p == char16_t(c))
                         return true;
                 return false;
             }}

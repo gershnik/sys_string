@@ -36,10 +36,21 @@ PUBLIC
 target_compile_options(${LIBNAME} 
 PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/W4;/WX>
-    $<$<CXX_COMPILER_ID:Clang>:-Wall;-Wextra;-pedantic>
     $<$<CXX_COMPILER_ID:AppleClang>:-Wall;-Wextra;-pedantic>
     $<$<CXX_COMPILER_ID:GNU>:-Wall;-Wextra;-pedantic>
 )
+
+if ("${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "MSVC")
+    target_compile_options(${LIBNAME} 
+    PRIVATE
+        $<$<CXX_COMPILER_ID:Clang>:/W4;/WX;-Wno-self-assign-overloaded;-Wno-self-move>
+    )
+else()
+    target_compile_options(${LIBNAME} 
+    PRIVATE
+        $<$<CXX_COMPILER_ID:Clang>:-Wall;-Wextra;-pedantic;-Wno-self-assign-overloaded;-Wno-self-move>
+    )
+endif()
 
 target_link_libraries(${LIBNAME} 
 PUBLIC

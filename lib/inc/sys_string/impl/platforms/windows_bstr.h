@@ -108,7 +108,7 @@ namespace sysstr::util
     class bstr_buffer
     {
     private:
-        static constexpr size_t size_in_pointers = 3;
+        static constexpr size_t total_size = std::max(3 * sizeof(void *), size_t(24));
         
         union data
         {
@@ -120,18 +120,18 @@ namespace sysstr::util
             struct
             {
                 UINT value;
-                std::byte unused[size_in_pointers * sizeof(void *) - sizeof(UINT)];
+                std::byte unused[total_size - sizeof(UINT)];
             } flags;
             struct
             {
-                void * unused[size_in_pointers - 1];
+                void * unused[total_size / sizeof(void *) - 1];
                 dynamic_bstr * ptr;
             } dynamic_data;
             struct embedded_data_t
             {
                 UINT unused;
                 UINT size;
-                char16_t chars[(size_in_pointers * sizeof(dynamic_bstr *) - 2 * sizeof(UINT)) / sizeof(char16_t)];
+                char16_t chars[(total_size - 2 * sizeof(UINT)) / sizeof(char16_t)];
             } embedded_data;
         public:
             static constexpr UINT max_small_length = std::extent_v<decltype(embedded_data_t::chars)> - 1;
@@ -320,7 +320,7 @@ namespace sysstr::util
                 }
             }
         };
-        static_assert(sizeof(data) == size_in_pointers * sizeof(void *));
+        static_assert(sizeof(data) == total_size);
         
     public:
         bstr_buffer() noexcept

@@ -7,7 +7,7 @@
 #
 
 
-if(${Python3_Development_FOUND})
+if(${Python3_Development_FOUND} AND ${Python3_Interpreter_FOUND})
     include_directories(
     SYSTEM
         ${Python3_INCLUDE_DIRS}
@@ -37,7 +37,7 @@ if (WIN32)
         unix_gen
     )
 
-    if (Python3_Development_FOUND)
+    if (${Python3_Development_FOUND} AND ${Python3_Interpreter_FOUND})
 
         list(APPEND STORAGE_TYPES python)
 
@@ -50,7 +50,7 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
         unix_gen
     )
 
-    if (Python3_Development_FOUND)
+    if (${Python3_Development_FOUND} AND ${Python3_Interpreter_FOUND})
 
         list(APPEND STORAGE_TYPES python)
 
@@ -76,7 +76,7 @@ else()
         def
     )
 
-    if (Python3_FOUND)
+    if (${Python3_Development_FOUND} AND ${Python3_Interpreter_FOUND})
 
         list(APPEND STORAGE_TYPES python)
 
@@ -127,14 +127,27 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
         CXX_EXTENSIONS OFF
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN ON
+        XCODE_GENERATE_SCHEME TRUE
+        XCODE_SCHEME_ARGUMENTS "-ni;-nc"
     )
 
     target_compile_options(test-${TEST_SUFFIX} PRIVATE
         $<$<CXX_COMPILER_ID:MSVC>:/utf-8;/W4;/WX>
-        $<$<CXX_COMPILER_ID:Clang>:-Wall;-Wextra;-pedantic;-Wno-self-assign-overloaded;-Wno-self-move>
         $<$<CXX_COMPILER_ID:AppleClang>:-Wall;-Wextra;-pedantic;-Wno-self-assign-overloaded;-Wno-self-move>
         $<$<CXX_COMPILER_ID:GNU>:-Wall;-Wextra;-pedantic>
     )
+
+    if ("${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "MSVC")
+        target_compile_options(test-${TEST_SUFFIX}
+        PRIVATE
+            $<$<CXX_COMPILER_ID:Clang>:/W4;/WX;-Wno-self-assign-overloaded;-Wno-self-move>
+        )
+    else()
+        target_compile_options(test-${TEST_SUFFIX}
+        PRIVATE
+            $<$<CXX_COMPILER_ID:Clang>:-Wall;-Wextra;-pedantic;-Wno-self-assign-overloaded;-Wno-self-move>
+        )
+    endif()
 
     target_compile_definitions(test-${TEST_SUFFIX} PRIVATE
         ${STORAGE_FLAG_${STORAGE_SUFFIX}}
@@ -181,13 +194,14 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
         catch.hpp
     )
 
+    list(APPEND TEST_COMMAND COMMAND echo "Running test-${TEST_SUFFIX}")
     if (${CMAKE_SYSTEM_NAME} STREQUAL Android)
         list(APPEND TEST_COMMAND COMMAND ${ADB} push test-${TEST_SUFFIX} ${ANDROID_TEST_DIR})
-        list(APPEND TEST_COMMAND COMMAND ${ADB} shell LD_LIBRARY_PATH=${ANDROID_LD_LIBRARY_PATH} ${ANDROID_TEST_DIR}/test-${TEST_SUFFIX})
+        list(APPEND TEST_COMMAND COMMAND ${ADB} shell LD_LIBRARY_PATH=${ANDROID_LD_LIBRARY_PATH} ${ANDROID_TEST_DIR}/test-${TEST_SUFFIX} -ni)
     elseif (DEFINED EMSCRIPTEN)
-        list(APPEND TEST_COMMAND COMMAND node test-${TEST_SUFFIX})
+        list(APPEND TEST_COMMAND COMMAND ${NODE_JS_EXECUTABLE} test-${TEST_SUFFIX} -ni)
     else()
-        list(APPEND TEST_COMMAND COMMAND test-${TEST_SUFFIX})
+        list(APPEND TEST_COMMAND COMMAND test-${TEST_SUFFIX} -ni)
     endif()
 
     list(APPEND TEST_DEPS test-${TEST_SUFFIX})

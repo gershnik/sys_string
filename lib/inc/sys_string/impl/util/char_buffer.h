@@ -188,20 +188,22 @@ namespace sysstr::util
         {
             if (this->m_size < this->capacity())
                 return;
-            
+
             size_type desired;
-        
-            if (this->capacity() == 0)
+            if (this->capacity() < growth_increment) {
                 desired = growth_increment;
-            else if (this->capacity() / growth_div_factor < this->max_size() / growth_mul_factor)
-                desired = (this->capacity() * growth_mul_factor) / growth_div_factor;
-            else if (this->capacity() < this->max_size() - growth_increment)
-                desired = this->capacity() + growth_increment;
-            else if (this->capacity() == this->max_size())
-                throw std::bad_alloc();
-            else
-                desired = this->max_size();
-        
+            } else {
+                desired = util::saturated_mul_div(this->capacity(), growth_mul_factor, growth_div_factor);
+                if (desired == this->capacity() || desired >= this->max_size()) {
+                    if (this->capacity() < this->max_size() - growth_increment)
+                        desired = this->capacity() + growth_increment;
+                    else if (this->capacity() == this->max_size())
+                        throw std::bad_alloc();
+                    else
+                        desired = this->max_size();
+                }
+            }
+
             this->m_storage.reallocate(desired, this->m_size);
         }
     

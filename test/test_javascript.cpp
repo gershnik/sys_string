@@ -20,6 +20,10 @@ using namespace emscripten;
 
 #if !SYS_STRING_USE_GENERIC && !SYS_STRING_USE_PYTHON
 
+    EM_JS(__externref_t, make_test_string, (const char * str), {
+        return UTF8ToString(str);
+    });
+
     TEST_SUITE("javascript") {
 
     TEST_CASE( "Javascript Conversions" ) {
@@ -52,6 +56,18 @@ using namespace emscripten;
         }, handle);
         CHECK(result);
     }
+    
+#if defined(__wasm_reference_types__)
+    TEST_CASE( "Javascript Conversions with builtins" ) {
+
+        auto js_str = make_test_string("абвгдеёжзийклмнопрстуфхцчшщьыъэюя");
+
+        CHECK(sys_string(js_str) == S("абвгдеёжзийклмнопрстуфхцчшщьыъэюя"));
+
+        auto js_str2 = S("абвгдеёжзийклмнопрстуфхцчшщьыъэюя").make_js_string_ref();
+        CHECK(sys_string(js_str2) == S("абвгдеёжзийклмнопрстуфхцчшщьыъэюя"));
+    }
+#endif
 
     }
 

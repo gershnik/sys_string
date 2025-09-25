@@ -12,6 +12,19 @@
 
 #include <sys_string/impl/util/generic_impl.h>
 
+//Like EM_JS but with inline and extern "C" only on data
+#define SYSSTR_EM_JS(ret, c_name, js_name, params, ...)                        \
+  ret c_name params EM_IMPORT(js_name);                                        \
+  extern "C"                                                                   \
+  __attribute__((visibility("hidden")))                                        \
+  inline void * __em_js_ref_##c_name = (void*)&c_name;                         \
+  extern "C"                                                                   \
+  EMSCRIPTEN_KEEPALIVE                                                         \
+  __attribute__((section("em_js"), aligned(1)))                                \
+  inline char __em_js__##js_name[] =                                           \
+    #params "<::>" #__VA_ARGS__;
+
+
 namespace sysstr::util
 {
     struct emscripten_traits
@@ -32,6 +45,40 @@ namespace sysstr::util
     using emscripten_builder_impl      = generic::builder_impl<emscripten_traits::storage_type, emscripten_traits::size_type>;
 
     using emscripten_char_access       = generic::char_access<emscripten_traits::storage_type, emscripten_traits::size_type>;
+
+#ifdef __wasm_reference_types__
+
+    #if SYS_STRING_USE_WASM_JS_STRING
+        uint32_t js_length(__externref_t str) __attribute__((import_module("wasm:js-string"), import_name("length")));
+        uint32_t js_charCodeAt(__externref_t str, uint32_t idx) __attribute__((import_module("wasm:js-string"), import_name("charCodeAt")));
+    #else
+
+        SYSSTR_EM_JS(uint32_t, js_length, sysstr_length, (__externref_t str), {
+            return str.length;
+        });
+
+        SYSSTR_EM_JS(uint32_t, js_charCodeAt, sysstr_charCodeAt, (__externref_t str, uint32_t idx), {
+            return str.charCodeAt(idx);
+        });
+    #endif
+
+    SYSSTR_EM_JS(__externref_t, js_UTF16ToString, sysstr_UTF16ToString, (const void * ptr, size_t length), {
+        let start = (ptr>>1);
+        if (length > 16 && UTF16Decoder)
+            return UTF16Decoder.decode(HEAPU16.subarray(start, start + length));
+
+        let ret = "";
+
+        for (let i = 0; i < length; ++i) {
+            const codeUnit = HEAPU16[start];
+            ret += String.fromCharCode(codeUnit);
+            ++start;
+        }
+        
+        return ret;
+    });
+    
+#endif
 
 }
 
@@ -59,6 +106,12 @@ namespace sysstr
             super(create_buffer(js_str))
         {}
 
+#ifdef __wasm_reference_types__
+        emscripten_storage(__externref_t js_str):
+            super(create_buffer(js_str))
+        {}
+#endif
+
 #ifdef _MSC_VER
         template<has_utf_encoding Char>
         emscripten_storage(const Char * str, size_t len):
@@ -78,26 +131,12 @@ namespace sysstr
         using super::data;
         using super::copy_data;
 
-        auto make_js_string() const noexcept -> emscripten::EM_VAL 
-        {
+        auto make_js_string() const noexcept -> emscripten::EM_VAL {
             #pragma clang diagnostic push
             #pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
             
             auto ret = (emscripten::EM_VAL)EM_ASM_PTR({
-                let ptr = $0;
-                let length = $1;
-                if (length > 16 && UTF16Decoder)
-                    return Emval.toHandle(UTF16Decoder.decode(HEAPU8.subarray(ptr, ptr + length  * 2)));
-                
-                let ret = "";
-  
-                for (let i = 0; i < length; ++i) {
-                    const codeUnit = HEAP16[((ptr)>>1)];
-                    ret += String.fromCharCode(codeUnit);
-                    ptr += 2;
-                }
-                
-                return Emval.toHandle(ret);
+                return Emval.toHandle(sysstr_UTF16ToString($0, $1));
             }, data(), size());
 
             return ret;
@@ -105,6 +144,12 @@ namespace sysstr
             #pragma clang diagnostic pop
             
         }
+
+#ifdef __wasm_reference_types__
+        auto make_js_string_ref() const noexcept -> __externref_t {
+            return util::js_UTF16ToString(data(), size());
+        }
+#endif
 
     protected:
         using super::size;
@@ -133,7 +178,7 @@ namespace sysstr
                 let ptr = $1;
                 let length = str.length;
                 for (let i = 0; i < length; ++i) {
-                    HEAP16[((ptr)>>1)] = str.charCodeAt(i);
+                    HEAPU16[((ptr)>>1)] = str.charCodeAt(i);
                     ptr += 2;
                 }
             }, js_str, ret.data());
@@ -141,6 +186,21 @@ namespace sysstr
 
             #pragma clang diagnostic pop
         }
+
+#ifdef __wasm_reference_types__
+        static auto create_buffer(__externref_t js_str) -> buffer {
+            uint32_t len = util::js_length(js_str);
+
+            if (len == 0)
+                return buffer();
+
+            buffer ret(len);
+            auto ptr = ret.data();
+            for(uint32_t i = 0; i < len; ++i)
+                ptr[i] = util::js_charCodeAt(js_str, i);
+            return ret;
+        }
+#endif
     };
 }
 

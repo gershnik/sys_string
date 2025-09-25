@@ -19,6 +19,24 @@ FetchContent_MakeAvailable(doctest)
 
 find_package(ICU 67 COMPONENTS uc)
 
+if (EMSCRIPTEN)
+    message(CHECK_START "Checking if ${NODE_JS_EXECUTABLE} supports wasm:js-string")
+
+    execute_process(
+        COMMAND ${NODE_JS_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/check-wasm-js-string.js 
+        RESULT_VARIABLE NODE_JS_HAS_WASM_JS_STRING_RESULT
+    )
+
+    if (${NODE_JS_HAS_WASM_JS_STRING_RESULT} EQUAL 0)
+        set(NODE_JS_HAS_WASM_JS_STRING TRUE)
+        message(CHECK_PASS "Success")
+    else()
+        set(NODE_JS_HAS_WASM_JS_STRING FALSE)
+        message(CHECK_FAIL "Failure")
+    endif()
+
+endif()
+
 if(${Python3_Development_FOUND} AND ${Python3_Interpreter_FOUND})
     include_directories(
     SYSTEM
@@ -162,6 +180,15 @@ foreach(LIB_SUFFIX ${LIB_TYPES})
         $<$<CXX_COMPILER_ID:GNU>:-Wall;-Wextra;-pedantic>
     )
 
+    if (EMSCRIPTEN AND STORAGE_SUFFIX STREQUAL "emscr")
+        target_compile_definitions(test-${TEST_SUFFIX} PRIVATE
+            SYS_STRING_USE_WASM_JS_STRING=$<IF:$<BOOL:${NODE_JS_HAS_WASM_JS_STRING}>,1,0>
+        )
+        target_compile_options(test-${TEST_SUFFIX} PRIVATE
+            -sMAIN_MODULE=2 -sSTRICT
+        )
+    endif()
+
     if ("${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "MSVC")
         target_compile_options(test-${TEST_SUFFIX}
         PRIVATE
@@ -192,9 +219,20 @@ foreach(LIB_SUFFIX ${LIB_TYPES})
     endif()
 
     target_link_options(test-${TEST_SUFFIX} PRIVATE
-    
-        "$<$<PLATFORM_ID:Android>:-Wl,--export-dynamic>"
+        $<$<PLATFORM_ID:Android>:-Wl,--export-dynamic>
     )
+
+    if (EMSCRIPTEN AND STORAGE_SUFFIX STREQUAL "emscr")
+        target_link_options(test-${TEST_SUFFIX} PRIVATE
+            -sMAIN_MODULE=2
+            -sSTRICT
+            -sERROR_ON_UNDEFINED_SYMBOLS=0
+            -sWARN_ON_UNDEFINED_SYMBOLS=0
+            --pre-js ${CMAKE_CURRENT_LIST_DIR}/prefix.js
+            -sINCOMING_MODULE_JS_API=arguments,canvas,monitorRunDependencies,print,setStatus>
+        )
+        set_target_properties(test-${TEST_SUFFIX} PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_LIST_DIR}/prefix.js)
+    endif()
 
     if (SYS_STRING_COLLECT_COVERAGE)
 

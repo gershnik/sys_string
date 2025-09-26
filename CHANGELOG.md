@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [3.6] - 2025-09-26
+
 ### Added
 - On Emscripten it is now possible to construct `sys_string` directly from `__externref_t` and convert `sys_string` back to it. 
   This is faster and usually more ergonomic that going through `Emval`. 
@@ -343,3 +345,4 @@ This is a major release with some breaking changes
 [3.3]: https://github.com/gershnik/sys_string/releases/v3.3
 [3.4]: https://github.com/gershnik/sys_string/releases/v3.4
 [3.5]: https://github.com/gershnik/sys_string/releases/v3.5
+[3.6]: https://github.com/gershnik/sys_string/releases/v3.6

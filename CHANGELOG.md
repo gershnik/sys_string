@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## Fixed
+- This library can now be used with `clang-cl` on Windows
+- Bugs in BSTR storage support on 32-bit x86
+- Warnings on clang 21
+
 ## [2.20] - 2025-07-16
 
 ### Fixed

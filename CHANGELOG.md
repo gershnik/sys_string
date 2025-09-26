@@ -122,6 +122,13 @@ This is a major release with some breaking changes
   behavior applies to `wchar_t` on platform where it is UTF-16 or UTF-32.
 - `operator<<` no longer pollutes global namespace
 
+## [2.21] - 2025-09-26
+
+## Fixed
+- This library can now be used with `clang-cl` on Windows
+- Bugs in BSTR storage support on 32-bit x86
+- Warnings on clang 21
+
 ## [2.20] - 2025-07-16
 
 ### Fixed
@@ -329,6 +336,7 @@ This is a major release with some breaking changes
 [2.18]: https://github.com/gershnik/sys_string/releases/v2.18
 [2.19]: https://github.com/gershnik/sys_string/releases/v2.19
 [2.20]: https://github.com/gershnik/sys_string/releases/v2.20
+[2.21]: https://github.com/gershnik/sys_string/releases/v2.21
 [3.0]: https://github.com/gershnik/sys_string/releases/v3.0
 [3.1]: https://github.com/gershnik/sys_string/releases/v3.1
 [3.2]: https://github.com/gershnik/sys_string/releases/v3.2

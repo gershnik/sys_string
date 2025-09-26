@@ -5,6 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Added
+- On Emscripten it is now possible to construct `sys_string` directly from `__externref_t` and convert `sys_string` back to it. 
+  This is faster and usually more ergonomic that going through `Emval`. 
+- On Emscripten it is now possible to make `sys_string` use [WASM JavaScript Builtins](https://developer.mozilla.org/en-US/docs/WebAssembly/Guides/JavaScript_builtins) (if your WASM platform supports them). This can make construction of `sys_string` from `__externref_t` significantly faster. 
+  Define `SYS_STRING_USE_WASM_JS_STRING` to 1 to enable this functionality.
+
+## Fixed
+- This library can now be used with `clang-cl` on Windows
+- Bugs in BSTR storage support on 32-bit x86
+- Warnings on clang 21
+
 ## [3.5] - 2025-07-16
 
 ### Fixed

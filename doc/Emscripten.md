@@ -35,7 +35,7 @@ Using external references is the fastest conversion method available. It can be 
     ```
     -sMAIN_MODULE=2 -sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0
     ```
-  to your build resulting in other trade-offs.
+   to your build resulting in other trade-offs.
 
 All in all, the WASM built-ins should be considered highly experimental at this point.
 

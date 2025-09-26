@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [2.21] - 2025-09-26
+
 ## Fixed
 - This library can now be used with `clang-cl` on Windows
 - Bugs in BSTR storage support on 32-bit x86
@@ -217,3 +219,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [2.18]: https://github.com/gershnik/sys_string/releases/v2.18
 [2.19]: https://github.com/gershnik/sys_string/releases/v2.19
 [2.20]: https://github.com/gershnik/sys_string/releases/v2.20
+[2.21]: https://github.com/gershnik/sys_string/releases/v2.21

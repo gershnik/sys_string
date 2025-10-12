@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## Added
+- This library now builds and works properly on Haiku OS
+
 ## [2.21] - 2025-09-26
 
 ## Fixed

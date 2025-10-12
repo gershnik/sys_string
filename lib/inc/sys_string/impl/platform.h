@@ -123,7 +123,7 @@
 
     #endif
     
-#elif defined(__linux__) || defined(__FreeBSD__) || defined(__unix__)
+#elif defined(__linux__) || defined(__FreeBSD__) || defined(__unix__) || defined(__HAIKU__)
     
     
     #if !SYS_STRING_USE_PYTHON && !SYS_STRING_USE_GENERIC

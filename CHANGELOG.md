@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [3.7] - 2025-10-14
+
 ## Added
 - This library now builds and works properly on Haiku OS
 
@@ -355,3 +357,4 @@ This is a major release with some breaking changes
 [3.4]: https://github.com/gershnik/sys_string/releases/v3.4
 [3.5]: https://github.com/gershnik/sys_string/releases/v3.5
 [3.6]: https://github.com/gershnik/sys_string/releases/v3.6
+[3.7]: https://github.com/gershnik/sys_string/releases/v3.7

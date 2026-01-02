@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/license-BSD-brightgreen.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Tests](https://github.com/gershnik/sys_string/actions/workflows/test.yml/badge.svg)](https://github.com/gershnik/sys_string/actions/workflows/test.yml)
 
-This header-only library provides a C++ string class template `sys_string_t` that is optimized for **interoperability with external native string types**. It is **immutable**, **Unicode-first** and exposes convenient **operations similar to Python or ECMAScript strings**. It uses a separate `sys_string_builder_t` class template to construct strings. It provides fast concatenation via `+` operator that **does not allocate temporary strings**. 
+This header-only library provides a C++ string class template optimized for **interoperability with external native string types**. It is **immutable**, **Unicode-first** and exposes convenient **operations similar to Python or ECMAScript strings**. It uses a separate builder class template to construct strings. It provides fast concatenation via `+` operator that **does not allocate temporary strings**. 
 The library exposes bidirectional UTF-8/UTF-16/UTF-32 and grapheme cluster views of `sys_string_t` as well as of other C++ ranges of characters.
 
 ## What does it mean?

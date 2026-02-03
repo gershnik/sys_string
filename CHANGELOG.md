@@ -5,9 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Added
+- Support for Unicode 17
+
+### Fixed
+- Regression in ICU 77+ StringByteSink causing memory corruption
+- Bogus warnings on newer clang-cl
+- Debug assertions when using Python strings with Python 3.14
+
 ## [3.7] - 2025-10-14
 
-## Added
+### Added
 - This library now builds and works properly on Haiku OS
 
 ## [3.6] - 2025-09-26
@@ -18,7 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - On Emscripten it is now possible to make `sys_string` use [WASM JavaScript Builtins](https://developer.mozilla.org/en-US/docs/WebAssembly/Guides/JavaScript_builtins) (if your WASM platform supports them). This can make construction of `sys_string` from `__externref_t` significantly faster. 
   Define `SYS_STRING_USE_WASM_JS_STRING` to 1 to enable this functionality.
 
-## Fixed
+### Fixed
 - This library can now be used with `clang-cl` on Windows
 - Bugs in BSTR storage support on 32-bit x86
 - Warnings on clang 21

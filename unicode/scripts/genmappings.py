@@ -21,19 +21,25 @@ parser.add_argument('datadir')
 parser.add_argument('hfile')
 parser.add_argument('test_grapheme_data_h')
 parser.add_argument('test_grapheme_data_15_h')
+parser.add_argument('test_grapheme_data_16_h')
 parser.add_argument('test_normalization_data_h')
 
 args = parser.parse_args()
 
 datadir = Path(args.datadir)
 hfile = Path(args.hfile)
-testfiles = (
+test_grapheme_files = (
     Path(args.test_grapheme_data_h),
     Path(args.test_grapheme_data_15_h),
-    Path(args.test_normalization_data_h)
+    Path(args.test_grapheme_data_16_h),
+)
+test_norm_files = (
+    Path(args.test_normalization_data_h),
 )
 
-test_cases = ([], [], [])
+# we need distinct list for each item so no ([],) * len()
+test_grapheme_cases = tuple([] for _ in test_grapheme_files)
+test_norm_cases = tuple([] for _ in test_norm_files)
 
 case_info_builder = case_builder()
 norm_info_builder = norm_builder()
@@ -175,7 +181,9 @@ def parse_normalization_props(line):
 def parse_grapheme_tests(dest, line):
     comment_start = line.index('# ')
     data = line[:comment_start].strip()
+    data = data.replace(' 0000 ', ' 0001 ')
     comment = line[comment_start + 1:].strip()
+    comment = comment.replace('<NULL>', '<START OF HEADING>')
     graphemes = data.split('÷')
     source = ''
     expected = []
@@ -283,9 +291,10 @@ def main():
     read_ucd_file(datadir/'emoji-data.txt', parse_emoji_data)
     read_ucd_file(datadir/'CompositionExclusions.txt', parse_composition_exclusions)
     read_ucd_file(datadir/'DerivedNormalizationProps.txt', parse_normalization_props)
-    read_ucd_file(datadir/'GraphemeBreakTest.txt', lambda line: parse_grapheme_tests(test_cases[0], line))
-    read_ucd_file(datadir/'GraphemeBreakTest-15.txt', lambda line: parse_grapheme_tests(test_cases[1], line))
-    read_ucd_file(datadir/'NormalizationTest.txt', lambda line: parse_normalization_tests(test_cases[2], line))
+    read_ucd_file(datadir/'GraphemeBreakTest.txt', lambda line: parse_grapheme_tests(test_grapheme_cases[0], line))
+    read_ucd_file(datadir/'GraphemeBreakTest-15.txt', lambda line: parse_grapheme_tests(test_grapheme_cases[1], line))
+    read_ucd_file(datadir/'GraphemeBreakTest-16.txt', lambda line: parse_grapheme_tests(test_grapheme_cases[2], line))
+    read_ucd_file(datadir/'NormalizationTest.txt', lambda line: parse_normalization_tests(test_norm_cases[0], line))
 
 
     total_data_size = 0
@@ -345,7 +354,7 @@ namespace sysstr::util::unicode
 
 ''')      
 
-    for testfile, tests in zip(testfiles[:2], test_cases[:2]):
+    for testfile, tests in zip(test_grapheme_files, test_grapheme_cases):
         write_file(testfile, f'''
 //THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 
@@ -361,7 +370,7 @@ namespace sysstr::util::unicode
 
 '''.lstrip())
         
-    for testfile, tests in zip(testfiles[2:3], test_cases[2:3]):
+    for testfile, tests in zip(test_norm_files, test_norm_cases):
         write_file(testfile, f'''
 //THIS FILE IS GENERATED. PLEASE DO NOT EDIT DIRECTLY
 

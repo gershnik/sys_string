@@ -91,7 +91,7 @@ tables. Currently the size of the tables is ~80kB, if you use all of these featu
 If your application already contains ICU it is possible to use it instead for these features. This will save around ~100kB in the final executable (data and supporting code, again if using all of the features). On the other hand using ICU make these operations somewhat slower. 
 
 On the yet another hand, using ICU provides consistency w.r.t. Unicode standard supported with the rest of your application. Using internal tables will use
-the Unicode version of this library (currently 16) which might be different from what your ICU version uses.
+the Unicode version of this library (currently 17) which might be different from what your ICU version uses.
 
 Of course, if you don't already use ICU, integrating it might be painful and its total size (unless you use a system provided version) is orders of magnitude
 larger than 100kB.

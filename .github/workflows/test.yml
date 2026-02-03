@@ -196,8 +196,8 @@ jobs:
         if [[ '${{ matrix.os }}' == windows-* ]]; then
           if [ -f out/test/pythonloc.txt ]; then
             pythloc=$(cat out/test/pythonloc.txt)
-            pythloc=$(cygpath -u $pythloc)
-            echo "PATH=$pythloc:$PATH" >> $GITHUB_ENV
+            #pythloc=$(cygpath -u $pythloc)
+            echo "$pythloc" >> $GITHUB_PATH
           fi
         fi
 

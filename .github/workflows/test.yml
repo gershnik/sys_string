@@ -221,6 +221,9 @@ jobs:
       shell: bash
       run: |
         cmake -GNinja -S . -B out -DCMAKE_BUILD_TYPE=MinSizeRel
+        if [ -f out/test/pythonloc.txt ]; then
+          echo "PATH=$(cat out/test/pythonloc.txt):$PATH" >> $GITHUB_ENV
+        fi
 
     - name: Build and Test
       shell: bash

@@ -193,8 +193,12 @@ jobs:
       shell: bash
       run: |
         cmake $CMAKE_GENERATOR -S . -B out $CMAKE_ARGS -DCMAKE_BUILD_TYPE=MinSizeRel
-        if [ -f out/test/pythonloc.txt ]; then
-          echo "PATH=$(cat out/test/pythonloc.txt):$PATH" >> $GITHUB_ENV
+        if [[ '${{ matrix.os }}' == windows-* ]]; then
+          if [ -f out/test/pythonloc.txt ]; then
+            pythloc=$(cat out/test/pythonloc.txt)
+            pythloc=$(cygpath -u $pythloc)
+            echo "PATH=$pythloc:$PATH" >> $GITHUB_ENV
+          fi
         fi
 
     - name: Build and Test

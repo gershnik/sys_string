@@ -12,6 +12,7 @@ on:
       - 'LICENSE'
       - 'doc/**'
       - 'tools/**'
+  workflow_dispatch:
 
 jobs:
   define-matrix:

@@ -32,7 +32,8 @@ jobs:
 
           macos_map = {
             'macos-14': "15.4",
-            'macos-15': "16.2"
+            'macos-15': "16.4",
+            'macos-26': "26.2"
           }
 
           win_paltforms = ["x64", "Win32"]

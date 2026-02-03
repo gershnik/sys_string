@@ -163,7 +163,18 @@ namespace sysstr
         U_NAMESPACE_USE
 
         sys_string_t<Storage>::char_access access(*this);
-        StringByteSink<sys_string_builder_t<Storage>> sink(&builder);
+        //StringByteSink looks at the value_type unfortunately
+        //so we cannot pass builder to it directly
+        struct storage_adapter {
+            using value_type = char;
+
+            void append(const char * str, size_t size) {
+                dest.append(str, size);
+            }
+
+            sys_string_builder_t<Storage> & dest;
+        } adapter(builder);
+        StringByteSink<storage_adapter> sink(&adapter);
 
         UErrorCode ec = U_ZERO_ERROR;
         const Normalizer2 * normalizer = nullptr;

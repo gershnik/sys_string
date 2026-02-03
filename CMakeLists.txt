@@ -39,6 +39,7 @@ if(${Python3_Interpreter_FOUND} AND "${Python3_VERSION}" VERSION_GREATER_EQUAL "
         ${CMAKE_CURRENT_LIST_DIR}/lib/inc/sys_string/impl/unicode/mappings.h
         ${CMAKE_CURRENT_LIST_DIR}/test/test_grapheme_data.h
         ${CMAKE_CURRENT_LIST_DIR}/test/test_grapheme_data_15.h
+        ${CMAKE_CURRENT_LIST_DIR}/test/test_grapheme_data_16.h
         ${CMAKE_CURRENT_LIST_DIR}/test/test_normalization_data.h
     )
 

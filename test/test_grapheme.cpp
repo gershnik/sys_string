@@ -126,8 +126,14 @@ TEST_CASE("boundary") {
 
 TEST_CASE("generated") {
 
-#if SYS_STRING_USE_ICU && U_ICU_VERSION_MAJOR_NUM < 76
-    #include "test_grapheme_data_15.h"
+#if SYS_STRING_USE_ICU 
+    #if U_ICU_VERSION_MAJOR_NUM < 76
+        #include "test_grapheme_data_15.h"
+    #elif U_ICU_VERSION_MAJOR_NUM < 78
+        #include "test_grapheme_data_16.h"
+    #else
+        #include "test_grapheme_data.h"
+    #endif
 #else
     #include "test_grapheme_data.h"
 #endif

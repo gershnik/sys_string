@@ -5,6 +5,138 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Added
+- Support for Unicode 17
+
+### Fixed
+- Regression in ICU 77+ StringByteSink causing memory corruption
+- Bogus warnings on newer clang-cl
+- Debug assertions when using Python strings with Python 3.14
+
+## [3.7] - 2025-10-14
+
+### Added
+- This library now builds and works properly on Haiku OS
+
+## [3.6] - 2025-09-26
+
+### Added
+- On Emscripten it is now possible to construct `sys_string` directly from `__externref_t` and convert `sys_string` back to it. 
+  This is faster and usually more ergonomic that going through `Emval`. 
+- On Emscripten it is now possible to make `sys_string` use [WASM JavaScript Builtins](https://developer.mozilla.org/en-US/docs/WebAssembly/Guides/JavaScript_builtins) (if your WASM platform supports them). This can make construction of `sys_string` from `__externref_t` significantly faster. 
+  Define `SYS_STRING_USE_WASM_JS_STRING` to 1 to enable this functionality.
+
+### Fixed
+- This library can now be used with `clang-cl` on Windows
+- Bugs in BSTR storage support on 32-bit x86
+- Warnings on clang 21
+
+## [3.5] - 2025-07-16
+
+### Fixed
+- Incorrect CMake test for Python presence at build time
+
+## [3.4] - 2025-06-27
+
+### Fixed
+- Inadvertent pessimization in `compare_no_case`
+- Concepts rejecting `Char *` as eligible for addition to `sys_string`
+
+## [3.3] - 2025-05-12
+
+### Fixed
+
+- CMake build now correctly handles when Python detected on the build machine is too old to be used
+- Tests now run correctly with PyPy Python installation
+
+## [3.2] - 2025-02-10
+
+### Added
+
+- `sys_string` can now be `normalize()`-ed to NFC and NFD.
+- It is now possible to use ICU instead of internal data/code for case conversion, grapheme
+  iteration and normalization. This makes those operations a tiny bit slower but saves 
+  ~100kB in a final executable if you use all of them.
+
+### Changed
+
+- This library is now header only
+- Speed improvements to case conversions, case insensitive comparisons and grapheme iteration.
+
+### Fixed
+
+- Addressed some false positive sanitizer warnings.
+
+## [3.1] - 2025-01-10
+
+### Added
+
+- `grapheme_view` and `graphemes` adapter which provide ability to iterate over grapheme clusters in `sys_string` and any UTF range.
+
+### Changed
+
+- Unicode data has been optimized for better size/speed balance
+- `sys_string_t::hash_type` has been changed from `unsigned` to `size_t` on some platforms. 
+
+### Fixed
+
+- Invalid character access in unicode mappings.
+- Crash when sys_string_builder is re-used after `build()` on Apple and Python platforms.
+- `utf_ref_view` and `utf_owning_view` now actually work with forward and input underlying ranges
+- MSVC warnings when using `std::hash<sys_string>`
+
+## [3.0] - 2024-12-02
+
+This is a major release with some breaking changes
+
+### Changed
+
+- C++20 or higher is now required for compilation. In particular, the following C++20 features must be available:
+  - Ranges support in standard library (`__cpp_lib_ranges >= 201911`)
+  - Three-way comparison (spaceship operator)
+  - `char8_t` type
+  - `std::endian` support in standard library (`__cpp_lib_endian >= 201907`)
+  - Minimal compilers known to work include: GCC 12, Clang 16, Apple Clang 15.4 and MSVC 17.6. 
+- The library has been _range_-ified. 
+  - All methods that used to accept iterator pairs now take iterator/sentinel pairs.
+  - All these methods now also have overloads that accept ranges
+  - Existing informal ranges (`sys_string::char_access`, `sys_string::utf_view`, etc.) are now
+    formal ranges or views.
+  - As part of the above `sys_string::utfX_view` classes has been renamed to `sys_string::utfX_access` (because they are
+    not formally views as defined by standard library). The old names have been retained for compatibility but annotated
+    as deprecated. Note that `sys_string_builder::utf_view` remains under the same name since it *is* a view.
+  - Breaking change: as part of the above change the `sys_string::utf_access` and `sys_string_builder::utf_view` now 
+    return distinct iterators and sentinels (that is they no longer satisfy `std::ranges::common_range` concept). 
+    You will need to use ranges algorithms with their iterators (e.g. `std::ranges::for_each` rather than `std::for_each`).
+  - The global `utf_view` template has been split into two: `utf_ref_view` that takes underlying range by reference (similar
+    to `std::ref_view`) and `utf_owning_view` that owns a movable underlying range (similar to `std::owning_view`). These
+    are automatically produced by `as_utf` range adapter closures (see below in Added section)
+  - Breaking change: the non-standard `Cursor` classes has been removed.
+- The library has been _concept_-ified.  
+  - Most templated library calls now have concepts checks that validate their argument types. 
+  - Primitive `std::enable_if` used before have been subsumed by these and removed.
+- Unicode data used for case folding and whitespace detection has been updated to version 16.0.0
+
+### Added
+- `sys_string_t` can now be `+`-ed with any forward range of any type of character (including C strings and std::string). 
+  This results in a the same optimized addition as when adding `sys_string_t` objects.
+- `sys_string_t` objects can now be formatted via `std::format` (if available in your library). On platforms 
+   where `wchar_t` is UTF-16 or UTF-32 you can also use wide character formatting.
+- `sys_string_t::std_format` method. This formats a new `sys_string_t` (similar to the existing `sys_string_t::format`) 
+  but uses `std::format` machinery and formatting string syntax.
+- Range adapter closures: `as_utf8`, `as_utf18`, `as_utf32` and generic `as_utf<encoding>` . 
+  - These can be used to create `utf_ref_view`/`utf_owning_view` from any range/view. For example `as_utf16(std::string("abc"))`
+  - If you library supports custom adapter closures (usually `__cpp_lib_ranges >= 202202L`) they can be used in 
+    view pipelines like `std::string("abc") | as_utf16 | std::views::take(2)` etc.
+
+### Fixed
+- Printing `sys_string_t` objects into `std::ostream` (and `std::wostream` if available) now functions correctly in presence 
+  of stream formatting flags. Flags are currently ignored. This might change in a future version.
+- Printing/formatting `sys_string_t` objects that use `char` storage type now does not perform sanitizing transcoding. The content
+  of the string is printed as-is. This allows faithful round-tripping and support for invalid Unicode for those scenarios. Similar
+  behavior applies to `wchar_t` on platform where it is UTF-16 or UTF-32.
+- `operator<<` no longer pollutes global namespace
+
 ## [2.22] - 2025-10-14
 
 ## Added
@@ -226,3 +358,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [2.20]: https://github.com/gershnik/sys_string/releases/v2.20
 [2.21]: https://github.com/gershnik/sys_string/releases/v2.21
 [2.22]: https://github.com/gershnik/sys_string/releases/v2.22
+[3.0]: https://github.com/gershnik/sys_string/releases/v3.0
+[3.1]: https://github.com/gershnik/sys_string/releases/v3.1
+[3.2]: https://github.com/gershnik/sys_string/releases/v3.2
+[3.3]: https://github.com/gershnik/sys_string/releases/v3.3
+[3.4]: https://github.com/gershnik/sys_string/releases/v3.4
+[3.5]: https://github.com/gershnik/sys_string/releases/v3.5
+[3.6]: https://github.com/gershnik/sys_string/releases/v3.6
+[3.7]: https://github.com/gershnik/sys_string/releases/v3.7

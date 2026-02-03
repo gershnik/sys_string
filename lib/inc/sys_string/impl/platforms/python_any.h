@@ -460,6 +460,18 @@ namespace sysstr::util
             obj.ready = value;
     }
 
+    template <typename T, typename = int>
+    struct HasStaticallyAllocatedMember : std::false_type { };
+
+    template <typename T>
+    struct HasStaticallyAllocatedMember <T, decltype((void)T::statically_allocated, 0)> : std::true_type { };
+
+    template<class T>
+    constexpr void gccIsAPieceOfShit_assignStaticallyAllocated(T & obj, int value) {
+        if constexpr(HasStaticallyAllocatedMember<T>::value)
+            obj.statically_allocated = value;
+    }
+
     template<class T>
     constexpr void gccIsAPieceOfShit_assignData(T & obj, void * data) {
         obj.any = data;
@@ -483,6 +495,7 @@ namespace sysstr::util
             gccIsAPieceOfShit_assignHash(this->_base._base); //pypy lacks hash in PyASCIIObject
             this->_base._base.state.kind = Kind;
             gccIsAPieceOfShit_assignReady(this->_base._base.state, 1);
+            gccIsAPieceOfShit_assignStaticallyAllocated(this->_base._base.state, 1);
             gccIsAPieceOfShit_assignData(this->data, const_cast<void *>(chars));
             if constexpr (Kind == PyUnicode_1BYTE_KIND)
             {

@@ -51,11 +51,11 @@ namespace sysstr::util::unicode
     
             static const std::array<uint8_t, 2048> stage1;
     
-            static const std::array<std::array<uint16_t, 32>, 64> stage2;
+            static const std::array<std::array<uint16_t, 32>, 65> stage2;
     
-            static const std::array<std::array<uint16_t, 16>, 359> stage3;
+            static const std::array<std::array<uint16_t, 16>, 366> stage3;
     
-            static const std::array<uint32_t, 754> stage4;
+            static const std::array<uint32_t, 752> stage4;
     
         public:
             using value = decltype(stage4)::value_type;
@@ -84,7 +84,7 @@ namespace sysstr::util::unicode
         };
     
     
-        static const char16_t cased_data[3940];
+        static const char16_t cased_data[4046];
     
     public:
         static constexpr size_t data_size = lookup::data_size + sizeof(cased_data);
@@ -189,9 +189,9 @@ namespace sysstr::util::unicode
     
             static const std::array<uint8_t, 2048> stage1;
     
-            static const std::array<std::array<uint16_t, 32>, 54> stage2;
+            static const std::array<std::array<uint16_t, 32>, 55> stage2;
     
-            static const std::array<std::array<uint16_t, 16>, 308> stage3;
+            static const std::array<std::array<uint16_t, 16>, 312> stage3;
     
             static const std::array<uint16_t, 498> stage4;
     

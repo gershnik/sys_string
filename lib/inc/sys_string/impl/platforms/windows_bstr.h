@@ -145,7 +145,7 @@ namespace sysstr::util
             }
             data(const data & src) noexcept
             {
-                memcpy(this, &src, sizeof(data));
+                memcpy((void*)this, &src, sizeof(data));
                 if (flags.value == dynamic_flag && dynamic_data.ptr)
                 {
                     dynamic_data.ptr = dynamic_bstr::allocate(src.dynamic_data.ptr->size());
@@ -154,7 +154,7 @@ namespace sysstr::util
             }
             data(data && src) noexcept
             {
-                memcpy(this, &src, sizeof(data));
+                memcpy((void*)this, &src, sizeof(data));
                 src.init();
             }
             data & operator=(const data & rhs) noexcept
@@ -172,9 +172,9 @@ namespace sysstr::util
             void swap(data & other) noexcept
             {
                 data temp;
-                memcpy(&temp, &other, sizeof(data));
-                memcpy(&other, this, sizeof(data));
-                memcpy(this, &temp, sizeof(m_data));
+                memcpy((void*)&temp, &other, sizeof(data));
+                memcpy((void*)&other, this, sizeof(data));
+                memcpy((void*)this, &temp, sizeof(m_data));
             }
 
             void init() noexcept

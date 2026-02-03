@@ -208,6 +208,12 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
 endforeach()
 endforeach()
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL Windows AND ${Python3_Development_FOUND} AND ${Python3_Interpreter_FOUND})
+    file(GENERATE OUTPUT pythonloc.txt
+        CONTENT ${Python3_RUNTIME_LIBRARY_DIRS}
+    )
+endif()
+
 add_custom_target(run-test 
     DEPENDS ${TEST_DEPS}
     ${TEST_COMMAND}

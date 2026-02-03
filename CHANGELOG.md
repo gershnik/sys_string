@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [2.23] - 2026-02-03
+
 ### Added
 - Support for Unicode 17
 
@@ -234,3 +236,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [2.20]: https://github.com/gershnik/sys_string/releases/v2.20
 [2.21]: https://github.com/gershnik/sys_string/releases/v2.21
 [2.22]: https://github.com/gershnik/sys_string/releases/v2.22
+[2.23]: https://github.com/gershnik/sys_string/releases/v2.23

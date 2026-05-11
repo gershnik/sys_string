@@ -54,7 +54,8 @@ jobs:
             18: 'ubuntu-latest', 
             19: 'ubuntu-latest', 
             20: 'ubuntu-latest',
-            21: 'ubuntu-latest'
+            21: 'ubuntu-latest',
+            22: 'ubuntu-latest'
           }
           emscripten_versions = [
             '3.1.74',
@@ -111,7 +112,7 @@ jobs:
     
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: System Setup
       shell: bash
@@ -216,7 +217,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Install pre-requisites
       run: |
@@ -239,7 +240,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Setup
       run: |
@@ -270,7 +271,7 @@ jobs:
     
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Enable KVM
       run: |
@@ -279,7 +280,7 @@ jobs:
         sudo udevadm trigger --name-match=kvm
 
     - name: AVD cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       id: avd-cache
       with:
         path: |
@@ -329,7 +330,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Install pre-requisites
       run: |
@@ -364,7 +365,7 @@ jobs:
         ]
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Set up Python
       uses: actions/setup-python@v6

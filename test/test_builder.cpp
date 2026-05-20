@@ -275,9 +275,9 @@ TEST_CASE( "Builder insert" ) {
     CHECK(builder.build() == S("🪀🩳"));
 
     builder.append(u"🪀🩳�𐊃𐜃𐤈🀁");
-    it = builder.insert(++builder.begin(), std::list<char32_t>{U'🟫'});
+    it = builder.insert(++builder.begin(), std::list<char32_t>{U'🟫', U'a'});
     CHECK(it == ++builder.begin());
-    CHECK(builder.build() == S("🪀🟫🩳�𐊃𐜃𐤈🀁"));
+    CHECK(builder.build() == S("🪀🟫a🩳�𐊃𐜃𐤈🀁"));
 
 }
 

@@ -84,7 +84,7 @@ namespace sysstr
             {
                 auto pos = where - std::ranges::begin(impl);
                 for(storage_type c: range) {
-                    impl.insert(where, c);
+                    where = impl.insert(where, c);
                     ++where;
                 }
                 return std::ranges::begin(impl) + pos;

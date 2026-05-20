@@ -32,21 +32,23 @@ jobs:
           import os
 
           macos_map = {
-            'macos-14': "15.4",
-            'macos-15': "16.4",
-            'macos-26': "26.2"
+            "15.4": 'macos-14',
+            "16.4": 'macos-15',
+            "26.3": 'macos-26',
           }
 
           win_paltforms = ["x64", "Win32"]
           win_clang_archs = ["x64", "x86"]
 
           gcc_map = {
-            12: 'ubuntu-latest', 
-            13: 'ubuntu-latest',
-            14: 'ubuntu-24.04'
+            #12: 'ubuntu-latest'
           }
           gcc_cont_map = {
-            15: 'gcc:15.1'
+            12: 'gcc:12.5', 
+            13: 'gcc:13.4',
+            14: 'gcc:14.3', 
+            15: 'gcc:15.2',
+            16: 'gcc:16.1'
           }
           clang_map = {
             16: 'ubuntu-22.04',
@@ -69,7 +71,7 @@ jobs:
           
           
           #macOS
-          for runon, xcode in macos_map.items():
+          for xcode, runon in macos_map.items():
             hosts.append({'os': runon, 'version': xcode, 'jobname': f'macOS - Xcode{xcode}'})
           
           #windows

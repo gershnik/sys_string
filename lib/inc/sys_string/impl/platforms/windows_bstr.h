@@ -206,9 +206,10 @@ namespace sysstr::util
                 }
                 else
                 {
-                    auto * bstr = dynamic_bstr::allocate(length);
+                    //set a sane state first, in case allocate throws!
                     flags.value = dynamic_flag;
-                    dynamic_data.ptr = bstr;
+                    dynamic_data.ptr = nullptr;
+                    dynamic_data.ptr = dynamic_bstr::allocate(length);
                     return dynamic_data.ptr->chars();
                 }
             }

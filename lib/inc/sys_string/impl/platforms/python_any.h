@@ -174,7 +174,7 @@ namespace sysstr::util
 
     using py_builder_impl = char_vector<py_builder_storage>;
 
-    inline PyObject * convert_to_string(py_builder_impl & builder) noexcept
+    inline PyObject * convert_to_string(py_builder_impl & builder)
     {
         auto size = builder.size();
         return std::visit([&](auto && buf) {

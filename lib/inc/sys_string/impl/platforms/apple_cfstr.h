@@ -160,7 +160,7 @@ namespace sysstr::util
 
     using cf_builder_impl = char_vector<cf_builder_storage>;
 
-    inline CFStringRef convert_to_string(cf_builder_impl & builder) noexcept
+    inline CFStringRef convert_to_string(cf_builder_impl & builder)
     {
         struct converter
         {

@@ -12,6 +12,7 @@
 #include <sys_string/impl/util/char_vector.h>
 
 #include <variant>
+#include <exception>
 
 namespace sysstr
 {

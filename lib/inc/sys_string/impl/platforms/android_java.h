@@ -96,8 +96,10 @@ namespace sysstr
     private:
         [[noreturn]] static void raise_exception_on_jni_error(JNIEnv * env, const char * desc) 
         {
-            if (jthrowable ex = env->ExceptionOccurred())
+            if (jthrowable ex = env->ExceptionOccurred()) {
                 env->ExceptionClear();
+                env->DeleteLocalRef(obj);
+            }
             throw std::runtime_error(desc);
         }
         

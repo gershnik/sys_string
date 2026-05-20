@@ -321,7 +321,7 @@ namespace sysstr::util
         static_assert(sizeof(data) == total_size);
         
     public:
-        bstr_buffer() noexcept = default
+        bstr_buffer() noexcept = default;
         bstr_buffer(std::nullptr_t) noexcept
             { m_data.init(nullptr); }
         bstr_buffer(dynamic_bstr * buf, int /*disambiguator*/) noexcept

@@ -80,7 +80,6 @@ namespace sysstr::util
             return size;
         range.resize(size + 1);
         const int ret = vsnprintf(std::ranges::data(range), std::ranges::size(range), format, vl);
-        va_end(vl);
         if (ret >= 0)
             range.resize(ret);
         return ret;

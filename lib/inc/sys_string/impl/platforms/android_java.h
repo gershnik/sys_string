@@ -98,7 +98,7 @@ namespace sysstr
         {
             if (jthrowable ex = env->ExceptionOccurred()) {
                 env->ExceptionClear();
-                env->DeleteLocalRef(obj);
+                env->DeleteLocalRef(ex);
             }
             throw std::runtime_error(desc);
         }

@@ -170,7 +170,7 @@ namespace sysstr::util
     public:
         hstring_char_access(const sys_string_t<hstring_storage> & src) noexcept;
         ~hstring_char_access() noexcept
-            { if (m_c_str) delete [] m_c_str; }
+            { delete [] m_c_str; }
 
         pointer data() const noexcept
             { return m_buffer; }

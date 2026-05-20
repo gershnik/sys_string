@@ -174,7 +174,7 @@ namespace sysstr::util
                 data temp;
                 memcpy((void*)&temp, &other, sizeof(data));
                 memcpy((void*)&other, this, sizeof(data));
-                memcpy((void*)this, &temp, sizeof(m_data));
+                memcpy((void*)this, &temp, sizeof(data));
             }
 
             void init() noexcept

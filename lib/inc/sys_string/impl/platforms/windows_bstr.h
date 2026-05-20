@@ -216,6 +216,10 @@ namespace sysstr::util
 
             void init(BSTR str, handle_transfer transfer_type)
             {
+                //set a sane state first, in case allocate throws!
+                flags.value = dynamic_flag;
+                dynamic_data.ptr = nullptr;
+
                 if (str)
                 {
                     auto src = dynamic_bstr::from_bstr(str);
@@ -229,11 +233,6 @@ namespace sysstr::util
                         dynamic_data.ptr = src;
                     }
                 }
-                else
-                {
-                    dynamic_data.ptr = nullptr;
-                }
-                flags.value = dynamic_flag;
             }
 
             void reallocate(UINT size, UINT used_size)

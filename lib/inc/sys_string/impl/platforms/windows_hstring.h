@@ -238,7 +238,7 @@ namespace sysstr
     public:
         hstring_storage() noexcept = default;
 
-        hstring_storage(native_handle_type str, handle_retain retain_handle = handle_retain::yes) noexcept : 
+        hstring_storage(native_handle_type str, handle_retain retain_handle = handle_retain::yes) : 
             m_str(retain_handle == handle_retain::yes ? retain(str) : str)
         {}
 
@@ -289,7 +289,7 @@ namespace sysstr
         hstring_storage(hstring_storage && src) noexcept : m_str(src.m_str)
             { src.m_str = nullptr; }
 
-        auto operator=(const hstring_storage & rhs) noexcept -> hstring_storage &
+        auto operator=(const hstring_storage & rhs) -> hstring_storage &
         {
             HSTRING temp = m_str;
             m_str = retain(rhs.m_str);
@@ -354,15 +354,17 @@ namespace sysstr
             { return uintptr_t(str) & util::hstring_static_allocation_bit; }
         static HSTRING real_handle(HSTRING str) noexcept
             { return HSTRING(uintptr_t(str) & ~util::hstring_static_allocation_bit); }
-        static HSTRING retain(HSTRING str) noexcept
+        static HSTRING retain(HSTRING str)
         {
             if (!str || is_static(str))
                 return str;
             HSTRING ret;
             auto res = WindowsDuplicateString(str, &ret);
-            if (!SUCCEEDED(res))
-                std::terminate();
-            return ret;
+            if (SUCCEEDED(res))
+                return ret;
+            if (res == E_OUTOFMEMORY)
+                throw std::bad_alloc();
+            std::terminate();
         }
         static void release(HSTRING str) noexcept
         { 
@@ -420,7 +422,7 @@ namespace sysstr
     }
 
     template<>
-    inline sys_string_t<hstring_storage> build(hstring_builder_impl & builder) noexcept
+    inline sys_string_t<hstring_storage> build(hstring_builder_impl & builder)
     {
         return sys_string_t<hstring_storage>(convert_to_string(builder), handle_retain::no);
     }

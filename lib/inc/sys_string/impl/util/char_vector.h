@@ -149,7 +149,7 @@ namespace sysstr::util
             return mfirst;
         }
     
-        iterator insert(const_iterator where, value_type val) noexcept
+        iterator insert(const_iterator where, value_type val)
         {
             assert(std::less_equal()(this->begin(), where) && std::less_equal()(where, this->end()));
             auto pos = size_type(where - this->begin());
@@ -162,7 +162,7 @@ namespace sysstr::util
             return mwhere;
         }
     
-        iterator insert(const_iterator where, const value_type * str, size_type size) noexcept
+        iterator insert(const_iterator where, const value_type * str, size_type size)
         {
             assert(std::less_equal()(this->begin(), where) && std::less_equal()(where, this->end()));
             assert(size >= 0);

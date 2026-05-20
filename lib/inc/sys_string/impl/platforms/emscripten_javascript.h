@@ -213,7 +213,7 @@ namespace sysstr::util
     {}
 
     template<>
-    inline sys_string_t<emscripten_storage> build(emscripten_builder_impl & builder) noexcept
+    inline sys_string_t<emscripten_storage> build(emscripten_builder_impl & builder)
     {
         return sys_string_t<emscripten_storage>(convert_to_string(builder));
     }

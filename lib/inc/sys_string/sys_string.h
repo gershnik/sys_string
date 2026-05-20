@@ -78,7 +78,7 @@ namespace sysstr::util
     class addition;
     
     template<class Storage>
-    sys_string_t<Storage> build(typename Storage::builder_impl & builder) noexcept;
+    sys_string_t<Storage> build(typename Storage::builder_impl & builder);
 }
 
 namespace sysstr
@@ -659,7 +659,7 @@ namespace sysstr
         sys_string_builder_t & append(const sys_string_t<Storage> & str)
             { append_many(m_impl, typename sys_string_t<Storage>::char_access(str)); return *this; }
 
-        sys_string_t<Storage> build() noexcept
+        sys_string_t<Storage> build()
             { return util::build<Storage>(m_impl); }
         
         const impl_type & chars() const

@@ -268,12 +268,12 @@ namespace sysstr::util
                 }
             }
 
-            BSTR release() noexcept
+            BSTR release()
             {
                 BSTR ret;
                 if (flags.value == embedded_flag)
                 {
-                    ret = BSTR(dynamic_bstr::allocate(embedded_data.size / sizeof(char16_t))->chars()); //crash if this allocation throws!
+                    ret = BSTR(dynamic_bstr::allocate(embedded_data.size / sizeof(char16_t))->chars()); 
                     memcpy(ret, embedded_data.chars, embedded_data.size);
                 }
                 else if (flags.value == static_flag)
@@ -355,7 +355,7 @@ namespace sysstr::util
         void reallocate(UINT size, UINT used_size)
             { m_data.reallocate(size, used_size); }
 
-        BSTR release() noexcept
+        BSTR release() 
             { return m_data.release(); }
 
         void swap(bstr_buffer & other) noexcept
@@ -437,7 +437,7 @@ namespace sysstr::util
         const_reverse_iterator crend() const noexcept
             { return rend(); }
 
-        const char * c_str() const noexcept
+        const char * c_str() const
         {
             if (m_c_str)
                 return m_c_str;
@@ -553,7 +553,7 @@ namespace sysstr::util
         auto b_str() const noexcept -> native_handle_type
             { return BSTR(m_buffer.chars()); }
 
-        auto release() noexcept -> native_handle_type
+        auto release() -> native_handle_type
             { return m_buffer.release(); }
 
         auto data() const noexcept -> const char16_t *
@@ -598,7 +598,7 @@ namespace sysstr::util
     {}
 
     template<>
-    inline sys_string_t<bstr_storage> build(bstr_builder_impl & builder) noexcept
+    inline sys_string_t<bstr_storage> build(bstr_builder_impl & builder)
     { 
         auto size = builder.size();
         auto buf = builder.release();

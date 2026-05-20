@@ -226,7 +226,7 @@ namespace sysstr::util::generic
             #pragma GCC diagnostic push
             #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
             #endif
-            memcpy(&m_data, &src.m_data, sizeof(m_data));
+            memcpy(&this->m_data, &src.m_data, sizeof(m_data));
             #if defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 12
             #pragma GCC diagnostic pop
             #endif
@@ -240,7 +240,10 @@ namespace sysstr::util::generic
         any_string & operator=(any_string && rhs) noexcept
         {
             this->~any_string();
-            new (this) any_string(std::move(rhs));
+            this->set_empty(); //in case of self move
+            //we cannot use move constructor here due to memcpy in there
+            memmove(&this->m_data, &rhs.m_data, sizeof(m_data));
+            rhs.set_empty();
             return *this;
         }
 

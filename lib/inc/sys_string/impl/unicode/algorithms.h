@@ -122,7 +122,7 @@ namespace sysstr
                     m_data.heap.reserve(size);
                     m_first = m_data.heap.data();
                 }
-                else if (size <= StackLimit)
+                else if (m_size <= StackLimit)
                 {
                     std::vector<T> heap;
                     heap.reserve(size);

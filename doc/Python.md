@@ -21,3 +21,12 @@ Py_DECREF(raw); //you owe raw but not raw1
 
 Note that, unlike other platforms, `PyObject *` passed to `sys_string` cannot be `null`, and `py_str()` will never return `null`. 
 This is in keeping with normal Python API semantics where `null` pointers are never valid and signify errors.
+
+
+> [!IMPORTANT]
+> With `PyObject *` storage, `sys_string` contains and operates upon `PyObject`s and so all rules about working with those apply. 
+> Which means that for **any** operation on a string (including destruction!) the Python interpreter should be in initialized 
+> state and GIL held (if you are not on a free-threaded Python).
+>
+> Specifically, beware of lifetime issues when destroying global string objects after interpreter finalization and GIL issues when 
+> operating of string objects from helper threads and such, not invoked from Python.

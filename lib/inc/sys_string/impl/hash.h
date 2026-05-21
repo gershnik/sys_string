@@ -36,13 +36,19 @@ namespace std
         using namespace sysstr;
 
         using sys_string_t = ::sysstr::sys_string_t<Storage>;
-
         typename sys_string_t::char_access access(val);
-        std::hash<typename sys_string_t::char_access::value_type> hasher;
-        typename sys_string_t::hash_type result = 0;
+
+        uint64_t h = 0xcbf29ce484222325ULL;        // FNV offset basis
         for(typename sys_string_t::char_access::size_type i = 0, count = access.size(); i < count; ++i)
-            result = result * 31 + hasher(access[i]);
-        return result;
+        {
+            h ^= uint64_t(access[i]);
+            h *= 0x100000001b3ULL;                 // FNV prime
+        }
+        // MurmurHash3 fmix64 — kills the residual FNV non-avalanche
+        h ^= h >> 33; h *= 0xff51afd7ed558ccdULL;
+        h ^= h >> 33; h *= 0xc4ceb9fe1a85ec53ULL;
+        h ^= h >> 33;
+        return typename sys_string_t::hash_type(h);
     }
 
 }

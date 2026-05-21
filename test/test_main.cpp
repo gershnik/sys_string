@@ -102,7 +102,15 @@ int main(int argc, char** argv)
 
     
     
-    return Catch::Session().run( argc, argv );
+    int ret = Catch::Session().run( argc, argv );
+
+    #if defined(SYS_STRING_USE_PYTHON)
+        #if !defined(PYPY_VERSION)
+            Py_FinalizeEx();
+        #endif
+    #endif
+
+    return ret;
 }
 
 

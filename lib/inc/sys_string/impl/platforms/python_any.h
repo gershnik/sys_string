@@ -12,6 +12,7 @@
 #include <sys_string/impl/util/char_buffer.h>
 
 #include <variant>
+#include <exception>
 
 namespace sysstr
 {
@@ -173,7 +174,7 @@ namespace sysstr::util
 
     using py_builder_impl = char_buffer<py_builder_storage>;
 
-    inline PyObject * convert_to_string(py_builder_impl & builder) noexcept
+    inline PyObject * convert_to_string(py_builder_impl & builder)
     {
         auto size = builder.size();
         return std::visit([&](auto && buf) {
@@ -283,7 +284,7 @@ namespace sysstr
             m_str(null_string())
         {}
         
-        py_storage(native_handle_type str, handle_retain retain_handle = handle_retain::yes) noexcept :
+        py_storage(native_handle_type str, handle_retain retain_handle = handle_retain::yes) :
             m_str(canonicalize(str, retain_handle))
         {}
 
@@ -386,7 +387,12 @@ namespace sysstr
         
         static PyObject * null_string() noexcept
         {
-            static py_storage null(util::check_create(PyUnicode_FromString("")), ::sysstr::handle_retain::no);
+            static py_storage null([]() {
+                auto ret = PyUnicode_FromString("");
+                if (!ret)
+                    std::terminate();
+                return ret;
+            }(), ::sysstr::handle_retain::no);
             return retain(null.m_str);
         }
 
@@ -409,8 +415,10 @@ namespace sysstr
             if (!str)
                 return null_string();
         #if (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 12) 
-            if (PyUnicode_READY(str) != 0)  
+            if (PyUnicode_READY(str) != 0) {
+                PyErr_Clear();
                 throw std::bad_alloc();
+            }
         #endif
             return (retain_handle == handle_retain::yes ? retain(str) : str);
         }
@@ -430,7 +438,7 @@ namespace sysstr::util
     {}
     
     template<>
-    inline sys_string_t<py_storage> build(py_builder_impl & builder) noexcept
+    inline sys_string_t<py_storage> build(py_builder_impl & builder)
     {
         auto str = convert_to_string(builder);
         return sys_string_t<py_storage>(str, handle_retain::no);

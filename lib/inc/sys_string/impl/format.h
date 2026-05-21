@@ -17,7 +17,9 @@ namespace sysstr
     {
         va_list vl;
         va_start(vl, format);
-        return formatv(format, vl);
+        auto ret = formatv(format, vl);
+        va_end(vl);
+        return ret;
     }
 
     template<class Storage>
@@ -32,7 +34,6 @@ namespace sysstr
             return sys_string_t();
         buf.resize(size + 1);
         const int ret = vsnprintf(&buf[0], buf.size(), format, vl);
-        va_end(vl);
         if (ret <= 0)
             return sys_string_t();
         buf.resize(ret);

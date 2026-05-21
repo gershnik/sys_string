@@ -103,7 +103,7 @@ namespace sysstr::util
 
     template<>
     inline 
-    sys_string_t<generic_storage> build(generic_builder_impl & builder) noexcept
+    sys_string_t<generic_storage> build(generic_builder_impl & builder)
     {
         return sys_string_t<generic_storage>(convert_to_string(builder));
     }

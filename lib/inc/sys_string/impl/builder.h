@@ -142,7 +142,7 @@ namespace sysstr
         sys_string_builder_t & append(const sys_string_t<Storage> & str)
             { append_access(typename sys_string_t<Storage>::char_access(str)); return *this; }
 
-        sys_string_t<Storage> build() noexcept
+        sys_string_t<Storage> build()
             { return util::build<Storage>(m_impl); }
         
         const impl_type & chars() const

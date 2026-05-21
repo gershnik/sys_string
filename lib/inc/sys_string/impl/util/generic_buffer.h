@@ -151,7 +151,8 @@ namespace sysstr::util::generic
                     this->set_dynamic(buf, our_size);
                     data = buf->data();
                 }
-                memcpy(data, str, our_size * sizeof(CharT));
+                if (our_size)
+                    memcpy(data, str, our_size * sizeof(CharT));
                 data[our_size] = 0;
             }
             else
@@ -239,7 +240,10 @@ namespace sysstr::util::generic
         buffer & operator=(buffer && rhs) noexcept
         {
             this->~buffer();
-            new (this) buffer(std::move(rhs));
+            this->set_empty(); //in case of self move
+            //we cannot use move constructor here due to memcpy in there
+            memmove(&this->m_data, &rhs.m_data, sizeof(m_data));
+            rhs.set_empty();
             return *this;
         }
 
@@ -373,7 +377,7 @@ namespace sysstr::util::generic
     template<class CharT> struct c_str_holder
     {
         ~c_str_holder() noexcept
-            { if (m_c_str) delete [] m_c_str; }
+            { delete [] m_c_str; }
         mutable const char * m_c_str = nullptr;
     };
     template<> struct c_str_holder<char>
@@ -562,7 +566,8 @@ namespace sysstr::util::generic
         auto copy_data(SizeT idx, CharT * buf, SizeT buf_size) const noexcept -> SizeT
         {
             SizeT ret = std::min(buf_size, this->size() - idx);
-            memcpy(buf, m_buffer.data() + idx, ret * sizeof(CharT));
+            if (ret)
+                memcpy(buf, m_buffer.data() + idx, ret * sizeof(CharT));
             return ret;
         }
 

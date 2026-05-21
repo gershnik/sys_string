@@ -120,7 +120,7 @@ namespace sysstr
         constexpr bool error() const noexcept
             { return m_state == state_error; }
         
-        BUGGY_CONSTEXPR uint32_t value() const noexcept
+        SYS_STRING_BUGGY_CONSTEXPR uint32_t value() const noexcept
             { return m_value; }
     private:
         static constexpr int state_done = 0;
@@ -163,7 +163,7 @@ namespace sysstr
         constexpr bool error() const noexcept
             { return m_state == state_error; }
         
-        BUGGY_CONSTEXPR uint32_t value() const noexcept
+        SYS_STRING_BUGGY_CONSTEXPR uint32_t value() const noexcept
             { return m_value; }
         
     private:
@@ -179,7 +179,7 @@ namespace sysstr
         /* state_error     */ 0, 8, 4, 0
         };
     
-        uint32_t m_value;
+        uint32_t m_value = 0;
         int m_state = state_done;
     };
 
@@ -249,7 +249,7 @@ namespace sysstr
         constexpr bool error() const noexcept
             { return m_state == state_reject; }
         
-        BUGGY_CONSTEXPR uint32_t value() const noexcept
+        SYS_STRING_BUGGY_CONSTEXPR uint32_t value() const noexcept
             { return m_value; }
     private:
         uint32_t m_value = 0;
@@ -314,7 +314,7 @@ namespace sysstr
         constexpr bool error() const noexcept
             { return m_state == state_reject; }
         
-        BUGGY_CONSTEXPR uint32_t value() const noexcept
+        SYS_STRING_BUGGY_CONSTEXPR uint32_t value() const noexcept
             { return m_value; }
     private:
         uint32_t m_value = 0;
@@ -410,7 +410,7 @@ namespace sysstr
             return !( (c & 0xFFFFF800) == 0x0000D800 || c > 0x010FFFF );
         }
         
-        BUGGY_CONSTEXPR uint32_t value() const noexcept
+        SYS_STRING_BUGGY_CONSTEXPR uint32_t value() const noexcept
             { return m_value; }
     private:
         uint32_t m_value;

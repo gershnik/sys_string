@@ -6,6 +6,8 @@
 # https://github.com/gershnik/sys_string/blob/master/LICENSE.txt
 #
 
+option(SYS_STRING_TESTS_SANITIZE "Build tests with ASan + UBSan" OFF)
+
 
 if(${Python3_Development_FOUND} AND ${Python3_Interpreter_FOUND})
     include_directories(
@@ -19,6 +21,15 @@ if(${Python3_Development_FOUND} AND ${Python3_Interpreter_FOUND})
 
     set(CMAKE_MSVCIDE_RUN_PATH ${Python3_RUNTIME_LIBRARY_DIRS})
 endif()
+
+if ("${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "MSVC")
+    set(FRONT_MSVC True)
+else()
+    set(FRONT_MSVC False)
+endif()
+
+set (CLANG_CL "$<AND:$<BOOL:${FRONT_MSVC}>,$<CXX_COMPILER_ID:Clang>>")
+set (CLANG_NORMAL "$<AND:$<NOT:$<BOOL:${FRONT_MSVC}>>,$<CXX_COMPILER_ID:Clang>>")
 
 set (CXX_STANDARDS
     17
@@ -133,22 +144,26 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
     target_compile_options(test-${TEST_SUFFIX} PRIVATE
         $<$<CXX_COMPILER_ID:MSVC>:/utf-8;/W4;/WX>
         $<$<CXX_COMPILER_ID:AppleClang>:-Wall;-Wextra;-pedantic;-Wno-self-assign-overloaded;-Wno-self-move>
+        $<${CLANG_NORMAL}:-Wall;-Wextra;-pedantic;-Wno-self-assign-overloaded;-Wno-self-move>
+        $<${CLANG_CL}:/W4;/WX;-Wno-self-assign-overloaded;-Wno-self-move>
         $<$<CXX_COMPILER_ID:GNU>:-Wall;-Wextra;-pedantic>
     )
 
-    if ("${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "MSVC")
-        target_compile_options(test-${TEST_SUFFIX}
-        PRIVATE
-            $<$<CXX_COMPILER_ID:Clang>:/W4;/WX;-Wno-self-assign-overloaded;-Wno-self-move>
+    if(SYS_STRING_TESTS_SANITIZE)
+        target_compile_options(test-${TEST_SUFFIX} PRIVATE
+            $<$<CXX_COMPILER_ID:AppleClang,GNU>:-fsanitize=address,undefined;-fno-sanitize-recover=undefined;-fno-omit-frame-pointer>
+            $<${CLANG_NORMAL}:-fsanitize=address,undefined;-fno-sanitize-recover=undefined;-fno-omit-frame-pointer>
+            $<${CLANG_CL}:-fsanitize=address,undefined;-fno-sanitize-recover=undefined>
+            $<$<CXX_COMPILER_ID:MSVC>:/fsanitize=address;/bigobj>
         )
-    else()
-        target_compile_options(test-${TEST_SUFFIX}
-        PRIVATE
-            $<$<CXX_COMPILER_ID:Clang>:-Wall;-Wextra;-pedantic;-Wno-self-assign-overloaded;-Wno-self-move>
+        target_link_options(test-${TEST_SUFFIX} PRIVATE
+            $<$<CXX_COMPILER_ID:AppleClang,GNU>:-fsanitize=address,undefined>
+            $<${CLANG_NORMAL}:-fsanitize=address,undefined>
         )
     endif()
 
     target_compile_definitions(test-${TEST_SUFFIX} PRIVATE
+        CATCH_AMALGAMATED_CUSTOM_MAIN
         ${STORAGE_FLAG_${STORAGE_SUFFIX}}
     )
 
@@ -191,6 +206,7 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
         "$<$<PLATFORM_ID:Emscripten>:test_javascript.cpp>" 
 
         catch.hpp
+        catch.cpp
     )
 
     list(APPEND TEST_COMMAND COMMAND echo "Running test-${TEST_SUFFIX}")

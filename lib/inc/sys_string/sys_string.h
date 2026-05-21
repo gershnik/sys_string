@@ -70,7 +70,7 @@ namespace sysstr::util
     class addition;
     
     template<class Storage>
-    sys_string_t<Storage> build(typename Storage::builder_impl & builder) noexcept;
+    sys_string_t<Storage> build(typename Storage::builder_impl & builder);
 }
 
 namespace sysstr

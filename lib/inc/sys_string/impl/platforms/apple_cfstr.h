@@ -160,7 +160,7 @@ namespace sysstr::util
 
     using cf_builder_impl = char_buffer<cf_builder_storage>;
 
-    inline CFStringRef convert_to_string(cf_builder_impl & builder) noexcept
+    inline CFStringRef convert_to_string(cf_builder_impl & builder)
     {
         struct converter
         {
@@ -208,7 +208,7 @@ namespace sysstr::util
     public:
         cf_char_access(const sys_string_t<cf_storage> & src) noexcept;
         ~cf_char_access() noexcept
-            { if (m_c_str) delete [] m_c_str; }
+            { delete [] m_c_str; }
         
         cf_char_access(const cf_char_access & src) noexcept = delete;
         cf_char_access(cf_char_access && src) noexcept = delete;
@@ -261,7 +261,7 @@ namespace sysstr::util
         const_reverse_iterator crend() const noexcept
             { return rend(); }
         
-        const char * c_str() const noexcept
+        const char * c_str() const
         {
             if (m_c_str)
                 return m_c_str;
@@ -478,7 +478,7 @@ namespace sysstr::util
     }
     
     template<>
-    inline sys_string_t<cf_storage> build(cf_builder_impl & builder) noexcept
+    inline sys_string_t<cf_storage> build(cf_builder_impl & builder)
     {
         auto str = convert_to_string(builder);
         return sys_string_t<cf_storage>(str, handle_retain::no);

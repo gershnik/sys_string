@@ -105,7 +105,15 @@ int main(int argc, char** argv)
 
     
     
-    return doctest::Context(argc, argv).run();
+    int ret = doctest::Context(argc, argv).run();
+
+    #if defined(SYS_STRING_USE_PYTHON)
+        #if !defined(PYPY_VERSION)
+            Py_FinalizeEx();
+        #endif
+    #endif
+
+    return ret;
 }
 
 

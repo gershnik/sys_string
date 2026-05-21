@@ -9,6 +9,8 @@
 include(FetchContent)
 include(FindICU)
 
+option(SYS_STRING_TESTS_SANITIZE "Build tests with ASan + UBSan" OFF)
+
 FetchContent_Declare(doctest
     URL  https://raw.githubusercontent.com/doctest/doctest/v2.5.2/doctest/doctest.h
     DOWNLOAD_NO_EXTRACT TRUE
@@ -179,6 +181,16 @@ foreach(LIB_SUFFIX ${LIB_TYPES})
         $<$<CXX_COMPILER_ID:AppleClang>:-Wall;-Wextra;-pedantic;-Wno-self-assign-overloaded;-Wno-self-move>
         $<$<CXX_COMPILER_ID:GNU>:-Wall;-Wextra;-pedantic>
     )
+
+    if(SYS_STRING_TESTS_SANITIZE)
+        target_compile_options(test-${TEST_SUFFIX} PRIVATE
+            $<$<CXX_COMPILER_ID:Clang,AppleClang,GNU>:-fsanitize=address,undefined;-fno-sanitize-recover=undefined;-fno-omit-frame-pointer>
+            $<$<CXX_COMPILER_ID:MSVC>:/fsanitize=address>
+        )
+        target_link_options(test-${TEST_SUFFIX} PRIVATE
+            $<$<CXX_COMPILER_ID:Clang,AppleClang,GNU>:-fsanitize=address,undefined>
+        )
+    endif()
 
     if (EMSCRIPTEN AND STORAGE_SUFFIX STREQUAL "emscr")
         target_compile_definitions(test-${TEST_SUFFIX} PRIVATE

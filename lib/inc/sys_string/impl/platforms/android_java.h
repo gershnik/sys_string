@@ -131,7 +131,7 @@ namespace sysstr::util
     {}
 
     template<>
-    inline sys_string_t<android_storage> build(builder_impl & builder) noexcept
+    inline sys_string_t<android_storage> build(builder_impl & builder)
     {
         return sys_string_t<android_storage>(convert_to_string(builder));
     }

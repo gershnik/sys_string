@@ -17,7 +17,9 @@ namespace sysstr
     {
         va_list vl;
         va_start(vl, format);
-        return formatv(format, vl);
+        auto ret = formatv(format, vl);
+        va_end(vl);
+        return ret;
     }
 
     template<class Storage>

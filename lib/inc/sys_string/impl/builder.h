@@ -83,8 +83,10 @@ namespace sysstr
             else
             {
                 auto pos = where - std::ranges::begin(impl);
-                for(storage_type c: range)
-                    impl.push_back(c);
+                for(storage_type c: range) {
+                    where = impl.insert(where, c);
+                    ++where;
+                }
                 return std::ranges::begin(impl) + pos;
             }
         }

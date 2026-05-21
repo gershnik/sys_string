@@ -9,6 +9,8 @@
 
 #include <sys_string/sys_string.h>
 
+#include <list>
+
 
 #include <doctest/doctest.h>
 
@@ -271,6 +273,11 @@ TEST_CASE( "Builder insert" ) {
 
     builder.append(std::array{U'🪀', U'🩳'});
     CHECK(builder.build() == S("🪀🩳"));
+
+    builder.append(u"🪀🩳�𐊃𐜃𐤈🀁");
+    it = builder.insert(++builder.begin(), std::list<char32_t>{U'🟫', U'a'});
+    CHECK(it == ++builder.begin());
+    CHECK(builder.build() == S("🪀🟫a🩳�𐊃𐜃𐤈🀁"));
 
 }
 

@@ -155,11 +155,11 @@ namespace sysstr::util
         friend bool operator<(const index_cursor & lhs, const index_cursor & rhs) noexcept
             { return index_cursor::is_forward ? lhs.m_idx < rhs.m_idx : rhs.m_idx < lhs.m_idx; }
         friend bool operator<=(const index_cursor & lhs, const index_cursor & rhs) noexcept
-            { return index_cursor::is_forward ? lhs.m_idx <= rhs.m_idx : rhs.m_idx <= lhs.m_idx;; }
+            { return index_cursor::is_forward ? lhs.m_idx <= rhs.m_idx : rhs.m_idx <= lhs.m_idx; }
         friend bool operator>(const index_cursor & lhs, const index_cursor & rhs) noexcept
-            { return index_cursor::is_forward ? lhs.m_idx > rhs.m_idx : rhs.m_idx > lhs.m_idx;; }
+            { return index_cursor::is_forward ? lhs.m_idx > rhs.m_idx : rhs.m_idx > lhs.m_idx; }
         friend bool operator>=(const index_cursor & lhs, const index_cursor & rhs) noexcept
-            { return index_cursor::is_forward ? lhs.m_idx >= rhs.m_idx : rhs.m_idx >= lhs.m_idx;; }
+            { return index_cursor::is_forward ? lhs.m_idx >= rhs.m_idx : rhs.m_idx >= lhs.m_idx; }
     #endif
         
         

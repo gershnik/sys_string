@@ -335,7 +335,6 @@ This might perform 2 allocation for addends to store the conversion results and 
 * Use `sys_string_builder` class. This is the most general, performant and flexible way.
 
 To use `sys_string_builder` you create an instance of it, perform various methods that populate its content and then call the `build()` method to produce a `sys_string`. 
-The `build()` method is `noexcept` and is very low or 0 cost - there are no allocations happening in it. Everything that needed to be allocated is already done by the time you call it.
 
 Generally, `sys_string_builder` can be used in 2 ways. First it exposes the conventional "builder" idiom where you can do things like:
 

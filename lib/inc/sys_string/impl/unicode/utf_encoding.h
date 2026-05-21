@@ -169,7 +169,7 @@ namespace sysstr
         /* state_error     */ 0, 8, 4, 0
         };
     
-        uint32_t m_value;
+        uint32_t m_value = 0;
         int m_state = state_done;
     };
 

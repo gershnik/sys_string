@@ -5,6 +5,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Fixed
+
+- Removed a number of incorrect copy/pasted `noexcept` qualifiers. Some of these affect public API surface.
+- `sys_string_builder::insert` now works properly when passed non-contiguous iterators.
+- `sys_string::hash` now produces good hashes with all types of storage. Previously the hash algorithm used was 
+  ancient and poor with some.
+- A tiny leak on Python when Python interpreter is unloaded from the process.
+- A number of internal issues that could cause crashes in out-of-memory scenarios.
+
+### Changed
+
+- `sys_string_builder::build` is no longer marked `noexcept` for all types of storage. For some, it still 
+  cannot throw, but the qualifier has been removed uniformly to gain implementation freedom to add 
+  potentially throwing semantics later, if needed.
+- `sys_string::c_str` (and `w_str`, where available) are no longer `noexcept` for the types of storage
+  where the stored type is different from the one being returned.
+- Some `sys_string` constructors from native types are now no longer `noexcept`.
+
 ## [3.8] - 2026-02-03
 
 ### Added

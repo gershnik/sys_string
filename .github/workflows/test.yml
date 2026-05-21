@@ -195,7 +195,7 @@ jobs:
     - name: Configure
       shell: bash
       run: |
-        cmake $CMAKE_GENERATOR -S . -B out $CMAKE_ARGS -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSYS_STRING_TESTS_SANITIZE=ON
+        cmake $CMAKE_GENERATOR -S . -B out $CMAKE_ARGS -DCMAKE_BUILD_TYPE=MinSizeRel
         if [[ '${{ matrix.os }}' == windows-* ]]; then
           if [ -f out/test/pythonloc.txt ]; then
             pythloc=$(cat out/test/pythonloc.txt)
@@ -205,7 +205,7 @@ jobs:
 
     - name: Build and Test
       shell: bash
-      run: cmake --build out --config RelWithDebInfo --target run-test
+      run: cmake --build out --config MinSizeRel --target run-test
 
   container:
     needs: define-matrix
@@ -230,11 +230,11 @@ jobs:
     - name: Configure
       shell: bash
       run: |
-        cmake -GNinja -S . -B out -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSYS_STRING_TESTS_SANITIZE=ON
+        cmake -GNinja -S . -B out -DCMAKE_BUILD_TYPE=MinSizeRel
 
     - name: Build and Test
       shell: bash
-      run: cmake --build out --config RelWithDebInfo --target run-test
+      run: cmake --build out --config MinSizeRel --target run-test
 
 
   big-endian:
@@ -378,13 +378,43 @@ jobs:
     - name: Configure
       shell: bash
       run: |
-        cmake -S . -B out -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSYS_STRING_TESTS_SANITIZE=ON
+        cmake -S . -B out -DCMAKE_BUILD_TYPE=MinSizeRel
 
     - name: Build and Test
       shell: bash
       run: |
-        cmake --build out --config RelWithDebInfo --target test-20python test-23python
+        cmake --build out --config MinSizeRel --target test-20python test-23python
         echo Running test-20python
         out/test/test-20python -ni -fc
         echo Running test-23python
         out/test/test-23python -ni -fc
+
+
+  santizer:
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      id: setup-python
+      with:
+        python-version: "3.14"
+
+    - name: Configure
+      shell: bash
+      run: |
+        cmake -S . -B out -DCMAKE_BUILD_TYPE=MinSizeRel -DSYS_STRING_TESTS_SANITIZE=ON
+
+    - name: Build and Test
+      env:
+        ASAN_OPTIONS: detect_stack_use_after_return=1:abort_on_error=1
+        UBSAN_OPTIONS: print_stacktrace=1
+      shell: bash
+      run: cmake --build out --config MinSizeRel --target run-test

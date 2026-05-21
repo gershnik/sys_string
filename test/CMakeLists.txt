@@ -52,6 +52,15 @@ if(${Python3_Development_FOUND} AND ${Python3_Interpreter_FOUND})
     set(CMAKE_MSVCIDE_RUN_PATH ${Python3_RUNTIME_LIBRARY_DIRS})
 endif()
 
+if ("${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "MSVC")
+    set(FRONT_MSVC True)
+else()
+    set(FRONT_MSVC False)
+endif()
+
+set (CLANG_CL "$<AND:$<BOOL:${FRONT_MSVC}>,$<CXX_COMPILER_ID:Clang>>")
+set (CLANG_NORMAL "$<AND:$<NOT:$<BOOL:${FRONT_MSVC}>>,$<CXX_COMPILER_ID:Clang>>")
+
 set (CXX_STANDARDS
     20
     23
@@ -179,16 +188,21 @@ foreach(LIB_SUFFIX ${LIB_TYPES})
     target_compile_options(test-${TEST_SUFFIX} PRIVATE
         $<$<CXX_COMPILER_ID:MSVC>:/utf-8;/W4;/WX>
         $<$<CXX_COMPILER_ID:AppleClang>:-Wall;-Wextra;-pedantic;-Wno-self-assign-overloaded;-Wno-self-move>
+        $<${CLANG_NORMAL}:-Wall;-Wextra;-pedantic;-Wno-self-assign-overloaded;-Wno-self-move>
+        $<${CLANG_CL}:/W4;/WX;-Wno-self-assign-overloaded;-Wno-self-move>
         $<$<CXX_COMPILER_ID:GNU>:-Wall;-Wextra;-pedantic>
     )
 
     if(SYS_STRING_TESTS_SANITIZE)
         target_compile_options(test-${TEST_SUFFIX} PRIVATE
-            $<$<CXX_COMPILER_ID:Clang,AppleClang,GNU>:-fsanitize=address,undefined;-fno-sanitize-recover=undefined;-fno-omit-frame-pointer>
-            $<$<CXX_COMPILER_ID:MSVC>:/fsanitize=address>
+            $<$<CXX_COMPILER_ID:AppleClang,GNU>:-fsanitize=address,undefined;-fno-sanitize-recover=undefined;-fno-omit-frame-pointer>
+            $<${CLANG_NORMAL}:-fsanitize=address,undefined;-fno-sanitize-recover=undefined;-fno-omit-frame-pointer>
+            $<${CLANG_CL}:-fsanitize=address,undefined;-fno-sanitize-recover=undefined>
+            $<$<CXX_COMPILER_ID:MSVC>:/fsanitize=address;/bigobj>
         )
         target_link_options(test-${TEST_SUFFIX} PRIVATE
-            $<$<CXX_COMPILER_ID:Clang,AppleClang,GNU>:-fsanitize=address,undefined>
+            $<$<CXX_COMPILER_ID:AppleClang,GNU>:-fsanitize=address,undefined>
+            $<${CLANG_NORMAL}:-fsanitize=address,undefined>
         )
     endif()
 
@@ -198,18 +212,6 @@ foreach(LIB_SUFFIX ${LIB_TYPES})
         )
         target_compile_options(test-${TEST_SUFFIX} PRIVATE
             -sMAIN_MODULE=2 -sSTRICT
-        )
-    endif()
-
-    if ("${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "MSVC")
-        target_compile_options(test-${TEST_SUFFIX}
-        PRIVATE
-            $<$<CXX_COMPILER_ID:Clang>:/W4;/WX;-Wno-self-assign-overloaded;-Wno-self-move>
-        )
-    else()
-        target_compile_options(test-${TEST_SUFFIX}
-        PRIVATE
-            $<$<CXX_COMPILER_ID:Clang>:-Wall;-Wextra;-pedantic;-Wno-self-assign-overloaded;-Wno-self-move>
         )
     endif()
 

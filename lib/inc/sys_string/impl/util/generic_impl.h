@@ -152,7 +152,8 @@ namespace sysstr::util::generic
                     this->set_dynamic(buf, our_size);
                     data = buf->data();
                 }
-                memcpy(data, str, our_size * sizeof(CharT));
+                if (our_size)
+                    memcpy(data, str, our_size * sizeof(CharT));
                 data[our_size] = 0;
             }
             else
@@ -564,7 +565,8 @@ namespace sysstr::util::generic
         auto copy_data(SizeT idx, CharT * buf, SizeT buf_size) const noexcept -> SizeT
         {
             SizeT ret = std::min(buf_size, this->size() - idx);
-            memcpy(buf, m_buffer.data() + idx, ret * sizeof(CharT));
+            if (ret)
+                memcpy(buf, m_buffer.data() + idx, ret * sizeof(CharT));
             return ret;
         }
 

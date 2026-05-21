@@ -8,16 +8,18 @@
 #include <sys_string/sys_string.h>
 
 
-#include "catch.hpp"
+#include <doctest/doctest.h>
 
 using namespace sysstr;
 
 extern JavaVM * g_vm;
 extern JNIEnv * g_env;
 
+TEST_SUITE_BEGIN("android");
+
 #if !SYS_STRING_USE_GENERIC
 
-    TEST_CASE( "Android Conversions", "[android]") {
+    TEST_CASE( "Android Conversions" ) {
 
         CHECK(sys_string().make_jstring(g_env) == nullptr);
         CHECK(sys_string(g_env, nullptr) == S(""));
@@ -31,7 +33,7 @@ extern JNIEnv * g_env;
         CHECK(str == S("a水𐀀𝄞bcå🤢"));
     }
 
-    TEST_CASE( "Android error handling", "[android]") {
+    TEST_CASE( "Android error handling") {
         jclass integer_cls = g_env->FindClass("java/lang/Integer");
         REQUIRE(integer_cls);
         jmethodID integer_ctor = g_env->GetMethodID(integer_cls, "<init>", "()V");
@@ -61,7 +63,7 @@ extern JNIEnv * g_env;
 
 #else
 
-    TEST_CASE( "Android Conversions", "[android]") {
+    TEST_CASE( "Android Conversions") {
 
     REQUIRE(sys_string().c_str());
     CHECK(strcmp(sys_string().c_str(), "") == 0);
@@ -79,3 +81,5 @@ extern JNIEnv * g_env;
 }
 
 #endif
+
+TEST_SUITE_END;

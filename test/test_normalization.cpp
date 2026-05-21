@@ -9,7 +9,7 @@
 
 #include <sys_string/impl/unicode/algorithms.h>
 
-#include "catch.hpp"
+#include <doctest/doctest.h>
 
 #include <string_view>
 #include <vector>
@@ -27,30 +27,34 @@ namespace {
 #elif defined(__MSVC__)
     [[msvc::noinline]]
 #endif
-    void check_nfd(std::u32string_view src, const std::u32string_view & expected, ::Catch::SourceLineInfo loc = CATCH_INTERNAL_LINEINFO)
+    void _check_nfd(std::u32string_view src, const std::u32string_view & expected, int line)
     {
         std::vector<char32_t> result;
         normalize::nfd<utf32> normalizer;
         normalizer(src.begin(), src.end(), std::back_inserter(result));
-        INFO("source: " << std::string(loc.file) << std::string(":") << loc.line);
+        INFO("source line: " << line);
         bool res = std::equal(result.begin(), result.end(), expected.begin(), expected.end());
         CHECK(res);
     }
+
+    #define check_nfd(a, b) _check_nfd(a, b, __LINE__)
 
 #if defined(__GNUC__)
     [[gnu::noinline]]
 #elif defined(__MSVC__)
     [[msvc::noinline]]
 #endif
-    void check_nfc(std::u32string_view src, const std::u32string_view & expected, ::Catch::SourceLineInfo loc = CATCH_INTERNAL_LINEINFO)
+    void _check_nfc(std::u32string_view src, const std::u32string_view & expected, int line)
     {
         std::vector<char32_t> result;
         normalize::nfc<utf32> normalizer;
         normalizer(src.begin(), src.end(), std::back_inserter(result));
-        INFO("source: " << std::string(loc.file) << std::string(":") << loc.line);
+        INFO("source line: " << line);
         bool res = std::equal(result.begin(), result.end(), expected.begin(), expected.end());
         REQUIRE(res);
     }
+
+    #define check_nfc(a, b) _check_nfc(a, b, __LINE__)
 
 #if defined(__GNUC__)
     [[gnu::noinline]]
@@ -80,7 +84,9 @@ namespace {
 
 }
 
-TEST_CASE("boundary", "[normalization]") {
+TEST_SUITE_BEGIN("normalization");
+
+TEST_CASE("boundary" ) {
     check_nfd(U"", {});
     check_nfd(std::u32string_view(U"\0\0", 2), std::u32string_view(U"\0\0", 2));
     check_nfd(U"q\u0307\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323\u0323"
@@ -92,7 +98,7 @@ TEST_CASE("boundary", "[normalization]") {
     check_nfc(std::u32string_view(U"\0\0", 2), std::u32string_view(U"\0\0", 2));
 }
 
-TEST_CASE("basics", "[normalization]") {
+TEST_CASE("basics" ) {
     check_nfd(U"Ç", U"C"s + U"̧"s);
     check_nfd(U"q\u0307\u0323", U"q\u0323\u0307");
     check_nfd(U"가", U"ᄀ"s + U"ᅡ"s);
@@ -104,10 +110,12 @@ TEST_CASE("basics", "[normalization]") {
     check_nfc(U"Ω", U"Ω");
 }
 
-TEST_CASE("generated", "[normalization]") {
+TEST_CASE("generated" ) {
 
     #include "test_normalization_data.h"
 }
+
+TEST_SUITE_END;
 
 #endif
 

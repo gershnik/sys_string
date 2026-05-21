@@ -8,7 +8,7 @@
 #include <sys_string/utf_view.h>
 
 
-#include "catch.hpp"
+#include <doctest/doctest.h>
 
 using namespace sysstr;
 using namespace std::literals;
@@ -144,8 +144,9 @@ void check_iteration(const SrcCont & src,
     do_check_iteration<SrcEnc, DstEnc>(src, expected, reverse(expected_backward));
 }
 
+TEST_SUITE_BEGIN( "utf_iteration" );
 
-TEST_CASE( "UTF8 Iteration on UTF8 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF8 Iteration on UTF8 sequence" ) {
 
     constexpr auto from = utf8;
     constexpr auto to = utf8;
@@ -279,7 +280,7 @@ TEST_CASE( "UTF8 Iteration on UTF8 sequence", "[utf_iteration]") {
     check_iteration<from, to>("\xEF\xBF\xBF", "\uFFFF");
 }
 
-TEST_CASE( "UTF16 Iteration on UTF8 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF16 Iteration on UTF8 sequence" ) {
 
     constexpr auto from = utf8;
     constexpr auto to = utf16;
@@ -413,7 +414,7 @@ TEST_CASE( "UTF16 Iteration on UTF8 sequence", "[utf_iteration]") {
     check_iteration<from, to>("\xEF\xBF\xBF", u"\uFFFF");
 }
 
-TEST_CASE( "UTF32 Iteration on UTF8 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF32 Iteration on UTF8 sequence" ) {
 
     constexpr auto from = utf8;
     constexpr auto to = utf32;
@@ -547,7 +548,7 @@ TEST_CASE( "UTF32 Iteration on UTF8 sequence", "[utf_iteration]") {
     check_iteration<from, to>("\xEF\xBF\xBF", U"\uFFFF");
 }
 
-TEST_CASE( "UTF8 Iteration on UTF16 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF8 Iteration on UTF16 sequence" ) {
 
     check_iteration<utf16, utf8>(u"", "");
     check_iteration<utf16, utf8>(u"a", "a");
@@ -564,7 +565,7 @@ TEST_CASE( "UTF8 Iteration on UTF16 sequence", "[utf_iteration]") {
     check_iteration<utf16, utf8>(u"a\xDC37", "a\uFFFD"); //good + hanging trail byte
 }
 
-TEST_CASE( "UTF16 Iteration on UTF16 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF16 Iteration on UTF16 sequence" ) {
 
     check_iteration<utf16, utf16>(u"", u"");
     check_iteration<utf16, utf16>(u"a", u"a");
@@ -581,7 +582,7 @@ TEST_CASE( "UTF16 Iteration on UTF16 sequence", "[utf_iteration]") {
     check_iteration<utf16, utf16>(u"a\xDC37", u"a\uFFFD"); //good + hanging trail byte
 }
 
-TEST_CASE( "UTF32 Iteration on UTF16 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF32 Iteration on UTF16 sequence" ) {
 
     check_iteration<utf16, utf32>(u"", U"");
     check_iteration<utf16, utf32>(u"a", U"a");
@@ -599,7 +600,7 @@ TEST_CASE( "UTF32 Iteration on UTF16 sequence", "[utf_iteration]") {
 }
 
 
-TEST_CASE( "UTF8 Iteration on UTF32 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF8 Iteration on UTF32 sequence" ) {
 
     check_iteration<utf32, utf8>(U""s, "");
     check_iteration<utf32, utf8>(U"a"s, "a");
@@ -620,7 +621,7 @@ TEST_CASE( "UTF8 Iteration on UTF32 sequence", "[utf_iteration]") {
     check_iteration<utf32, utf8>(U"\x110000""a", "\uFFFDa"); //too large + good
 }
 
-TEST_CASE( "UTF16 Iteration on UTF32 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF16 Iteration on UTF32 sequence" ) {
 
     check_iteration<utf32, utf16>(U""s, u"");
     check_iteration<utf32, utf16>(U"a"s, u"a");
@@ -641,7 +642,7 @@ TEST_CASE( "UTF16 Iteration on UTF32 sequence", "[utf_iteration]") {
     check_iteration<utf32, utf16>(U"\x110000""a", u"\uFFFDa"); //too large + good
 }
 
-TEST_CASE( "UTF32 Iteration on UTF32 sequence", "[utf_iteration]") {
+TEST_CASE( "UTF32 Iteration on UTF32 sequence" ) {
 
     check_iteration<utf32, utf32>(U"", U"");
     check_iteration<utf32, utf32>(U"a", U"a");
@@ -662,5 +663,4 @@ TEST_CASE( "UTF32 Iteration on UTF32 sequence", "[utf_iteration]") {
     check_iteration<utf32, utf32>(U"\x110000""a", U"\uFFFDa"); //too large + good
 }
 
-
-
+TEST_SUITE_END;

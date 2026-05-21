@@ -5,8 +5,10 @@
 // license that can be found in the LICENSE file or at
 // https://github.com/gershnik/sys_string/blob/master/LICENSE
 //
-#define CATCH_CONFIG_RUNNER
-#include "catch.hpp"
+
+
+#define DOCTEST_CONFIG_IMPLEMENT
+#include <doctest/doctest.h>
 
 #if defined(SYS_STRING_USE_PYTHON)
 
@@ -106,7 +108,7 @@ int main(int argc, char** argv)
 
     
     
-    int ret = Catch::Session().run( argc, argv );
+    int ret = doctest::Context(argc, argv).run();
 
     #if defined(SYS_STRING_USE_PYTHON)
         #if !defined(PYPY_VERSION)

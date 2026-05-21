@@ -10,7 +10,7 @@
 #include <string>
 #include <cstring>
 
-#include "catch.hpp"
+#include <doctest/doctest.h>
 
 using namespace sysstr;
 
@@ -47,7 +47,9 @@ namespace
     }
 }
 
-TEST_CASE( "UTF-16 to UTF-32",  "[utf_util]" ) {
+TEST_SUITE_BEGIN( "utf_util" );
+
+TEST_CASE( "UTF-16 to UTF-32" ) {
 
     CHECK(utf32_from_utf16(u"a水𐀀𝄞bcå®®") == U"a水𐀀𝄞bcå®®");
     CHECK(utf32_from_utf16(u"\xD800") == U"�");
@@ -65,7 +67,7 @@ TEST_CASE( "UTF-16 to UTF-32",  "[utf_util]" ) {
     CHECK(utf32_from_utf16(u"\xDBFF\xDFFF") == U"\U0010FFFF");
 }
 
-TEST_CASE( "UTF-16 to UTF-8",  "[utf_util]" ) {
+TEST_CASE( "UTF-16 to UTF-8" ) {
     CHECK(utf8_from_utf16(u"a水𐀀𝄞bcå®®") == u8"a水𐀀𝄞bcå®®");
     CHECK(utf8_from_utf16(u"\xD800") == u8"�");
     CHECK(utf8_from_utf16(u"\xDBFF") == u8"�");
@@ -82,7 +84,7 @@ TEST_CASE( "UTF-16 to UTF-8",  "[utf_util]" ) {
     CHECK(utf8_from_utf16(u"\xDBFF\xDFFF") == u8"\U0010FFFF");
 }
 
-TEST_CASE( "UTF-8 to UTF-16",  "[utf_util]" ) {
+TEST_CASE( "UTF-8 to UTF-16" ) {
 
     //1  Some correct UTF-8 text
     CHECK(utf16_from_utf8("a水𐀀𝄞bcå®®") == u"a水𐀀𝄞bcå®®");
@@ -203,3 +205,5 @@ TEST_CASE( "UTF-8 to UTF-16",  "[utf_util]" ) {
     //From https://www.unicode.org/versions/Unicode10.0.0/ch03.pdf
     CHECK(utf16_from_utf8("\x61\xF1\x80\x80\xE1\x80\xC2\x62\x80\x63\x80\xBF\x64") == u"a���b�c��d");
 }
+
+TEST_SUITE_END;

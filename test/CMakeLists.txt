@@ -6,7 +6,17 @@
 # https://github.com/gershnik/sys_string/blob/master/LICENSE.txt
 #
 
+include(FetchContent)
+
 option(SYS_STRING_TESTS_SANITIZE "Build tests with ASan + UBSan" OFF)
+
+FetchContent_Declare(doctest
+    URL  https://raw.githubusercontent.com/doctest/doctest/v2.5.2/doctest/doctest.h
+    DOWNLOAD_NO_EXTRACT TRUE
+    SOURCE_DIR downloaded/doctest
+)
+
+FetchContent_MakeAvailable(doctest)
 
 
 if(${Python3_Development_FOUND} AND ${Python3_Interpreter_FOUND})
@@ -139,6 +149,12 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN ON
         XCODE_GENERATE_SCHEME TRUE
+        XCODE_SCHEME_ARGUMENTS "-ni;-nc"
+    )
+
+    target_include_directories(test-${TEST_SUFFIX}
+    PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}/downloaded
     )
 
     target_compile_options(test-${TEST_SUFFIX} PRIVATE
@@ -204,19 +220,16 @@ foreach(STORAGE_SUFFIX ${STORAGE_TYPES})
         "$<$<PLATFORM_ID:Windows>:test_windows.cpp>" 
         "$<$<PLATFORM_ID:Linux>:test_linux.cpp>" 
         "$<$<PLATFORM_ID:Emscripten>:test_javascript.cpp>" 
-
-        catch.hpp
-        catch.cpp
     )
 
     list(APPEND TEST_COMMAND COMMAND echo "Running test-${TEST_SUFFIX}")
     if (${CMAKE_SYSTEM_NAME} STREQUAL Android)
         list(APPEND TEST_COMMAND COMMAND ${ADB} push test-${TEST_SUFFIX} ${ANDROID_TEST_DIR})
-        list(APPEND TEST_COMMAND COMMAND ${ADB} shell LD_LIBRARY_PATH=${ANDROID_LD_LIBRARY_PATH} ${ANDROID_TEST_DIR}/test-${TEST_SUFFIX})
+        list(APPEND TEST_COMMAND COMMAND ${ADB} shell LD_LIBRARY_PATH=${ANDROID_LD_LIBRARY_PATH} ${ANDROID_TEST_DIR}/test-${TEST_SUFFIX} -ni)
     elseif (DEFINED EMSCRIPTEN)
-        list(APPEND TEST_COMMAND COMMAND ${NODE_JS_EXECUTABLE} test-${TEST_SUFFIX})
+        list(APPEND TEST_COMMAND COMMAND ${NODE_JS_EXECUTABLE} test-${TEST_SUFFIX} -ni)
     else()
-        list(APPEND TEST_COMMAND COMMAND test-${TEST_SUFFIX})
+        list(APPEND TEST_COMMAND COMMAND test-${TEST_SUFFIX} -ni)
     endif()
 
     list(APPEND TEST_DEPS test-${TEST_SUFFIX})

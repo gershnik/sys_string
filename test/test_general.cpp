@@ -9,7 +9,7 @@
 
 #include <sstream>
 
-#include "catch.hpp"
+#include <doctest/doctest.h>
 
 using namespace sysstr;
 
@@ -50,7 +50,9 @@ template<class CharT> const CharT * select([[maybe_unused]] const char * s8,
         return s8;
 }
 
-TEST_CASE( "Creation", "[general]") {
+TEST_SUITE_BEGIN("general");
+
+TEST_CASE( "Creation") {
     
     sys_string from_char("abc", 3);
     CHECK(from_char == S("abc"));
@@ -77,11 +79,11 @@ TEST_CASE( "Creation", "[general]") {
     CHECK(from_long_char == S("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"));
 }
 
-TEST_CASE( "Iteration", "[general]" ) {
+TEST_CASE( "Iteration" ) {
     sys_string str = S("a水𐀀𝄞");
     sys_string empty = S("");
     
-    SECTION("utf8") {
+    SUBCASE("utf8") {
         std::string converted;
         for (char c: sys_string::utf8_view(str))
         {
@@ -103,7 +105,7 @@ TEST_CASE( "Iteration", "[general]" ) {
         CHECK(converted.empty());
     }
 
-    SECTION("utf16") {
+    SUBCASE("utf16") {
         std::u16string converted;
         for (char16_t c: sys_string::utf16_view(str))
         {
@@ -125,7 +127,7 @@ TEST_CASE( "Iteration", "[general]" ) {
         CHECK(converted.empty());
     }
 
-    SECTION("utf32") {
+    SUBCASE("utf32") {
         std::u32string converted;
         for (char32_t c: sys_string::utf32_view(str))
         {
@@ -151,7 +153,7 @@ TEST_CASE( "Iteration", "[general]" ) {
         CHECK(part == S("𐀀𝄞"));
     }
     
-    SECTION("storage") {
+    SUBCASE("storage") {
         
         std::basic_string<sys_string::storage_type> converted;
         for (sys_string::storage_type c: sys_string::char_access(str))
@@ -178,7 +180,7 @@ TEST_CASE( "Iteration", "[general]" ) {
     }
 }
 
-TEST_CASE( "Comparsion", "[general]" ) {
+TEST_CASE( "Comparsion" ) {
     
     CHECK(sys_string() == sys_string());
     CHECK(sys_string() == S(""));
@@ -219,7 +221,7 @@ TEST_CASE( "Comparsion", "[general]" ) {
 
 }
 
-TEST_CASE( "Hash", "[general]" ) {
+TEST_CASE( "Hash" ) {
     std::hash<sys_string> hasher;
 
     CHECK(hasher(sys_string()) == hasher(sys_string()));
@@ -230,7 +232,7 @@ TEST_CASE( "Hash", "[general]" ) {
     CHECK(hasher(S("a")) != hasher(S("b")));
 }
 
-TEST_CASE( "Case conversion", "[general]" ) {
+TEST_CASE( "Case conversion" ) {
     
     CHECK(S("maße").to_upper() == S("MASSE"));
     CHECK(S("MAẞE").to_lower() == S("maße"));
@@ -257,7 +259,7 @@ TEST_CASE( "Case conversion", "[general]" ) {
     CHECK(lower.to_upper() == upper);
 }
 
-TEST_CASE( "Normalization", "[general]" ) {
+TEST_CASE( "Normalization" ) {
 
     CHECK(S("\u00C5").normalize(normalization::nfd) == S("\u0041\u030A"));
     CHECK(S("\u0041\u030A").normalize(normalization::nfc) == S("\u00C5"));
@@ -266,7 +268,7 @@ TEST_CASE( "Normalization", "[general]" ) {
     CHECK(S("No\u0308rmalization").normalize(normalization::nfc) == S("Nörmalization"));
 }
 
-TEST_CASE( "Trim", "[general]" ) {
+TEST_CASE( "Trim" ) {
     CHECK(S("").trim() == S(""));
     CHECK(S("  \t\n   ").trim() == S(""));
     CHECK(S("   a").trim() == S("a"));
@@ -315,7 +317,7 @@ namespace
     } splitter;
 }
 
-TEST_CASE( "Split", "[general]" ) {
+TEST_CASE( "Split" ) {
     
     CHECK(splitter(S(""), U'q') == std::vector({S("")}));
     CHECK(splitter(S("q"), U'q') == std::vector({S(""), S("")}));
@@ -365,7 +367,7 @@ TEST_CASE( "Split", "[general]" ) {
     CHECK(splitter(S("az"), searcher) == std::vector({S("a"), S("")}));
 }
 
-TEST_CASE( "Join", "[general]" ) {
+TEST_CASE( "Join" ) {
 
     std::vector<sys_string> empty;
     std::vector<sys_string> one = {S("Q")};
@@ -380,7 +382,7 @@ TEST_CASE( "Join", "[general]" ) {
     CHECK(S("A").join(two.begin(), two.end()) == S("QAR"));
 }
 
-TEST_CASE( "Prefix", "[general]" ) {
+TEST_CASE( "Prefix" ) {
     
     CHECK(S("").starts_with(S("")));
     CHECK(!S("").starts_with(S("a")));
@@ -412,7 +414,7 @@ TEST_CASE( "Prefix", "[general]" ) {
     CHECK(S("ab").remove_prefix(U'a') == S("b"));
 }
 
-TEST_CASE( "Suffix", "[general]" ) {
+TEST_CASE( "Suffix" ) {
     
     CHECK(S("").ends_with(S("")));
     CHECK(!S("").ends_with(S("a")));
@@ -444,7 +446,7 @@ TEST_CASE( "Suffix", "[general]" ) {
     CHECK(S("ab").remove_suffix(U'b') == S("a"));
 }
 
-TEST_CASE( "Contains", "[general]" ) {
+TEST_CASE( "Contains" ) {
     
     CHECK(S("").contains(S("")));
     CHECK(!S("").contains(S("a")));
@@ -467,7 +469,7 @@ TEST_CASE( "Contains", "[general]" ) {
     CHECK(S("dbn").find_contained(infixes.begin(), infixes.end()) == infixes.end() - 2);
 }
 
-TEST_CASE( "Replace", "[general]" ) {
+TEST_CASE( "Replace" ) {
     
     CHECK(S("").replace(S(""), S("")) == S(""));
     CHECK(S("").replace(S(""), S("a")) == S(""));
@@ -490,7 +492,7 @@ TEST_CASE( "Replace", "[general]" ) {
     CHECK(S("🥳😏🥸😏").replace(U'😏', U'😫') == S("🥳😫🥸😫"));
 }
 
-TEST_CASE( "HeadTail", "[general]" ) {
+TEST_CASE( "HeadTail" ) {
 
     CHECK(S("").suffix_after_first(S("")) == S(""));
     CHECK(S("").suffix_after_first(U'a') == std::nullopt);
@@ -522,7 +524,7 @@ TEST_CASE( "HeadTail", "[general]" ) {
     CHECK(S("a🥸b🥸c").prefix_before_last(S("🥸")) == S("a🥸b"));
 }
 
-TEST_CASE( "Partition", "[general]" ) {
+TEST_CASE( "Partition" ) {
     CHECK(S("").partition_at_first(S("")) == std::pair(S(""), S("")));
     CHECK(S("").partition_at_first(U'a') == std::nullopt);
     CHECK(S("").partition_at_last(S("")) == std::pair(S(""), S("")));
@@ -539,7 +541,7 @@ TEST_CASE( "Partition", "[general]" ) {
     CHECK(S("a🥸b🥸c").partition_at_last(S("🥸")) == std::pair(S("a🥸b"), S("c")));
 }
 
-TEST_CASE( "Addition", "[general]" ) {
+TEST_CASE( "Addition" ) {
     
     CHECK(S("") + S("") == S(""));
     
@@ -563,7 +565,7 @@ TEST_CASE( "Addition", "[general]" ) {
     CHECK(((U'a' + S("b")) + (S("💾") + U'💿')) + (U'🜇' + S("⏰")) == S("ab💾💿🜇⏰"));
 }
 
-TEST_CASE( "c_str", "[general]" ) {
+TEST_CASE( "c_str" ) {
     const sys_string & str = S("a🧡bc");
     sys_string::char_access access(str);
     const char * cstr = access.c_str();
@@ -572,7 +574,7 @@ TEST_CASE( "c_str", "[general]" ) {
     CHECK(access.c_str() == cstr);
 }
 
-TEST_CASE( "data", "[general]" ) {
+TEST_CASE( "data" ) {
     const sys_string & str = S("a🧡bc");
 
     auto * data = str.data();
@@ -619,7 +621,7 @@ TEST_CASE( "data", "[general]" ) {
     REQUIRE(res == 0);
 }
 
-TEST_CASE( "ostream", "[general]" ) {
+TEST_CASE( "ostream" ) {
     
     {
         std::ostringstream stream;
@@ -659,3 +661,5 @@ TEST_CASE( "ostream", "[general]" ) {
     }
 #endif
 }
+
+TEST_SUITE_END;

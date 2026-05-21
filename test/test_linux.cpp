@@ -8,13 +8,15 @@
 #include <sys_string/sys_string.h>
 
 
-#include "catch.hpp"
+#include <doctest/doctest.h>
 
 using namespace sysstr;
 
 #if !SYS_STRING_USE_GENERIC && !SYS_STRING_USE_PYTHON
 
-TEST_CASE( "Linux Conversions", "[linux]") {
+TEST_SUITE_BEGIN( "linux" );
+
+TEST_CASE( "Linux Conversions" ) {
 
     REQUIRE(sys_string().c_str());
     CHECK(strcmp(sys_string().c_str(), "") == 0);
@@ -30,5 +32,7 @@ TEST_CASE( "Linux Conversions", "[linux]") {
 
     CHECK(strcmp(sys_string("a水𐀀𝄞bcå🤢").c_str(), "a水𐀀𝄞bcå🤢") == 0);
 }
+
+TEST_SUITE_END;
 
 #endif

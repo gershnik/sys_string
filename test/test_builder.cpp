@@ -8,11 +8,13 @@
 #include <sys_string/sys_string.h>
 
 
-#include "catch.hpp"
+#include <doctest/doctest.h>
 
 using namespace sysstr;
 
-TEST_CASE( "Builder basics", "[builder]") {
+TEST_SUITE_BEGIN("builder");
+
+TEST_CASE( "Builder basics") {
 
     CHECK(sys_string_builder().build() == S(""));
     CHECK(sys_string_builder().append(U'🟣').build() == S("🟣"));
@@ -68,7 +70,7 @@ TEST_CASE( "Builder basics", "[builder]") {
     }
 }
 
-TEST_CASE( "Builder iteration", "[builder]") {
+TEST_CASE( "Builder iteration") {
     
     sys_string_builder builder;
     CHECK(builder.begin() == builder.end());
@@ -92,7 +94,7 @@ TEST_CASE( "Builder iteration", "[builder]") {
 
 }
 
-TEST_CASE( "Builder insert", "[builder]") {
+TEST_CASE( "Builder insert") {
     
     sys_string_builder builder;
     sys_string_builder::iterator it;
@@ -140,7 +142,7 @@ TEST_CASE( "Builder insert", "[builder]") {
     CHECK(builder.build() == S("🪀🟫🩳�𐊃𐜃𐤈🀁"));
 }
 
-TEST_CASE( "Builder erase", "[builder]") {
+TEST_CASE( "Builder erase") {
     
     sys_string_builder builder;
     sys_string_builder::iterator it;
@@ -171,3 +173,5 @@ TEST_CASE( "Builder erase", "[builder]") {
     CHECK(builder.build() == S("🪀�𐊃𐜃𐤈🀁"));
     
 }
+
+TEST_SUITE_END;

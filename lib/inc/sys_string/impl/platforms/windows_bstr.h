@@ -136,12 +136,12 @@ namespace sysstr::util
         public:
             static constexpr UINT max_small_length = std::extent_v<decltype(embedded_data_t::chars)> - 1;
         public:
-            data() noexcept //initializes to garbage, must call init or otherwise initialize
-            {}
+            data() noexcept 
+                { init(); }
             ~data() noexcept
             {
                 if (flags.value == dynamic_flag)
-                    delete(dynamic_data.ptr);
+                    delete dynamic_data.ptr;
             }
             data(const data & src) noexcept
             {
@@ -323,8 +323,7 @@ namespace sysstr::util
         static_assert(sizeof(data) == total_size);
         
     public:
-        bstr_buffer() noexcept
-            { m_data.init(); }
+        bstr_buffer() noexcept = default;
         bstr_buffer(std::nullptr_t) noexcept
             { m_data.init(nullptr); }
         bstr_buffer(dynamic_bstr * buf, int /*disambiguator*/) noexcept

@@ -125,7 +125,7 @@ namespace sysstr
         /* state_error */      0, 4, 8, 0
         };
         
-        uint32_t m_value;
+        uint32_t m_value = 0;
         int m_state = state_done;
     };
 
@@ -403,7 +403,7 @@ namespace sysstr
         SYS_STRING_BUGGY_CONSTEXPR uint32_t value() const noexcept
             { return m_value; }
     private:
-        uint32_t m_value;
+        uint32_t m_value = 0;
     };
 
     template<bool Validate>

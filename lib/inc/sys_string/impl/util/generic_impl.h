@@ -374,7 +374,7 @@ namespace sysstr::util::generic
     template<class CharT> struct c_str_holder
     {
         ~c_str_holder() noexcept
-            { if (m_c_str) delete [] m_c_str; }
+            { delete [] m_c_str; }
         mutable const char * m_c_str = nullptr;
     };
     template<> struct c_str_holder<char>

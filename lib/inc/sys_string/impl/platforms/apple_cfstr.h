@@ -205,7 +205,7 @@ namespace sysstr::util
     public:
         cf_char_access(const sys_string_t<cf_storage> & src) noexcept;
         ~cf_char_access() noexcept
-            { if (m_c_str) delete [] m_c_str; }
+            { delete [] m_c_str; }
         
         cf_char_access(const cf_char_access & src) noexcept = delete;
         cf_char_access(cf_char_access && src) noexcept = delete;

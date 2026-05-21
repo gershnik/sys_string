@@ -199,7 +199,7 @@ namespace sysstr::util
         const wchar_t * c_wstr() const noexcept
             { return (const wchar_t *)data(); }
         
-        const char * c_str() const noexcept
+        const char * c_str() const
         {
             if (m_c_str)
                 return m_c_str;

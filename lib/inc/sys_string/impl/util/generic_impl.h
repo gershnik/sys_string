@@ -437,7 +437,7 @@ namespace sysstr::util::generic
         const_reverse_iterator crend() const noexcept
             { return rend(); }
         
-        const char * c_str() const noexcept
+        const char * c_str() const noexcept(std::is_same_v<char, CharT>)
         {
             if constexpr (std::is_same_v<char, CharT>)
             {

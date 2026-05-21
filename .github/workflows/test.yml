@@ -195,7 +195,7 @@ jobs:
     - name: Configure
       shell: bash
       run: |
-        cmake $CMAKE_GENERATOR -S . -B out $CMAKE_ARGS -DCMAKE_BUILD_TYPE=MinSizeRel -DSYS_STRING_TESTS_SANITIZE=ON
+        cmake $CMAKE_GENERATOR -S . -B out $CMAKE_ARGS -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSYS_STRING_TESTS_SANITIZE=ON
         if [[ '${{ matrix.os }}' == windows-* ]]; then
           if [ -f out/test/pythonloc.txt ]; then
             pythloc=$(cat out/test/pythonloc.txt)
@@ -205,7 +205,7 @@ jobs:
 
     - name: Build and Test
       shell: bash
-      run: cmake --build out --config MinSizeRel --target run-test
+      run: cmake --build out --config RelWithDebInfo --target run-test
 
   container:
     needs: define-matrix
@@ -230,11 +230,11 @@ jobs:
     - name: Configure
       shell: bash
       run: |
-        cmake -GNinja -S . -B out -DCMAKE_BUILD_TYPE=MinSizeRel -DSYS_STRING_TESTS_SANITIZE=ON
+        cmake -GNinja -S . -B out -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSYS_STRING_TESTS_SANITIZE=ON
 
     - name: Build and Test
       shell: bash
-      run: cmake --build out --config MinSizeRel --target run-test
+      run: cmake --build out --config RelWithDebInfo --target run-test
 
 
   big-endian:
@@ -378,12 +378,12 @@ jobs:
     - name: Configure
       shell: bash
       run: |
-        cmake -S . -B out -DCMAKE_BUILD_TYPE=MinSizeRel -DSYS_STRING_TESTS_SANITIZE=ON
+        cmake -S . -B out -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSYS_STRING_TESTS_SANITIZE=ON
 
     - name: Build and Test
       shell: bash
       run: |
-        cmake --build out --config MinSizeRel --target test-20python test-23python
+        cmake --build out --config RelWithDebInfo --target test-20python test-23python
         echo Running test-20python
         out/test/test-20python -ni -fc
         echo Running test-23python

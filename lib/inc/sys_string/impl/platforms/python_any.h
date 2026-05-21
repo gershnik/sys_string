@@ -378,13 +378,29 @@ namespace sysstr
         
         static PyObject * null_string() noexcept
         {
-            static py_storage null([]() {
+            struct holder {
+                PyObject * ptr = nullptr;
+
+                ~holder() {
+                    if (ptr && Py_IsInitialized()) {
+                        release(ptr);
+                    }
+                }
+            };
+
+            static holder null_holder{[]() {
                 auto ret = PyUnicode_FromString("");
                 if (!ret)
                     std::terminate();
+                Py_AtExit([]{
+                    if (null_holder.ptr) {
+                        release(null_holder.ptr);
+                        null_holder.ptr = nullptr;
+                    }
+                });
                 return ret;
-            }(), ::sysstr::handle_retain::no);
-            return retain(null.m_str);
+            }()};
+            return retain(null_holder.ptr);
         }
 
         template<class Char>

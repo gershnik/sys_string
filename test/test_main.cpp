@@ -107,8 +107,10 @@ int main(int argc, char** argv)
     
     int ret = doctest::Context(argc, argv).run();
 
-    #if !defined(PYPY_VERSION)
-        Py_FinalizeEx();
+    #if defined(SYS_STRING_USE_PYTHON)
+        #if !defined(PYPY_VERSION)
+            Py_FinalizeEx();
+        #endif
     #endif
 
     return ret;

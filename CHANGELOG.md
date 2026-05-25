@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [2.24] - 2026-05-25
+
 ### Fixed
 
 - Removed a number of incorrect copy/pasted `noexcept` qualifiers. Some of these affect public API surface.
@@ -255,3 +257,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [2.21]: https://github.com/gershnik/sys_string/releases/v2.21
 [2.22]: https://github.com/gershnik/sys_string/releases/v2.22
 [2.23]: https://github.com/gershnik/sys_string/releases/v2.23
+[2.24]: https://github.com/gershnik/sys_string/releases/v2.24

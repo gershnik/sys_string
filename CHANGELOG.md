@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [3.9] - 2026-05-25
+
 ### Fixed
 
 - Removed a number of incorrect copy/pasted `noexcept` qualifiers. Some of these affect public API surface.
@@ -419,3 +421,4 @@ This is a major release with some breaking changes
 [3.6]: https://github.com/gershnik/sys_string/releases/v3.6
 [3.7]: https://github.com/gershnik/sys_string/releases/v3.7
 [3.8]: https://github.com/gershnik/sys_string/releases/v3.8
+[3.9]: https://github.com/gershnik/sys_string/releases/v3.9

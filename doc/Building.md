@@ -32,7 +32,7 @@ With modern CMake, the easiest way to use this library is:
 ```cmake
 include(FetchContent)
 FetchContent_Declare(sys_string
-    GIT_REPOSITORY git@github.com:gershnik/sys_string.git
+    GIT_REPOSITORY https://github.com/gershnik/sys_string.git
     GIT_TAG        <desired tag like v3.2>
     GIT_SHALLOW    TRUE
 )

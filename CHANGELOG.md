@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Changed
+- The library now works with many older compilers that have poor support for 
+  ranges. Specifically GCC starting from 10.2, CLang starting from 13, XCode
+  starting from 13 and MSVC 16 (2019) are now all supported with some limitations.
+
 ## [3.9] - 2026-05-25
 
 ### Fixed

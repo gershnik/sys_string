@@ -10,6 +10,7 @@
         - [Basic use](#basic-use)
         - [CMake package](#cmake-package)
         - [Via pkg-config](#via-pkg-config)
+- [Older compilers](#older-compilers)
 - [Configuration options](#configuration-options)
 
 <!-- /TOC -->
@@ -107,6 +108,26 @@ Note that the default installation prefix `/usr/local` might not be in the list 
 export PKG_CONFIG_PATH=/usr/local/share/pkgconfig
 ```
 before running `pkg-config`.
+
+## Older compilers
+
+To use this library with CLang 13-15 (XCode 13-14) you will need some workarounds. By default,
+`libc++` that ships with these compilers has the standard C++ ranges, that this 
+library depends on, disabled.
+You can work around it in two ways:
+1. Include sys_String headers _before_ any standard library ones
+2. Enable it yourself. Something like this before including any standard library headers:
+```cpp
+#include <version>
+
+#if defined(_LIBCPP_VERSION)
+
+    #if _LIBCPP_VERSION >= 13000 && _LIBCPP_VERSION < 160000
+        #undef _LIBCPP_HAS_NO_INCOMPLETE_RANGES
+    #endif
+
+#endif 
+```
 
 ## Configuration options
 

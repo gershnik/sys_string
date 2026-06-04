@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [3.10] - 2026-06-04
+
 ### Changed
 - The library now works with many older compilers that have poor support for 
   ranges. Specifically, GCC starting from 10.2, Clang starting from 13, Xcode
@@ -427,3 +429,4 @@ This is a major release with some breaking changes
 [3.7]: https://github.com/gershnik/sys_string/releases/v3.7
 [3.8]: https://github.com/gershnik/sys_string/releases/v3.8
 [3.9]: https://github.com/gershnik/sys_string/releases/v3.9
+[3.10]: https://github.com/gershnik/sys_string/releases/v3.10

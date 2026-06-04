@@ -8,12 +8,13 @@
 #ifndef HEADER_SYS_STRING_UTF_VIEW_H_INCLUDED
 #define HEADER_SYS_STRING_UTF_VIEW_H_INCLUDED
 
+#include <sys_string/config.h>
 #include <sys_string/impl/unicode/utf_util.h>
 #include <sys_string/impl/util/iter_util.h>
+#include <sys_string/impl/util/ranges-backport.h>
 
 #include <array>
 #include <iterator>
-#include <ranges>
 #include <optional>
 
 namespace sysstr

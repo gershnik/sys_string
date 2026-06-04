@@ -171,11 +171,13 @@ TEST_CASE( "Iteration" ) {
         static_assert(std::is_same_v<decltype(as_utf8(access))::iterator,
                                      sys_string::utf8_access::iterator>);
 
+    #if !defined(_LIBCPP_VERSION) || SYS_STRING_LIBCPP_AT_LEAST(160000)
         bool res = std::ranges::equal(as_utf8(access) | std::views::take(1), std::array{'a'});
         CHECK(res);
 
         res = std::ranges::equal(std::views::all(view) | std::views::take(1), std::array{'a'});
         CHECK(res);
+    #endif
 
         converted.clear();
         for (char c: sys_string::utf8_access(empty))
@@ -216,11 +218,13 @@ TEST_CASE( "Iteration" ) {
         static_assert(std::is_same_v<decltype(as_utf16(access))::iterator,
                                      sys_string::utf16_access::iterator>);
 
+    #if !defined(_LIBCPP_VERSION) || SYS_STRING_LIBCPP_AT_LEAST(160000)
         bool res = std::ranges::equal(as_utf16(access) | std::views::take(1), std::array{'a'});
         CHECK(res);
 
         res = std::ranges::equal(std::views::all(view) | std::views::take(1), std::array{'a'});
         CHECK(res);
+    #endif
 
         converted.clear();
         for (char16_t c: sys_string::utf16_access(empty))
@@ -262,11 +266,13 @@ TEST_CASE( "Iteration" ) {
         static_assert(std::is_same_v<decltype(as_utf32(access))::iterator,
                                      sys_string::utf32_access::iterator>);
 
+    #if !defined(_LIBCPP_VERSION) || SYS_STRING_LIBCPP_AT_LEAST(160000)
         bool res = std::ranges::equal(as_utf32(access) | std::views::take(1), std::array{U'a'});
         CHECK(res);
 
         res = std::ranges::equal(std::views::all(view) | std::views::take(1), std::array{U'a'});
         CHECK(res);
+    #endif
         
         converted.clear();
         for (char32_t c: sys_string::utf32_access(empty))

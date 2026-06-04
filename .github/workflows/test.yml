@@ -51,6 +51,9 @@ jobs:
             16: 'gcc:16.1'
           }
           clang_map = {
+            13: 'ubuntu-22.04',
+            14: 'ubuntu-22.04',
+            15: 'ubuntu-22.04',
             16: 'ubuntu-22.04',
             17: 'ubuntu-latest', 
             18: 'ubuntu-latest', 
@@ -226,6 +229,36 @@ jobs:
         apt-get update
         apt-get install -y ninja-build cmake
         apt-get install -y python3-dev
+
+    - name: Configure
+      shell: bash
+      run: |
+        cmake -GNinja -S . -B out -DCMAKE_BUILD_TYPE=MinSizeRel
+
+    - name: Build and Test
+      shell: bash
+      run: cmake --build out --config MinSizeRel --target run-test
+
+  gcc-10_2:
+    runs-on: ubuntu-latest
+    name: "gcc-10.2"
+    container: debian:11-slim
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Install pre-requisites
+      run: |
+        apt-get update
+        apt-get install -y 'g++' ninja-build cmake wget 
+        apt-get install -y python3-dev libicu-dev
+        export CMAKE_VERSION=3.26.3
+        wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
+              -q -O /tmp/cmake-install.sh
+        chmod u+x /tmp/cmake-install.sh
+        /tmp/cmake-install.sh --skip-license --prefix=/usr
+        rm /tmp/cmake-install.sh
 
     - name: Configure
       shell: bash

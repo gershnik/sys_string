@@ -7,18 +7,19 @@
 //
 // _🪦🐮🐌_
 
+#include <sys_string/config.h>
 #include <sys_string/impl/unicode/algorithms.h>
 
 #include <doctest/doctest.h>
 
 #include <string_view>
-#include <source_location>
 #include <vector>
 #include <string>
-#include <ranges>
 
 using namespace sysstr;
 using namespace std::literals;
+
+#define FILINE __FILE__, __LINE__
 
 #if !SYS_STRING_USE_ICU
 
@@ -29,30 +30,34 @@ namespace {
 #elif defined(__MSVC__)
     [[msvc::noinline]]
 #endif
-    void check_nfd(std::u32string_view src, const std::u32string_view & expected, std::source_location loc = std::source_location::current())
+    void _check_nfd(std::u32string_view src, const std::u32string_view & expected, const char * file, int line)
     {
         std::vector<char32_t> result;
         normalize::nfd<utf32> normalizer;
         normalizer(src, std::back_inserter(result));
-        INFO("source: ", std::string(loc.file_name()), std::string(":"), loc.line());
+        INFO("source: ", std::string(file), std::string(":"), line);
         bool res = std::ranges::equal(result, expected);
         CHECK(res);
     }
+
+    #define check_nfd(x, y) _check_nfd(x, y, FILINE)
 
 #if defined(__GNUC__)
     [[gnu::noinline]]
 #elif defined(__MSVC__)
     [[msvc::noinline]]
 #endif
-    void check_nfc(std::u32string_view src, const std::u32string_view & expected, std::source_location loc = std::source_location::current())
+    void _check_nfc(std::u32string_view src, const std::u32string_view & expected, const char * file, int line)
     {
         std::vector<char32_t> result;
         normalize::nfc<utf32> normalizer;
         normalizer(src, std::back_inserter(result));
-        INFO("source: ", std::string(loc.file_name()), std::string(":"), loc.line());
+        INFO("source: ", std::string(file), std::string(":"), line);
         bool res = std::ranges::equal(result, expected);
         REQUIRE(res);
     }
+
+    #define check_nfc(x, y) _check_nfc(x, y, FILINE)
 
 #if defined(__GNUC__)
     [[gnu::noinline]]

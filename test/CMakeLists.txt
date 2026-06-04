@@ -61,13 +61,20 @@ endif()
 set (CLANG_CL "$<AND:$<BOOL:${FRONT_MSVC}>,$<CXX_COMPILER_ID:Clang>>")
 set (CLANG_NORMAL "$<AND:$<NOT:$<BOOL:${FRONT_MSVC}>>,$<CXX_COMPILER_ID:Clang>>")
 
-set (CXX_STANDARDS
-    20
-    23
-)
+set (CXX_STANDARDS 20)
 
-set(CXX_STANDARD_20 20)
-set(CXX_STANDARD_23 23)
+if(cxx_std_23 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+    list(APPEND CXX_STANDARDS 23)
+endif()
+
+if(cxx_std_26 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+    list(APPEND CXX_STANDARDS 26)
+endif()
+
+foreach(STD ${CXX_STANDARDS})
+    set(CXX_STANDARD_${STD} ${STD})
+endforeach()
+
 
 if (WIN32)
 
@@ -190,7 +197,7 @@ foreach(LIB_SUFFIX ${LIB_TYPES})
         $<$<CXX_COMPILER_ID:AppleClang>:-Wall;-Wextra;-pedantic;-Wno-self-assign-overloaded;-Wno-self-move>
         $<${CLANG_NORMAL}:-Wall;-Wextra;-pedantic;-Wno-self-assign-overloaded;-Wno-self-move>
         $<${CLANG_CL}:/W4;/WX;-Wno-self-assign-overloaded;-Wno-self-move>
-        $<$<CXX_COMPILER_ID:GNU>:-Wall;-Wextra;-pedantic>
+        $<$<CXX_COMPILER_ID:GNU>:-Wall;-Wextra;-pedantic;-fconcepts-diagnostics-depth=100>
     )
 
     if(SYS_STRING_TESTS_SANITIZE)

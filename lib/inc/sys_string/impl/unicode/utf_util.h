@@ -97,7 +97,7 @@ namespace sysstr
         SYS_STRING_FORCE_INLINE
         static Sink read(Range && range, Sink sink) noexcept(noexcept(reading(std::forward<Range>(range))) && noexcept(sink(char32_t())))
         {
-            return read(std::ranges::begin(std::forward<Range>(range)), std::ranges::end(std::forward<Range>(range)), sink);
+            return read(std::ranges::begin(range), std::ranges::end(range), sink);
         }
         
         template<std::input_iterator It, std::sentinel_for<It> EndIt, class Sink>
@@ -163,7 +163,7 @@ namespace sysstr
         template<class Char>
         requires(utf_encoding_of<Char> == From)
         SYS_STRING_FORCE_INLINE
-        void put(Char c) noexcept(noexcept(output(char32_t{}))) requires(From == utf8)
+        void put(Char c) noexcept(noexcept(this->output(char32_t{}))) requires(From == utf8)
         {
             uint8_t byte = uint8_t(c);
             if (m_char_start)
@@ -196,7 +196,7 @@ namespace sysstr
         template<class Char>
         requires(utf_encoding_of<Char> == From)
         SYS_STRING_FORCE_INLINE
-        void put(Char c) noexcept(noexcept(output(char32_t{}))) requires(From == utf16)
+        void put(Char c) noexcept(noexcept(this->output(char32_t{}))) requires(From == utf16)
         {
         restart:
             m_decoder.put(uint16_t(c));
@@ -219,7 +219,7 @@ namespace sysstr
         template<class Char>
         requires(utf_encoding_of<Char> == From)
         SYS_STRING_FORCE_INLINE
-        void put(Char c) noexcept(noexcept(output(char32_t{}))) requires(From == utf32)
+        void put(Char c) noexcept(noexcept(this->output(char32_t{}))) requires(From == utf32)
         {
             if (m_decoder.put(uint32_t(c)))
                 output(char32_t{m_decoder.value()});
@@ -228,7 +228,7 @@ namespace sysstr
         }
 
         SYS_STRING_FORCE_INLINE
-        void flush() noexcept(From == utf32 || noexcept(output(char32_t{})))
+        void flush() noexcept(From == utf32 || noexcept(this->output(char32_t{})))
         {
             if constexpr (From != utf32)
             {

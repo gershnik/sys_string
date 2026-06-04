@@ -82,12 +82,12 @@ namespace sysstr
         template<class Storage>
         struct transform_sink
         {
-            const sys_string_t<Storage>::utf32_access & access;
+            const typename sys_string_t<Storage>::utf32_access & access;
             decltype(std::declval<sys_string_builder_t<Storage>>().chars()) chars;
             
             
             SYS_STRING_FORCE_INLINE
-            void copy(sys_string_t<Storage>::utf32_access::iterator it)
+            void copy(typename sys_string_t<Storage>::utf32_access::iterator it)
             {
                 auto sfirst = it.storage_current();
                 auto slast = it.storage_next();
@@ -97,7 +97,7 @@ namespace sysstr
             }
             
             SYS_STRING_FORCE_INLINE
-            void copy(sys_string_t<Storage>::utf32_access::iterator first, sys_string_t<Storage>::utf32_access::iterator last)
+            void copy(typename sys_string_t<Storage>::utf32_access::iterator first, typename sys_string_t<Storage>::utf32_access::iterator last)
             {
                 if (chars.empty())
                 {
@@ -269,8 +269,10 @@ namespace sysstr
     template<class Storage>
     template<class Search, class OutIt>
     auto sys_string_t<Storage>::split(OutIt dest, Search search) const -> OutIt
+    #if !SYS_STRING_HAS_TRAILING_REQUIRES_BUG
     requires(std::output_iterator<OutIt, sys_string_t> &&
              std::is_invocable_v<Search, typename sys_string_t::utf32_access::iterator, std::default_sentinel_t>)
+    #endif
     {
         utf32_access access(*this);
         return util::split<sys_string_t<Storage>>(access.begin(), access.end(), dest, search);
@@ -279,7 +281,9 @@ namespace sysstr
     template<class Storage>
     template<sys_string_or_char<Storage> StringOrChar, class OutIt>
     auto sys_string_t<Storage>::split(OutIt dest, const StringOrChar & sep, size_t max_split) const -> OutIt
+    #if !SYS_STRING_HAS_TRAILING_REQUIRES_BUG
     requires(std::output_iterator<OutIt, sys_string_t>)
+    #endif
     {
         util::string_or_char32_char_access<Storage, StringOrChar> sep_access(sep);
         if (!sep_access.is_valid() || sep_access.size() == 0)

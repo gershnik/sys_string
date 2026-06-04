@@ -250,7 +250,7 @@ def make_grapheme_tests(tests):
             if idx != 0:
                 ret += ', '
             ret += f'U"{exp}"'
-        ret += '});\n'
+        ret += '}, FILINE);\n'
     return ret
 
 def make_normalization_tests(tests):

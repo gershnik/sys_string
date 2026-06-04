@@ -9,9 +9,9 @@
 #define HEADER_SYS_STRING_UTIL_H_INCLUDED
 
 #include <sys_string/config.h>
+#include <sys_string/impl/util/ranges-backport.h>
 
 #include <iterator>
-#include <ranges>
 #include <algorithm>
 #include <tuple>
 #include <utility>

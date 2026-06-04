@@ -31,12 +31,16 @@ static_assert(!std::ranges::random_access_range<sys_string_builder>);
 static_assert(!std::ranges::common_range<sys_string_builder>);
 static_assert(!std::ranges::view<sys_string_builder>);
 static_assert(!std::ranges::borrowed_range<sys_string_builder>);
+#if __cpp_lib_ranges >= 202106L
 static_assert(std::ranges::viewable_range<sys_string_builder>);
+#endif
               
 static_assert(std::ranges::forward_range<sys_string_builder::utf32_view>);
 static_assert(!std::ranges::bidirectional_range<sys_string_builder::utf32_view>);
 static_assert(!std::ranges::common_range<sys_string_builder::utf32_view>);
+#if __cpp_lib_ranges >= 202106L
 static_assert(std::ranges::view<sys_string_builder::utf32_view>);
+#endif
 static_assert(std::ranges::borrowed_range<sys_string_builder::utf32_view>);
 static_assert(std::ranges::viewable_range<sys_string_builder::utf32_view>);
 static_assert(ranges::custom_reverse_traversable_range<sys_string_builder::utf32_view>);
@@ -44,7 +48,9 @@ static_assert(ranges::custom_reverse_traversable_range<sys_string_builder::utf32
 static_assert(std::ranges::forward_range<sys_string_builder::utf16_view>);
 static_assert(!std::ranges::bidirectional_range<sys_string_builder::utf16_view>);
 static_assert(!std::ranges::common_range<sys_string_builder::utf16_view>);
+#if __cpp_lib_ranges >= 202106L
 static_assert(std::ranges::view<sys_string_builder::utf16_view>);
+#endif
 static_assert(std::ranges::borrowed_range<sys_string_builder::utf16_view>);
 static_assert(std::ranges::viewable_range<sys_string_builder::utf16_view>);
 static_assert(ranges::custom_reverse_traversable_range<sys_string_builder::utf16_view>);
@@ -52,7 +58,9 @@ static_assert(ranges::custom_reverse_traversable_range<sys_string_builder::utf16
 static_assert(std::ranges::forward_range<sys_string_builder::utf8_view>);
 static_assert(!std::ranges::bidirectional_range<sys_string_builder::utf8_view>);
 static_assert(!std::ranges::common_range<sys_string_builder::utf8_view>);
+#if __cpp_lib_ranges >= 202106L
 static_assert(std::ranges::view<sys_string_builder::utf8_view>);
+#endif
 static_assert(std::ranges::borrowed_range<sys_string_builder::utf8_view>);
 static_assert(std::ranges::viewable_range<sys_string_builder::utf8_view>);
 static_assert(ranges::custom_reverse_traversable_range<sys_string_builder::utf8_view>);

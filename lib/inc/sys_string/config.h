@@ -8,7 +8,9 @@
 #ifndef HEADER_SYS_STRING_CONFIG_H_INCLUDED
 #define HEADER_SYS_STRING_CONFIG_H_INCLUDED
 
-#if __cplusplus < 202002L && _MSVC_LANG < 202002L
+// C++20 is technically 202002L but older compilers supported enough
+// at 201709L level to be usable 
+#if __cplusplus < 201709L && _MSVC_LANG < 202002L
     #error This library requires C++20 or above
 #endif
 
@@ -101,20 +103,52 @@
     #include <version>
 #endif
 
+//See https://github.com/llvm/llvm-project/issues/77773 for the sad story of how feature test
+//macros are useless with libc++
+#if defined(_LIBCPP_VERSION)
+    #define SYS_STRING_LIBCPP_AT_LEAST(v) (_LIBCPP_VERSION >= (v))
+#else
+    #define SYS_STRING_LIBCPP_AT_LEAST(v) 0
+#endif
+
+#if defined(__GLIBCXX__)
+    #define SYS_STRING_GLIBCXX_AT_LEAST(v) (_GLIBCXX_RELEASE >= (v))
+#else
+    #define SYS_STRING_GLIBCXX_AT_LEAST(v) 0
+#endif
+
 #if __cpp_lib_endian < 201907
     #error Your standard library does not support std::endian
 #endif
 
-#if __cpp_lib_ranges < 201911
+#if __cpp_lib_ranges < 201911 && !SYS_STRING_LIBCPP_AT_LEAST(13000)
     #error Your standard library does not support ranges
+#elif defined(_LIBCPP_VERSION)
+    #if _LIBCPP_VERSION >= 13000 && _LIBCPP_VERSION < 160000 && defined(_LIBCPP_HAS_NO_INCOMPLETE_RANGES)
+        #if defined(_LIBCPP_RANGES) || defined(_LIBCPP_ITERATOR)
+            #error "Your very old libc++ doesn't automatically enable ranges. To work around it include sys_string headers *before* <ranges> or <iterator>"
+        #endif
+
+        #undef _LIBCPP_HAS_NO_INCOMPLETE_RANGES
+    #endif
 #endif
 
-//See https://github.com/llvm/llvm-project/issues/77773 for the sad story of how feature test
-//macros are useless with libc++
-#if __cpp_lib_format >= 201907L || (defined(_LIBCPP_VERSION) && _LIBCPP_VERSION >= 170000 && __has_include(<format>))
+
+#if __cpp_lib_format >= 202207L \
+    || (SYS_STRING_LIBCPP_AT_LEAST(170000) && __has_include(<format>)) \
+    || (SYS_STRING_GLIBCXX_AT_LEAST(13) && __has_include(<format>))
 
     #define SYS_STRING_SUPPORTS_STD_FORMAT 1
 
+#endif
+
+// True iff the compiler reliably matches trailing requires-clauses on
+// out-of-line definitions of constrained member templates.
+#if (defined(__apple_build_version__) && __apple_build_version__ < 14030022) \
+    || (defined(_MSC_VER) && _MSC_VER < 1930)
+    #define SYS_STRING_HAS_TRAILING_REQUIRES_BUG 1
+#else
+    #define SYS_STRING_HAS_TRAILING_REQUIRES_BUG 0
 #endif
 
 #endif

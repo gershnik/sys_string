@@ -8,10 +8,11 @@
 #ifndef HEADER_SYS_STRING_GRAPHEME_VIEW_H_INCLUDED
 #define HEADER_SYS_STRING_GRAPHEME_VIEW_H_INCLUDED
 
+#include <sys_string/config.h>
 #include <sys_string/impl/unicode/algorithms.h>
+#include <sys_string/impl/util/ranges-backport.h>
 
 #include <iterator>
-#include <ranges>
 
 namespace sysstr
 {

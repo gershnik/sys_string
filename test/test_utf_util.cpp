@@ -7,6 +7,7 @@
 //
 // _🪦🐮🐌_
 
+#include <sys_string/config.h>
 #include <sys_string/impl/unicode/utf_util.h>
 
 #include <string>

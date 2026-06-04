@@ -345,12 +345,18 @@ namespace sysstr
 
         template<class Search, class OutIt>
         auto split(OutIt dest, Search search) const -> OutIt
+        #if !SYS_STRING_HAS_TRAILING_REQUIRES_BUG
         requires(std::output_iterator<OutIt, sys_string_t> &&
-                 std::is_invocable_v<Search, typename sys_string_t::utf32_access::iterator, std::default_sentinel_t>);
+                 std::is_invocable_v<Search, typename sys_string_t::utf32_access::iterator, std::default_sentinel_t>)
+        #endif         
+        ;
 
         template<sys_string_or_char<Storage> StringOrChar, class OutIt>
         auto split(OutIt dest, const StringOrChar & sep, size_t max_split = std::numeric_limits<size_t>::max()) const -> OutIt
-        requires(std::output_iterator<OutIt, sys_string_t>);
+        #if !SYS_STRING_HAS_TRAILING_REQUIRES_BUG
+        requires(std::output_iterator<OutIt, sys_string_t>)
+        #endif
+        ;
 
         template<std::input_iterator It, std::sentinel_for<It> EndIt>
         requires(builder_appendable<std::iter_value_t<It>, Storage>)

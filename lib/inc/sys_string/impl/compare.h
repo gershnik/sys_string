@@ -62,8 +62,18 @@ namespace sysstr
         char_access lhs_access(lhs);
         char_access rhs_access(rhs);
 
-        using sv = std::basic_string_view<typename char_access::value_type>;
-        return sv(lhs_access.data(), lhs_access.size()) <=> sv(rhs_access.data(), rhs_access.size());
+        #if !defined(_LIBCPP_VERSION) || SYS_STRING_LIBCPP_AT_LEAST(160000)
+            using sv = std::basic_string_view<typename char_access::value_type>;
+            return sv(lhs_access.data(), lhs_access.size()) <=> sv(rhs_access.data(), rhs_access.size());
+        #else
+            using tr = std::char_traits<typename char_access::value_type>;
+            auto common_size = std::min(lhs_access.size(), rhs_access.size());
+
+            int res = tr::compare(lhs_access.data(), rhs_access.data(), common_size);
+            if (res != 0)
+                return res < 0 ? std::strong_ordering::less : std::strong_ordering::greater;
+            return lhs_access.size() <=> rhs_access.size();
+        #endif
     }
 
     template<class Storage>

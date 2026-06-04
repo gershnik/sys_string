@@ -13,36 +13,44 @@
 
 #include <doctest/doctest.h>
 
-#include <ranges>
 #include <vector>
 #include <string>
 #include <string_view>
 #include <forward_list>
 #include <ostream>
-#include <source_location>
 
 using namespace sysstr;
 using namespace std::literals;
 
+#define FILINE __FILE__, __LINE__
+
+#if __cpp_lib_ranges >= 202106L
+
 static_assert(std::invocable<const sysstr::graphemes_func &, std::string>);
+
+#endif
 
 namespace {
 
     template<std::ranges::forward_range Range>
     void check_graphemes_range(Range && range, const std::initializer_list<std::u32string_view> & expected,
-                               std::source_location loc = std::source_location::current())
+                               const char * file, int line)
     {
         std::vector<std::u32string> result;
         #if __cpp_lib_ranges >= 202202L
             std::ranges::transform(std::forward<Range>(range) | graphemes, std::back_inserter(result), [](auto range) {
                 return std::u32string(range.begin(), range.end());
             });
-        #else
+        #elif __cpp_lib_ranges >= 202106L
             std::ranges::transform(graphemes(std::forward<Range>(range)), std::back_inserter(result), [](auto range) {
                 return std::u32string(range.begin(), range.end());
             });
+        #else
+            for (auto res:  grapheme_view(range)) {
+                result.push_back(std::u32string(res.begin(), res.end()));
+            }
         #endif
-        INFO("source: ", std::string(loc.file_name()), std::string(":"), loc.line());
+        INFO("source: ", std::string(file), std::string(":"), line);
         bool res = std::ranges::equal(result, expected);
         CHECK(res);
         
@@ -51,24 +59,39 @@ namespace {
     
     template<std::ranges::forward_range Range>
     void check_graphemes_reverse_range(Range && range, const std::initializer_list<std::u32string_view> & expected,
-                                       std::source_location loc = std::source_location::current())
+                                       const char * file, int line)
     {
         std::vector<std::u32string> rexpected;
-        for(auto & ex: expected | std::views::reverse)
-            rexpected.emplace_back(ex.rend().base(), ex.rbegin().base());
-        auto gr = graphemes(std::forward<Range>(range));
+
+        #if !defined(_LIBCPP_VERSION) || SYS_STRING_LIBCPP_AT_LEAST(160000)
+            for(auto & ex: expected | std::views::reverse)
+                rexpected.emplace_back(ex.rend().base(), ex.rbegin().base());
+        #else
+            for(size_t i = expected.size(); i != 0; --i)
+                rexpected.push_back(std::u32string(*(expected.begin() + (i - 1))));
+        #endif
+
         std::vector<std::u32string> result;
-        std::ranges::transform(std::ranges::subrange(gr.rbegin(), gr.rend()), std::back_inserter(result), [](auto range) {
-            return std::u32string(range.begin(), range.end());
-        });
-        INFO("source: ", std::string(loc.file_name()), std::string(":"), loc.line());
+        #if __cpp_lib_ranges >= 202106L
+            auto gr = graphemes(std::forward<Range>(range));
+            std::ranges::transform(std::ranges::subrange(gr.rbegin(), gr.rend()), std::back_inserter(result), [](auto range) {
+                return std::u32string(range.begin(), range.end());
+            });
+        #else
+            auto gr = grapheme_view(range);
+            for (auto it = gr.rbegin(); it != gr.rend(); ++it) {
+                auto res = *it;
+                result.push_back(std::u32string(res.begin(), res.end()));
+            }
+        #endif
+        INFO("source: ", std::string(file), std::string(":"), line);
         bool res = std::ranges::equal(result, rexpected);
         CHECK(res);
     }
     
     template<std::ranges::forward_range Range>
     void check_graphemes_iter(const Range & range, const std::vector<std::u32string> & expected, 
-                              std::source_location loc = std::source_location::current())
+                              const char * file, int line)
     {
         util::grapheme_iterator<std::ranges::iterator_t<const Range>, 
                                 std::ranges::sentinel_t<const Range>,
@@ -77,17 +100,24 @@ namespace {
                                     std::ranges::end(range)
                                 );
         std::vector<std::u32string> result;
-        std::ranges::transform(it, std::default_sentinel, std::back_inserter(result), [](auto range) {
-            return std::u32string(range.begin(), range.end());
-        });
-        INFO("source: ", std::string(loc.file_name()), std::string(":"), loc.line());
+        #if __cpp_lib_ranges >= 202106L
+            std::ranges::transform(it, std::default_sentinel, std::back_inserter(result), [](auto range) {
+                return std::u32string(range.begin(), range.end());
+            });
+        #else
+            for (; it != std::default_sentinel; ++it) {
+                auto res = *it;
+                result.push_back(std::u32string(res.begin(), res.end()));
+            }
+        #endif
+        INFO("source: ", std::string(file), std::string(":"), line);
         bool res = std::ranges::equal(result, expected);
         CHECK(res);
     }
     
     template<std::ranges::forward_range Range>
     void check_graphemes_reverse_iter(const Range & range, const std::vector<std::u32string> & expected,
-                                      std::source_location loc = std::source_location::current())
+                                      const char * file, int line)
     {
         util::grapheme_iterator<ranges::reverse_iterator_t<const Range>,
                                 ranges::reverse_sentinel_t<const Range>,
@@ -96,11 +126,28 @@ namespace {
                                     std::ranges::rend(range)
                                 );
         std::vector<std::u32string> result;
-        std::ranges::transform(rit, std::default_sentinel, std::back_inserter(result), [](auto range) {
-            return std::u32string(range.begin(), range.end());
-        });
-        INFO("source: ", std::string(loc.file_name()), std::string(":"), loc.line());
-        bool res = std::ranges::equal(result, expected | std::views::reverse);
+        #if __cpp_lib_ranges >= 202106L
+            std::ranges::transform(rit, std::default_sentinel, std::back_inserter(result), [](auto range) {
+                return std::u32string(range.begin(), range.end());
+            });
+        #else
+            for (; rit != std::default_sentinel; ++rit) {
+                auto res = *rit;
+                result.push_back(std::u32string(res.begin(), res.end()));
+            }
+        #endif
+        INFO("source: ", std::string(file), std::string(":"), line);
+
+        #if !defined(_LIBCPP_VERSION) || SYS_STRING_LIBCPP_AT_LEAST(160000)
+            bool res = std::ranges::equal(result, expected | std::views::reverse);
+        #else
+            std::vector<std::u32string> rexpected;
+            for(size_t i = expected.size(); i != 0; --i)
+                rexpected.emplace_back(std::u32string(*(expected.begin() + (i - 1))));
+            bool res = std::ranges::equal(result, rexpected);
+        #endif
+
+        
         CHECK(res);
     }
 
@@ -109,10 +156,11 @@ namespace {
 #elif defined(__MSVC__)
     [[msvc::noinline]]
 #endif
-    void check_graphemes(std::u32string_view src, const std::initializer_list<std::u32string_view> & expected, std::source_location loc = std::source_location::current())
+    void check_graphemes(std::u32string_view src, const std::initializer_list<std::u32string_view> & expected, 
+                         const char * file, int line)
     {
-        check_graphemes_range(src, expected, loc);
-        check_graphemes_reverse_range(src, expected, loc);
+        check_graphemes_range(src, expected, file, line);
+        check_graphemes_reverse_range(src, expected, file, line);
     }
     
 }
@@ -120,8 +168,8 @@ namespace {
 TEST_SUITE("grapheme") {
 
 TEST_CASE("boundary") {
-    check_graphemes(U""sv, {});
-    check_graphemes(std::u32string_view(U"\0\0", 2), {std::u32string(U"\0", 1), std::u32string(U"\0", 1)});
+    check_graphemes(U""sv, {}, FILINE);
+    check_graphemes(std::u32string_view(U"\0\0", 2), {std::u32string(U"\0", 1), std::u32string(U"\0", 1)}, FILINE);
 }
 
 TEST_CASE("generated") {
@@ -141,25 +189,27 @@ TEST_CASE("generated") {
 
 TEST_CASE("iterators") {
 
-    check_graphemes_iter(""s, {});
-    check_graphemes_reverse_iter(""s, {});
-    check_graphemes_iter("ab"s, {U"a", U"b"});
-    check_graphemes_reverse_iter("ab"s, {U"a", U"b"});
+    check_graphemes_iter(""s, {}, FILINE);
+    check_graphemes_reverse_iter(""s, {}, FILINE);
+    check_graphemes_iter("ab"s, {U"a", U"b"}, FILINE);
+    check_graphemes_reverse_iter("ab"s, {U"a", U"b"}, FILINE);
 }
 
 TEST_CASE("ranges") {
 
-    check_graphemes_range("ab"s, {U"a", U"b"});
-    check_graphemes_reverse_range("ab"s, {U"a", U"b"});
-    check_graphemes_range(u"ab"s, {U"a", U"b"});
-    check_graphemes_reverse_range(u"ab"s, {U"a", U"b"});
-    check_graphemes_range(U"ab"s, {U"a", U"b"});
-    check_graphemes_reverse_range(U"ab"s, {U"a", U"b"});
-    check_graphemes_range(as_utf32("ab"s), {U"a", U"b"});
-    check_graphemes_reverse_range(as_utf32("ab"s), {U"a", U"b"});
+    check_graphemes_range("ab"s, {U"a", U"b"}, FILINE);
+    check_graphemes_reverse_range("ab"s, {U"a", U"b"}, FILINE);
+    check_graphemes_range(u"ab"s, {U"a", U"b"}, FILINE);
+    check_graphemes_reverse_range(u"ab"s, {U"a", U"b"}, FILINE);
+    check_graphemes_range(U"ab"s, {U"a", U"b"}, FILINE);
+    check_graphemes_reverse_range(U"ab"s, {U"a", U"b"}, FILINE);
+    check_graphemes_range(as_utf32("ab"s), {U"a", U"b"}, FILINE);
+    check_graphemes_reverse_range(as_utf32("ab"s), {U"a", U"b"}, FILINE);
 
-    check_graphemes_range(std::forward_list<char>{'a', 'b', 'c'}, {U"a", U"b", U"c"});
+    check_graphemes_range(std::forward_list<char>{'a', 'b', 'c'}, {U"a", U"b", U"c"}, FILINE);
 }
+
+#if __cpp_lib_ranges >= 202106L
 
 TEST_CASE("view interface") {
 
@@ -185,5 +235,7 @@ TEST_CASE("view interface") {
     auto access = sys_string::char_access(s);
     CHECK(sys_string(graphemes(access).front()) == S("x"));
 }
+
+#endif
 
 }

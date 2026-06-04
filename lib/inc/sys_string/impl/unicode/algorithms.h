@@ -15,8 +15,8 @@
 #endif
 #include <sys_string/impl/unicode/utf_util.h>
 #include <sys_string/impl/util/iter_util.h>
+#include <sys_string/impl/util/ranges-backport.h>
 
-#include <ranges>
 #include <iterator>
 #include <vector>
 #include <cstring>
@@ -77,7 +77,7 @@ namespace sysstr
             ~stack_or_heap_buffer()
             {
                 if (m_first != m_data.stack)
-                    m_data.heap.~vector<T>();
+                    m_data.heap.~vector();
             }
 
             void push_back(T val)

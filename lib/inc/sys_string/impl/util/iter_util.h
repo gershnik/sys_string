@@ -9,9 +9,9 @@
 #define HEADER_SYS_STRING_ITER_UTIL_H_INCLUDED
 
 #include <sys_string/config.h>
+#include <sys_string/impl/util/ranges-backport.h>
 
 #include <iterator>
-#include <ranges>
 
 namespace sysstr::ranges //non-standard extensions to std::ranges
 {

@@ -108,11 +108,11 @@ Starting from version 3, this library requires a C++20 compiler. In particular, 
   - `std::endian` support in the standard library (`__cpp_lib_endian >= 201907`)
 
 The library is known to work with at least:
-* Xcode: 15 (13 and above with limitations)
-* MSVC: 17 (16.11 and above with limitations)
-* Clang: 16 (13 and above with limitations)
-* GCC 12 (10.2 and above with limitations)
-* Emscripten 3.1.70
+* Xcode: 15 (down to 13 with limitations)
+* MSVC: 17 (down to 16.11 with limitations)
+* Clang: 16 (down to 13 with limitations)
+* GCC: 12 (down to 10.2 with limitations)
+* Emscripten: 3.1.70
 
 <!--
 Version 2 of this library was the last version supporting C++17. It is known to work at least with:

@@ -111,12 +111,12 @@ before running `pkg-config`.
 
 ## Older compilers
 
-To use this library with CLang 13-15 (XCode 13-14) you will need some workarounds. By default,
-`libc++` that ships with these compilers has the standard C++ ranges, that this 
-library depends on, disabled.
-You can work around it in two ways:
-1. Include sys_String headers _before_ any standard library ones
-2. Enable it yourself. Something like this before including any standard library headers:
+To use this library with Clang 13-15 (Xcode 13-14), you will need some workarounds. By default,
+`libc++` that ships with these compilers disables the standard C++ ranges library that 
+`sys_string` depends on.
+You can work around this in two ways:
+1. Include `sys_string` headers _before_ any standard library ones
+2. Enable ranges yourself. You can use something like this before including any standard library headers:
 ```cpp
 #include <version>
 
@@ -126,7 +126,7 @@ You can work around it in two ways:
         #undef _LIBCPP_HAS_NO_INCOMPLETE_RANGES
     #endif
 
-#endif 
+#endif
 ```
 
 ## Configuration options

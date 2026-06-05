@@ -217,13 +217,19 @@ foreach(LIB_SUFFIX ${LIB_TYPES})
         )
     endif()
 
-    if (EMSCRIPTEN AND STORAGE_SUFFIX STREQUAL "emscr")
-        target_compile_definitions(test-${TEST_SUFFIX} PRIVATE
-            SYS_STRING_USE_WASM_JS_STRING=$<IF:$<BOOL:${NODE_JS_HAS_WASM_JS_STRING}>,1,0>
-        )
+    if (EMSCRIPTEN)
         target_compile_options(test-${TEST_SUFFIX} PRIVATE
-            -sMAIN_MODULE=2 -sSTRICT -sNO_DISABLE_EXCEPTION_CATCHING
+            -sSTRICT -sNO_DISABLE_EXCEPTION_CATCHING
         )
+
+        if (STORAGE_SUFFIX STREQUAL "emscr")
+            target_compile_definitions(test-${TEST_SUFFIX} PRIVATE
+                SYS_STRING_USE_WASM_JS_STRING=$<IF:$<BOOL:${NODE_JS_HAS_WASM_JS_STRING}>,1,0>
+            )
+            target_compile_options(test-${TEST_SUFFIX} PRIVATE
+                -sMAIN_MODULE=2 
+            )
+        endif()
     endif()
 
     target_compile_definitions(test-${TEST_SUFFIX} PRIVATE
@@ -247,17 +253,21 @@ foreach(LIB_SUFFIX ${LIB_TYPES})
         $<$<PLATFORM_ID:Android>:-Wl,--export-dynamic>
     )
 
-    if (EMSCRIPTEN AND STORAGE_SUFFIX STREQUAL "emscr")
+    if (EMSCRIPTEN)
         target_link_options(test-${TEST_SUFFIX} PRIVATE
-            -sMAIN_MODULE=2
-            -sSTRICT
-            -sERROR_ON_UNDEFINED_SYMBOLS=0
-            -sWARN_ON_UNDEFINED_SYMBOLS=0
-            -sNO_DISABLE_EXCEPTION_CATCHING
-            --pre-js ${CMAKE_CURRENT_LIST_DIR}/prefix.js
-            -sINCOMING_MODULE_JS_API=arguments,canvas,monitorRunDependencies,print,setStatus>
+            -sSTRICT -sNO_DISABLE_EXCEPTION_CATCHING
         )
-        set_target_properties(test-${TEST_SUFFIX} PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_LIST_DIR}/prefix.js)
+
+        if (STORAGE_SUFFIX STREQUAL "emscr")
+            target_link_options(test-${TEST_SUFFIX} PRIVATE
+                -sMAIN_MODULE=2
+                -sERROR_ON_UNDEFINED_SYMBOLS=0
+                -sWARN_ON_UNDEFINED_SYMBOLS=0
+                --pre-js ${CMAKE_CURRENT_LIST_DIR}/prefix.js
+                -sINCOMING_MODULE_JS_API=arguments,canvas,monitorRunDependencies,print,setStatus>
+            )
+            set_target_properties(test-${TEST_SUFFIX} PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_LIST_DIR}/prefix.js)
+        endif()
     endif()
 
     if (SYS_STRING_COLLECT_COVERAGE)

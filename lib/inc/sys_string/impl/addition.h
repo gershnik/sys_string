@@ -12,6 +12,26 @@
 
 namespace sysstr::util
 {
+    template<class Storage>
+    class size_accumulator {
+    public:
+
+        void add(size_t s) noexcept
+        {
+            m_overflow = m_overflow || (size_t(Storage::max_size) - m_size < s);
+            m_size += s;
+        }
+
+        bool overflow() const noexcept
+            { return m_overflow; }
+
+        auto value() const noexcept
+            { return typename sys_string_t<Storage>::size_type(m_size); }
+    private:
+        size_t m_size = 0;
+        bool m_overflow = false;
+    };
+
     template<class Storage, class T>
     class addend;
 
@@ -23,8 +43,8 @@ namespace sysstr::util
             m_val(str)
         {}
         
-        auto storage_size() const noexcept -> typename sys_string_t<Storage>::size_type
-            { return this->m_val.storage_size(); }
+        void add_size(size_accumulator<Storage> & acc) const noexcept 
+            { acc.add(size_t(this->m_val.storage_size())); }
         
         auto append_to(sys_string_builder_t<Storage> & builder) const -> void
             { builder.append(this->m_val); }
@@ -42,11 +62,14 @@ namespace sysstr::util
                 m_encoded.put(U'\uFFFD');
         }
         
-        auto storage_size() const noexcept -> typename sys_string_t<Storage>::size_type
-            { return typename sys_string_t<Storage>::size_type(this->m_encoded.end() - this->m_encoded.begin()); }
+        void add_size(size_accumulator<Storage> & acc) const noexcept 
+            { acc.add(size_t(this->m_encoded.end() - this->m_encoded.begin())); }
         
         auto append_to(sys_string_builder_t<Storage> & builder) const -> void
-            { builder.chars().append(this->m_encoded.begin(), storage_size()); }
+        { 
+            builder.chars().append(this->m_encoded.begin(), 
+                                   typename sys_string_t<Storage>::size_type(this->m_encoded.end() - this->m_encoded.begin())); 
+        }
     private:
         utf_codepoint_encoder<utf_encoding_of<typename sys_string_t<Storage>::storage_type>, true> m_encoded;
     };
@@ -65,13 +88,8 @@ namespace sysstr::util
             m_view(ptr)
         {}
         
-        auto storage_size() const -> typename sys_string_t<Storage>::size_type
-        { 
-            size_t count = m_view.size();
-            if (count > size_t(Storage::max_size))
-                throw std::bad_alloc();
-            return static_cast<typename sys_string_t<Storage>::size_type>(count);
-        }
+        void add_size(size_accumulator<Storage> & acc) const noexcept
+            { acc.add(m_view.size()); }
         
         auto append_to(sys_string_builder_t<Storage> & builder) const -> void
             { builder.append(m_view); }
@@ -90,31 +108,28 @@ namespace sysstr::util
             m_range(range)
         {}
         
-        auto storage_size() const -> typename sys_string_t<Storage>::size_type
+        void add_size(size_accumulator<Storage> & acc) const
         { 
-            size_t count;
             if constexpr (std::is_same_v<std::ranges::range_value_t<Range>, typename sys_string_t<Storage>::storage_type>)
             {
                 if constexpr (std::ranges::sized_range<Range>)
                 {
-                    count = std::ranges::size(this->m_range);
+                    acc.add(std::ranges::size(this->m_range));
                 }
                 else
                 {
-                    count = 0;
+                    size_t count = 0;
                     for(auto & x: this->m_range)
                         ++count;
+                    acc.add(count);
                 }
             }
             else
             {
                 using converter = utf_converter<utf_encoding_of<std::ranges::range_value_t<Range>>, 
                                             utf_encoding_of<typename sys_string_t<Storage>::storage_type>>;
-                count = converter::converted_length(this->m_range);
+                acc.add(converter::converted_length(this->m_range));
             }
-            if (count > size_t(Storage::max_size))
-                throw std::bad_alloc();
-            return static_cast<typename sys_string_t<Storage>::size_type>(count);
         }
         
         auto append_to(sys_string_builder_t<Storage> & builder) const -> void
@@ -131,8 +146,8 @@ namespace sysstr::util
             m_val(std::move(val))
         {}
         
-        auto storage_size() const -> typename sys_string_t<Storage>::size_type
-            { return this->m_val.storage_size(); }
+        void add_size(size_accumulator<Storage> & acc) const noexcept
+            { this->m_val.add_size(acc); }
         
         auto append_to(sys_string_builder_t<Storage> & builder) const -> void
             { this->m_val.append_to(builder); }
@@ -175,8 +190,12 @@ namespace sysstr::util
         
         operator sys_string_t<Storage>() const &&
         {
+            size_accumulator<Storage> acc;
+            this->add_size(acc);
+            if (acc.overflow())
+                throw std::bad_alloc();
             sys_string_builder_t<Storage> builder;
-            builder.reserve_storage(this->storage_size());
+            builder.reserve_storage(acc.value());
             this->append_to(builder);
             return builder.build();
         }
@@ -184,13 +203,10 @@ namespace sysstr::util
         operator sys_string_t<Storage>() const & = SYS_STRING_DELETE_REASON(
             "you must convert the result of sys_string_t addition to sys_string_t. Do not assign it to auto and carry around");
         
-        auto storage_size() const -> typename sys_string_t<Storage>::size_type
+        void add_size(size_accumulator<Storage> & acc) const noexcept
         { 
-            auto s1 = this->m_first.storage_size();
-            auto s2 = this->m_second.storage_size();
-            if (Storage::max_size - s1 < s2)
-                throw std::bad_alloc();
-            return s1 + s2; 
+            this->m_first.add_size(acc);
+            this->m_second.add_size(acc);
         }
         
         void append_to(sys_string_builder_t<Storage> & builder) const

@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Changed
+- String addition now includes protection against assigning an addition result to an `auto`
+  variable. An attempt to convert the `auto` variable to `sys_string` later will now usually 
+  fail. It is still possible to defeat this but it should cover most inadvertent misuse cases.
+- String addition has been further optimized to reduce unnecessary branching and 
+  unnecessary conversions to `sys_string` of pointer operands.
+
 ## [3.10] - 2026-06-04
 
 ### Changed

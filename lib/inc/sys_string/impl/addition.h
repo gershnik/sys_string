@@ -85,11 +85,22 @@ namespace sysstr::util
         using Char = std::remove_const_t<std::remove_pointer_t<std::decay_t<T>>>;
     public:
         addend(const Char * ptr) noexcept:
-            m_view(ptr)
+            m_view(ptr, ptr ? std::char_traits<Char>::length(ptr) : 0)
         {}
         
         void add_size(size_accumulator<Storage> & acc) const noexcept
-            { acc.add(m_view.size()); }
+        { 
+            if constexpr (std::is_same_v<Char, typename sys_string_t<Storage>::storage_type>)
+            {
+                acc.add(this->m_view.size());
+            }
+            else
+            {
+                using converter = utf_converter<utf_encoding_of<Char>, 
+                                                utf_encoding_of<typename sys_string_t<Storage>::storage_type>>;
+                acc.add(converter::converted_length(this->m_view));
+            }
+        }
         
         auto append_to(sys_string_builder_t<Storage> & builder) const -> void
             { builder.append(m_view); }

@@ -747,10 +747,13 @@ TEST_CASE( "Addition" ) {
     sys_string result = S("a") + U'b' + "cd" + "ef"s + u"gh"sv + U"ij" + std::vector{'k', 'l'};
     CHECK(result == S("abcdefghijkl"));
 
-    const char * foo = "abc";
-    CHECK(S("x") + foo == "xabc");
+    const char * foo = "ab🧡";
+    CHECK(S("x") + foo == "xab🧡");
 
-    CHECK((S("x") + S("y")) + foo == "xyabc");
+    CHECK((S("x") + S("y")) + foo == "xyab🧡");
+
+    const char16_t * foo16 = u"ab🧡";
+    CHECK(S("x") + foo16 == "xab🧡");
 }
 
 TEST_CASE( "c_str" ) {

@@ -347,7 +347,7 @@ namespace sysstr::util
                 using converter = utf_converter<utf_encoding_of<Char>, utf16>;
                 UINT our_size = ensure_valid_size(converter::converted_length(str, str + length));
                 char16_t * data = m_data.init(our_size);
-                converter::convert(str, str + our_size, data);
+                converter::convert(str, str + length, data);
             }
         }
 

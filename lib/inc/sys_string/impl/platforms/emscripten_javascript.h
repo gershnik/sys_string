@@ -14,7 +14,7 @@
 
 //Like EM_JS but with inline and extern "C" only on data
 #define SYSSTR_EM_JS(ret, c_name, js_name, params, ...)                        \
-  ret c_name params EM_IMPORT(js_name);                                        \
+  ret c_name params asm(#js_name) EM_IMPORT(js_name);                                        \
   extern "C"                                                                   \
   __attribute__((visibility("hidden")))                                        \
   inline void * __em_js_ref_##c_name = (void*)&c_name;                         \

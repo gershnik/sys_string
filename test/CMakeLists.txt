@@ -22,6 +22,10 @@ FetchContent_MakeAvailable(doctest)
 find_package(ICU 67 COMPONENTS uc)
 
 if (EMSCRIPTEN)
+    if (NOT NODE_JS_EXECUTABLE)
+        message(FATAL_ERROR "cannot fine node.js executable in PATH: $ENV{PATH}")
+    endif()
+    
     message(CHECK_START "Checking if ${NODE_JS_EXECUTABLE} supports wasm:js-string")
 
     execute_process(
@@ -218,7 +222,7 @@ foreach(LIB_SUFFIX ${LIB_TYPES})
             SYS_STRING_USE_WASM_JS_STRING=$<IF:$<BOOL:${NODE_JS_HAS_WASM_JS_STRING}>,1,0>
         )
         target_compile_options(test-${TEST_SUFFIX} PRIVATE
-            -sMAIN_MODULE=2 -sSTRICT
+            -sMAIN_MODULE=2 -sSTRICT -sNO_DISABLE_EXCEPTION_CATCHING
         )
     endif()
 
@@ -249,6 +253,7 @@ foreach(LIB_SUFFIX ${LIB_TYPES})
             -sSTRICT
             -sERROR_ON_UNDEFINED_SYMBOLS=0
             -sWARN_ON_UNDEFINED_SYMBOLS=0
+            -sNO_DISABLE_EXCEPTION_CATCHING
             --pre-js ${CMAKE_CURRENT_LIST_DIR}/prefix.js
             -sINCOMING_MODULE_JS_API=arguments,canvas,monitorRunDependencies,print,setStatus>
         )

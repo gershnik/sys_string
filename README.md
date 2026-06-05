@@ -112,7 +112,7 @@ The library is known to work with at least:
 * MSVC: 17 (down to 16.11 with limitations)
 * Clang: 16 (down to 13 with limitations)
 * GCC: 12 (down to 10.2 with limitations)
-* Emscripten: 3.1.70
+* Emscripten: 4.0.23
 
 <!--
 Version 2 of this library was the last version supporting C++17. It is known to work at least with:

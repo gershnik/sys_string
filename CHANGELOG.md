@@ -15,6 +15,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - String addition has been further optimized to reduce unnecessary branching and 
   unnecessary conversions to `sys_string` of pointer operands.
 
+### Fixed
+- Runtime errors on emscripten when using conversions from `char *`
+- Incorrect initialization of BSTR storage from `char *` input. 
+
 ## [3.10] - 2026-06-04
 
 ### Changed

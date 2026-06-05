@@ -127,8 +127,8 @@ namespace sysstr::util
     class addend<Storage, addition<Storage, First, Second>>
     {
     public:
-        addend(const addition<Storage, First, Second> & val) noexcept:
-            m_val(val)
+        addend(addition<Storage, First, Second> && val) noexcept:
+            m_val(std::move(val))
         {}
         
         auto storage_size() const -> typename sys_string_t<Storage>::size_type
@@ -137,7 +137,7 @@ namespace sysstr::util
         auto append_to(sys_string_builder_t<Storage> & builder) const -> void
             { this->m_val.append_to(builder); }
     private:
-        const addition<Storage, First, Second> & m_val;
+        addition<Storage, First, Second> && m_val;
     };
 
     template<class Storage, class First, class Second>
@@ -148,34 +148,41 @@ namespace sysstr::util
             m_first{left},
             m_second{right}
         {}
+        addition(First && left, const Second & right) noexcept:
+            m_first{std::move(left)},
+            m_second{right}
+        {}
+        addition(const First & left, Second && right) noexcept:
+            m_first{left},
+            m_second{std::move(right)}
+        {}
+        addition(First && left, Second && right) noexcept:
+            m_first{std::move(left)},
+            m_second{std::move(right)}
+        {}
         
-        friend auto operator+(const addition & lhs, const sys_string_t<Storage> & rhs) noexcept
-            { return addition<Storage, addition, sys_string_t<Storage>>(lhs, rhs); }
-        friend auto operator+(const addition & lhs, char32_t rhs) noexcept
-            { return addition<Storage, addition, char32_t>(lhs, rhs); }
-        template <std::ranges::forward_range Range>
-        friend auto operator+(const addition & lhs, const Range & rhs) noexcept
-            { return addition<Storage, addition, Range>(lhs, rhs); }
+        template <addable<Storage> T>
+        friend auto operator+(addition && lhs, const T & rhs) noexcept
+            { return addition<Storage, addition, T>(std::move(lhs), rhs); }
         
-        friend auto operator+(const sys_string_t<Storage> & lhs, const addition & rhs) noexcept
-            { return addition<Storage, sys_string_t<Storage>, addition>(lhs, rhs); }
-        friend auto operator+(char32_t lhs, const addition & rhs) noexcept
-            { return addition<Storage, char32_t, addition>(lhs, rhs); }
-        template <std::ranges::forward_range Range>
-        friend auto operator+(const Range & lhs, const addition & rhs) noexcept
-            { return addition<Storage, Range, addition>(lhs, rhs); }
+        template <addable<Storage> T>
+        friend auto operator+(const T & lhs, addition && rhs) noexcept
+            { return addition<Storage, T, addition>(lhs, std::move(rhs)); }
         
         template<class RHSFirst, class RHSSecond>
-        friend auto operator+(const addition & lhs, const addition<Storage, RHSFirst, RHSSecond> & rhs) noexcept
-            { return addition<Storage, addition, addition<Storage, RHSFirst, RHSSecond>>(lhs, rhs); }
+        friend auto operator+(addition && lhs, addition<Storage, RHSFirst, RHSSecond> && rhs) noexcept
+            { return addition<Storage, addition, addition<Storage, RHSFirst, RHSSecond>>(std::move(lhs), std::move(rhs)); }
         
-        operator sys_string_t<Storage>() const
+        operator sys_string_t<Storage>() const &&
         {
             sys_string_builder_t<Storage> builder;
             builder.reserve_storage(this->storage_size());
             this->append_to(builder);
             return builder.build();
         }
+
+        operator sys_string_t<Storage>() const & = SYS_STRING_DELETE_REASON(
+            "you must convert the result of sys_string_t addition to sys_string_t. Do not assign it to auto and carry around");
         
         auto storage_size() const -> typename sys_string_t<Storage>::size_type
         { 

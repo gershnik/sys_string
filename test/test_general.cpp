@@ -749,6 +749,8 @@ TEST_CASE( "Addition" ) {
 
     const char * foo = "abc";
     CHECK(S("x") + foo == "xabc");
+
+    CHECK((S("x") + S("y")) + foo == "xyabc");
 }
 
 TEST_CASE( "c_str" ) {

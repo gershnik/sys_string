@@ -151,4 +151,11 @@
     #define SYS_STRING_HAS_TRAILING_REQUIRES_BUG 0
 #endif
 
+
+#if __cplusplus > 202302L && defined(__cpp_deleted_function) && __cpp_deleted_function >= 202403L
+    #define SYS_STRING_DELETE_REASON(msg) delete(msg)
+#else
+    #define SYS_STRING_DELETE_REASON(msg) delete
+#endif
+
 #endif

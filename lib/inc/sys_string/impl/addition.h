@@ -151,7 +151,7 @@ namespace sysstr::util
         
         friend auto operator+(addition && lhs, const sys_string_t<Storage> & rhs) noexcept
             { return addition<Storage, addition, sys_string_t<Storage>>(std::move(lhs), rhs); }
-        friend auto operator+(addition & lhs, char32_t rhs) noexcept
+        friend auto operator+(addition && lhs, char32_t rhs) noexcept
             { return addition<Storage, addition, char32_t>(std::move(lhs), rhs); }
         template <std::ranges::forward_range Range>
         friend auto operator+(addition && lhs, const Range & rhs) noexcept
@@ -177,7 +177,7 @@ namespace sysstr::util
             return builder.build();
         }
 
-        operator sys_string_t<Storage>() const & SYS_STRING_DELETE_REASON(
+        operator sys_string_t<Storage>() const & = SYS_STRING_DELETE_REASON(
             "you must convert the result of sys_string_t addition to sys_string_t. Do not assign it to auto and carry around");
         
         auto storage_size() const -> typename sys_string_t<Storage>::size_type

@@ -756,6 +756,31 @@ TEST_CASE( "Addition" ) {
     CHECK(S("x") + foo16 == "xab🧡");
 }
 
+TEST_CASE( "Multiplication" ) {
+
+    CHECK(S("abc") * -1 == S(""));
+    CHECK(S("abc") * 0 == S(""));
+    CHECK(S("abc") * 3 == S("abcabcabc"));
+
+    CHECK(S("abc") * (signed char)-1 == S(""));
+    CHECK(S("abc") * (signed char)0 == S(""));
+    CHECK(S("abc") * (signed char)3 == S("abcabcabc"));
+
+    CHECK(-1 * S("abc") == S(""));
+    CHECK(0 * S("abc")  == S(""));
+    CHECK(3 * S("abc") == S("abcabcabc"));
+
+    CHECK((signed char)-1 * S("abc") == S(""));
+    CHECK((signed char)0 * S("abc")  == S(""));
+    CHECK((signed char)3 * S("abc") == S("abcabcabc"));
+
+    CHECK(S("") * std::numeric_limits<size_t>::max() == S(""));
+    CHECK(S("") * -1 == S(""));
+    CHECK(S("") * std::numeric_limits<int>::min() == S(""));
+
+    CHECK_THROWS_AS(S("abc") * std::numeric_limits<size_t>::max(), std::bad_alloc);
+}
+
 TEST_CASE( "c_str" ) {
     const sys_string & str = S("a🧡bc");
     sys_string::char_access access(str);

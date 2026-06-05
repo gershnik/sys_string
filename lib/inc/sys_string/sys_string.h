@@ -330,6 +330,14 @@ namespace sysstr
         template<addable<Storage> Addend1, addable<Storage> Addend2>
         friend auto operator+(const Addend1 & lhs, const Addend2 & rhs) -> util::addition<Storage, Addend1, Addend2>
             { return util::addition<Storage, Addend1, Addend2>(lhs, rhs); }
+
+
+        template<std::integral T>
+        friend auto operator*(const sys_string_t & lhs, T rhs) -> sys_string_t 
+            { return sys_string_t::multiply(lhs, rhs); }
+        template<std::integral T>
+        friend auto operator*(T lhs, const sys_string_t & rhs) -> sys_string_t 
+            { return sys_string_t::multiply(rhs, lhs); }
         
         auto to_lower() const -> sys_string_t;
         auto to_upper() const -> sys_string_t;
@@ -430,6 +438,8 @@ namespace sysstr
     private:
         static auto compare(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> std::strong_ordering;
         static auto compare_no_case(const sys_string_t & lhs, const sys_string_t & rhs) noexcept -> std::strong_ordering;
+        template<std::integral T>
+        static auto multiply(const sys_string_t & lhs, T rhs) -> sys_string_t;
 
         template <std::invocable<std::string_view> Func>
         auto print_with(Func func) const -> decltype(func(std::string_view{}));

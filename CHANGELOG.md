@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Added
+- It is now possible to multiply strings and numbers, Python-style.
+
 ### Changed
 - String addition now includes protection against assigning an addition result to an `auto`
   variable. An attempt to convert the `auto` variable to `sys_string` later will now usually 

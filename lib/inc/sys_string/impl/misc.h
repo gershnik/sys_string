@@ -557,4 +557,50 @@ namespace sysstr
         return std::pair(sys_string_t(my_access.begin(), found_range.end().base()),
                          sys_string_t(found_range.begin().base(), my_access.end()));
     }
+
+
+    template<class Storage>
+    template<std::integral T>
+    auto sys_string_t<Storage>::multiply(const sys_string_t<Storage> & lhs, T rhs) -> sys_string_t<Storage>
+    {
+        using size_type = typename Storage::size_type;
+
+        if constexpr (std::is_signed_v<T>) 
+        {
+            if (rhs <= 0)
+                return {};
+        } 
+        else 
+        {
+            if (rhs == 0)
+                return {};
+        }
+        //at this point we know rhs is positive
+
+        auto current = lhs.storage_size();
+        if (current == 0)
+            return {};
+        //at this point we know current is positive
+
+        if constexpr ((sizeof(T) > sizeof(size_type)) || (
+                            sizeof(T) == sizeof(size_type) &&
+                            std::is_unsigned_v<T> && std::is_signed_v<size_type>))
+        {
+            if (rhs > T(Storage::max_size))
+                throw std::bad_alloc();
+        }
+        //at this point we know rhs can fit into size_type _and_ is no greater than Storage::max_size 
+
+        auto multiplier = size_type(rhs);
+        
+        if (Storage::max_size / current < multiplier)
+            throw std::bad_alloc();
+        //at this point we know total size is good
+        
+        sys_string_builder_t<Storage> builder;
+        builder.reserve_storage(multiplier * current);
+        for(size_type i = 0; i < multiplier; ++i)
+            builder.append(lhs);
+        return builder.build();
+    }
 }

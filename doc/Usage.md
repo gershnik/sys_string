@@ -9,6 +9,7 @@
     - [Conversions from invalid Unicode](#conversions-from-invalid-unicode)
 - [Platform-specific conversions](#platform-specific-conversions)
 - [Adding Strings](#adding-strings)
+- [Multiplying Strings](#multiplying-strings)
 - [Comparing Strings](#comparing-strings)
     - [Case insensitive comparison](#case-insensitive-comparison)
 - [Iterating over string content](#iterating-over-string-content)
@@ -167,6 +168,22 @@ auto res = sys_string("abc") + sys_string("xyz"); //Bad!
 if (res == S("abcxyz")) 
    ...
 ```
+
+## Multiplying Strings
+
+Similar to what you can do in Python, you can multiply strings and integral values. 
+The result is the original string repeated the specified number of times.
+```cpp
+sys_string str = S("abc");
+sys_string res = str * 3;
+assert(res == S("abcabcabc"));
+// you can multiply from either side
+res = 3 * str;
+assert(res == S("abcabcabc"));
+// 0 or negative multipliers result in an empty string
+assert(str * 0  == S(""));
+assert(str * -1 == S(""));
+``` 
 
 ## Comparing Strings
 

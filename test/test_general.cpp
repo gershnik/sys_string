@@ -778,7 +778,7 @@ TEST_CASE( "Multiplication" ) {
     CHECK(S("") * -1 == S(""));
     CHECK(S("") * std::numeric_limits<int>::min() == S(""));
 
-    CHECK_THROWS_AS(S("abc") * std::numeric_limits<size_t>::max(), std::bad_alloc);
+    CHECK_THROWS_AS((S("abc") * std::numeric_limits<size_t>::max()), std::bad_alloc);
 }
 
 TEST_CASE( "c_str" ) {

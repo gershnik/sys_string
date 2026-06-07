@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [3.11] - 2026-06-07
+
 ### Added
 - It is now possible to multiply strings and numbers, Python-style.
 
@@ -444,3 +446,4 @@ This is a major release with some breaking changes
 [3.8]: https://github.com/gershnik/sys_string/releases/v3.8
 [3.9]: https://github.com/gershnik/sys_string/releases/v3.9
 [3.10]: https://github.com/gershnik/sys_string/releases/v3.10
+[3.11]: https://github.com/gershnik/sys_string/releases/v3.11

@@ -18,13 +18,13 @@ project(sys_string VERSION ${SYSSTR_VERSION} LANGUAGES CXX)
 
 option(BUILD_TESTING "Enable testing" ${PROJECT_IS_TOP_LEVEL})
 
-find_package (Python3 COMPONENTS Interpreter Development)
-
 add_subdirectory(lib)
 
 if (PROJECT_IS_TOP_LEVEL)
     
     include(lib/cmake/install.cmake)
+
+    find_package (Python3 COMPONENTS Interpreter Development)
 
     if(${Python3_Interpreter_FOUND} AND "${Python3_VERSION}" VERSION_GREATER_EQUAL "3.9")
 

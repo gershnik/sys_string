@@ -201,7 +201,7 @@ run(\${EXECUTABLE} -ni -fc)
 ")
 endif()
 
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/run-test.cmake ${TEST_SRCIPT})
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/run-test.cmake ${TEST_SRCIPT})
 
 set(LIB_TYPES " ")
 if (ICU_FOUND AND ICU_UC_FOUND)

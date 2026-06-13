@@ -100,7 +100,7 @@ PRIVATE
 
 add_library(${LIBNAME}::${LIBNAME} ALIAS ${LIBNAME})
 
-if (PROJECT_IS_TOP_LEVEL OR SYS_STRING_CONFIGURE_INSTALL)
+if (PROJECT_IS_TOP_LEVEL)
     
     include(cmake/install.cmake)
 

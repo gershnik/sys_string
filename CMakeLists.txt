@@ -16,19 +16,17 @@ string(STRIP ${SYSSTR_VERSION} SYSSTR_VERSION)
 
 project(sys_string VERSION ${SYSSTR_VERSION} LANGUAGES CXX)
 
+option(BUILD_TESTING "Enable testing" ${PROJECT_IS_TOP_LEVEL})
+
 find_package (Python3 COMPONENTS Interpreter Development)
 
+add_subdirectory(lib)
+
 if (PROJECT_IS_TOP_LEVEL)
-
-    set(SYS_STRING_CONFIGURE_INSTALL ON)
-
-else()
-
-    set(SYS_STRING_CONFIGURE_INSTALL ON)
+    
+    include(lib/cmake/install.cmake)
 
 endif()
-
-add_subdirectory(lib)
 
 if(${Python3_Interpreter_FOUND} AND "${Python3_VERSION}" VERSION_GREATER_EQUAL "3.9")
 
@@ -70,8 +68,9 @@ if(${Python3_Interpreter_FOUND} AND "${Python3_VERSION}" VERSION_GREATER_EQUAL "
 
 endif()
 
-if (PROJECT_IS_TOP_LEVEL)
-    
+if (BUILD_TESTING)
+
+    enable_testing()
     add_subdirectory(test)
 
 endif()

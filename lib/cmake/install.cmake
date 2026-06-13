@@ -10,13 +10,18 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
 install(TARGETS sys_string EXPORT sys_string FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(EXPORT sys_string NAMESPACE sys_string:: FILE sys_string-exports.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/sys_string)
+install(EXPORT sys_string NAMESPACE sys_string:: FILE sys_string-exports.cmake DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/sys_string)
+
+# Clean the old CMAKE_INSTALL_LIBDIR location where things were previously put
+# on older versions
+install(CODE "file(REMOVE_RECURSE \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/sys_string\")")
+
 
 configure_package_config_file(
         ${CMAKE_CURRENT_LIST_DIR}/sys_string-config.cmake.in
         ${CMAKE_CURRENT_BINARY_DIR}/sys_string-config.cmake
     INSTALL_DESTINATION
-        ${CMAKE_INSTALL_LIBDIR}/sys_string
+        ${CMAKE_INSTALL_DATAROOTDIR}/sys_string
 )
 
 write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/sys_string-config-version.cmake
@@ -28,7 +33,7 @@ install(
         ${CMAKE_CURRENT_BINARY_DIR}/sys_string-config.cmake
         ${CMAKE_CURRENT_BINARY_DIR}/sys_string-config-version.cmake
     DESTINATION
-        ${CMAKE_INSTALL_LIBDIR}/sys_string
+        ${CMAKE_INSTALL_DATAROOTDIR}/sys_string
 )
 
 file(RELATIVE_PATH FROM_PCFILEDIR_TO_PREFIX ${CMAKE_INSTALL_FULL_DATAROOTDIR}/sys_string ${CMAKE_INSTALL_PREFIX})

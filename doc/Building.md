@@ -70,10 +70,6 @@ You can also build and install this library on your system using CMake.
 ```bash
 cd SOME_PATH
 cmake -S . -B build 
-cmake --build build
-
-#Optional
-#cmake --build build --target run-test
 
 #install to /usr/local
 sudo cmake --install build

@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Changed
+- Building tests is now gated behind `-DBUILD_TESTING=ON`.
+- Build now supports `ctest`
+
+### Fixed
+- Tests now run under VS 2026
+- CMake install now puts the *.cmake files and .cppm module under `share/sys_string` rather than `/lib/{.../}sys_string` as it
+  should always have done, since they aren't architecture dependent. This should be completely transparent to clients 
+  unless you hardcode the paths into the install location for some reason.
+
 ## [3.11] - 2026-06-07
 
 ### Added

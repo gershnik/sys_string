@@ -197,7 +197,7 @@ foreach(LIB_SUFFIX ${LIB_TYPES})
     )
 
     target_compile_options(test-${TEST_SUFFIX} PRIVATE
-        $<$<CXX_COMPILER_ID:MSVC>:/utf-8;/W4;/WX>
+        $<$<CXX_COMPILER_ID:MSVC>:/utf-8;/W4;/WX;/wd5285>
         $<$<CXX_COMPILER_ID:AppleClang>:-Wall;-Wextra;-pedantic;-Wno-self-assign-overloaded;-Wno-self-move>
         $<${CLANG_NORMAL}:-Wall;-Wextra;-pedantic;-Wno-self-assign-overloaded;-Wno-self-move>
         $<${CLANG_CL}:/W4;/WX;-Wno-self-assign-overloaded;-Wno-self-move>

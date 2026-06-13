@@ -145,9 +145,6 @@ set(STORAGE_FLAG_andr "")
 set(STORAGE_FLAG_unix_gen SYS_STRING_USE_GENERIC=1)
 set(STORAGE_FLAG_python SYS_STRING_USE_PYTHON=1)
 
-set(TEST_COMMAND "")
-set(TEST_DEPS "")
-
 if (${CMAKE_SYSTEM_NAME} STREQUAL Android)
     set(ANDROID_TEST_DIR /data/local/tmp/sys_string_test)
     set(ANDROID_SDK_DIR ${CMAKE_ANDROID_NDK}/../..)
@@ -159,8 +156,52 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL Android)
         set(ANDROID_LD_LIBRARY_PATH /apex/com.android.art/lib64:/apex/com.android.runtime/lib64)
     endif()
 
-    list(APPEND TEST_COMMAND COMMAND ${ADB} shell mkdir -p ${ANDROID_TEST_DIR})
 endif()
+
+
+add_custom_target(tests ALL)
+
+set(TEST_SRCIPT 
+"
+cmake_path(GET EXECUTABLE FILENAME exefilename)
+
+macro(run)
+    execute_process(COMMAND \${ARGV} COMMAND_ERROR_IS_FATAL ANY)
+endmacro()
+")
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL Android)
+    string(APPEND TEST_SRCIPT "
+run(${ADB} shell mkdir -p ${ANDROID_TEST_DIR})
+run(${ADB} push \${EXECUTABLE} ${ANDROID_TEST_DIR})
+run(${ADB} shell LD_LIBRARY_PATH=${ANDROID_LD_LIBRARY_PATH} ${ANDROID_TEST_DIR}/\${exefilename} -ni -fc)
+")
+elseif (DEFINED EMSCRIPTEN)
+    string(APPEND TEST_SRCIPT "
+run(${NODE_JS_EXECUTABLE} \${EXECUTABLE} -ni -fc)
+")
+elseif(SYS_STRING_COLLECT_COVERAGE AND ${CMAKE_SYSTEM_NAME} STREQUAL Darwin AND CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    string(APPEND TEST_SRCIPT "
+run(${CMAKE_COMMAND} -E env LLVM_PROFILE_FILE=${CMAKE_CURRENT_BINARY_DIR}/coverage/\${exefilename}.profraw \${EXECUTABLE} -ni -fc)
+run(xcrun llvm-profdata merge -sparse ${CMAKE_CURRENT_BINARY_DIR}/coverage/\${exefilename}.profraw -o ${CMAKE_CURRENT_BINARY_DIR}/coverage/\${exefilename}.profdata)
+run(xcrun llvm-cov show -format=html 
+            -Xdemangler=c++filt -Xdemangler -n
+            -show-regions=1
+            -show-instantiations=0
+            #-show-branches=count
+            #-show-instantiation-summary=1
+            -ignore-filename-regex=test/.\\*
+            -output-dir=${CMAKE_CURRENT_BINARY_DIR}/coverage/\${exefilename}
+            -instr-profile=${CMAKE_CURRENT_BINARY_DIR}/coverage/\${exefilename}.profdata 
+            \${EXECUTABLE})
+")
+else()
+    string(APPEND TEST_SRCIPT "
+run(\${EXECUTABLE} -ni -fc)
+")
+endif()
+
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/run-test.cmake ${TEST_SRCIPT})
 
 set(LIB_TYPES " ")
 if (ICU_FOUND AND ICU_UC_FOUND)
@@ -321,31 +362,16 @@ foreach(LIB_SUFFIX ${LIB_TYPES})
         "$<$<PLATFORM_ID:Linux>:test_linux.cpp>" 
         "$<$<PLATFORM_ID:Emscripten>:test_javascript.cpp>" 
     )
+    
 
-    list(APPEND TEST_COMMAND COMMAND echo "Running test-${TEST_SUFFIX}")
-    if (${CMAKE_SYSTEM_NAME} STREQUAL Android)
-        list(APPEND TEST_COMMAND COMMAND ${ADB} push test-${TEST_SUFFIX} ${ANDROID_TEST_DIR})
-        list(APPEND TEST_COMMAND COMMAND ${ADB} shell LD_LIBRARY_PATH=${ANDROID_LD_LIBRARY_PATH} ${ANDROID_TEST_DIR}/test-${TEST_SUFFIX} -ni)
-    elseif (DEFINED EMSCRIPTEN)
-        list(APPEND TEST_COMMAND COMMAND ${NODE_JS_EXECUTABLE} test-${TEST_SUFFIX} -ni)
-    elseif(SYS_STRING_COLLECT_COVERAGE AND ${CMAKE_SYSTEM_NAME} STREQUAL Darwin AND CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-        list(APPEND TEST_COMMAND COMMAND ${CMAKE_COMMAND} -E env LLVM_PROFILE_FILE=${CMAKE_CURRENT_BINARY_DIR}/coverage/test-${TEST_SUFFIX}.profraw $<TARGET_FILE:test-${TEST_SUFFIX}>)
-        list(APPEND TEST_COMMAND COMMAND xcrun llvm-profdata merge -sparse ${CMAKE_CURRENT_BINARY_DIR}/coverage/test-${TEST_SUFFIX}.profraw -o ${CMAKE_CURRENT_BINARY_DIR}/coverage/test-${TEST_SUFFIX}.profdata)
-        list(APPEND TEST_COMMAND COMMAND xcrun llvm-cov show -format=html 
-                -Xdemangler=c++filt -Xdemangler -n
-                -show-regions=1
-                -show-instantiations=0
-                #-show-branches=count
-                #-show-instantiation-summary=1
-                -ignore-filename-regex=test/.\\*
-                -output-dir=${CMAKE_CURRENT_BINARY_DIR}/coverage/report-${TEST_SUFFIX}
-                -instr-profile=${CMAKE_CURRENT_BINARY_DIR}/coverage/test-${TEST_SUFFIX}.profdata 
-                $<TARGET_FILE:test-${TEST_SUFFIX}>)
-    else()
-        list(APPEND TEST_COMMAND COMMAND test-${TEST_SUFFIX} -ni)
-    endif()
+    add_dependencies(tests test-${TEST_SUFFIX})
 
-    list(APPEND TEST_DEPS test-${TEST_SUFFIX})
+    add_test(
+        NAME "test-${TEST_SUFFIX}"
+        COMMAND ${CMAKE_COMMAND} 
+            -DEXECUTABLE=$<TARGET_FILE:test-${TEST_SUFFIX}>
+            -P ${CMAKE_CURRENT_BINARY_DIR}/run-test.cmake
+    )
 
 endforeach()
 endforeach()
@@ -357,7 +383,3 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL Windows AND ${Python3_Development_FOUND} AND ${
     )
 endif()
 
-add_custom_target(run-test 
-    DEPENDS ${TEST_DEPS}
-    ${TEST_COMMAND}
-)

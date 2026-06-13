@@ -174,10 +174,11 @@ jobs:
 
         if [[ '${{ matrix.os }}' == windows-* ]]; then
             if [[ '${{ matrix.compiler }}' != '' ]]; then
+                VSROOT=`"/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" -latest -property installationPath`
                 if [[ '${{ matrix.arch }}' == "x64" ]]; then
-                    VCPREFIX="C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Tools\\Llvm\\x64\\bin"
+                    VCPREFIX="$VSROOT\\VC\\Tools\\Llvm\\x64\\bin"
                 else
-                    VCPREFIX="C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Tools\\Llvm\\bin"
+                    VCPREFIX="$VSROOT\\VC\\Tools\\Llvm\\bin"
                 fi
                 echo "CC=$VCPREFIX\\${{ matrix.compiler }}" >> $GITHUB_ENV
                 echo "CXX=$VCPREFIX\\${{ matrix.compiler }}" >> $GITHUB_ENV
@@ -206,9 +207,13 @@ jobs:
           fi
         fi
 
-    - name: Build and Test
+    - name: Build
       shell: bash
-      run: cmake --build out --config MinSizeRel --target run-test
+      run: cmake --build out --config MinSizeRel --target tests
+
+    - name: Test
+      shell: bash
+      run: ctest --test-dir out -C MinSizeRel --output-on-failure -VV 
 
   container:
     needs: define-matrix
@@ -232,12 +237,15 @@ jobs:
 
     - name: Configure
       shell: bash
-      run: |
-        cmake -GNinja -S . -B out -DCMAKE_BUILD_TYPE=MinSizeRel
+      run: cmake -GNinja -S . -B out -DCMAKE_BUILD_TYPE=MinSizeRel
 
-    - name: Build and Test
+    - name: Build
       shell: bash
-      run: cmake --build out --config MinSizeRel --target run-test
+      run: cmake --build out --config MinSizeRel --target tests
+
+    - name: Test
+      shell: bash
+      run: ctest --test-dir out -C MinSizeRel --output-on-failure -VV 
 
   gcc-10_2:
     runs-on: ubuntu-latest
@@ -265,9 +273,13 @@ jobs:
       run: |
         cmake -GNinja -S . -B out -DCMAKE_BUILD_TYPE=MinSizeRel
 
-    - name: Build and Test
+    - name: Build
       shell: bash
-      run: cmake --build out --config MinSizeRel --target run-test
+      run: cmake --build out --config MinSizeRel --target tests
+
+    - name: Test
+      shell: bash
+      run: ctest --test-dir out -C MinSizeRel --output-on-failure -VV 
 
 
   big-endian:
@@ -289,11 +301,17 @@ jobs:
         export QEMU_LD_PREFIX=/usr/powerpc-linux-gnu/
         cmake -S . -B out -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_SYSTEM_PROCESSOR=powerpc
 
-    - name: Build and Test
+    - name: Build
       shell: bash
       run: |
         export QEMU_LD_PREFIX=/usr/powerpc-linux-gnu/
-        cmake --build out --config MinSizeRel --target run-test
+        cmake --build out --config MinSizeRel --target tests
+
+    - name: Test
+      shell: bash
+      run: |
+        export QEMU_LD_PREFIX=/usr/powerpc-linux-gnu/
+        ctest --test-dir out -C MinSizeRel --output-on-failure -VV 
 
   android:
     runs-on: ubuntu-latest
@@ -349,8 +367,11 @@ jobs:
             echo "::group::Configure"
             cmake -S . -B out -DCMAKE_BUILD_TYPE:STRING=MinSizeRel -DCMAKE_TOOLCHAIN_FILE:FILEPATH=$ANDROID_SDK_ROOT/ndk/${{ matrix.version }}/build/cmake/android.toolchain.cmake -DANDROID_ABI:STRING=${{ matrix.arch }} -DANDROID_PLATFORM:STRING=${{ matrix.version }} -DANDROID_STL:STRING=c++_static
             echo "::endgroup::"
-            echo "::group::Build and Test"
-            cmake --build out --config MinSizeRel --target run-test
+            echo "::group::Build"
+            cmake --build out --config MinSizeRel --target tests
+            echo "::endgroup::"
+            echo "::group::Test"
+            ctest --test-dir out -C MinSizeRel --output-on-failure -VV 
             echo "::endgroup::"
 
   emscripten:
@@ -385,9 +406,13 @@ jobs:
       run: cmake -GNinja -S . -B out -DCMAKE_TOOLCHAIN_FILE=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=MinSizeRel
 
 
-    - name: Build and Test
+    - name: Build
       shell: bash
-      run: cmake --build out --config MinSizeRel --target run-test
+      run: cmake --build out --config MinSizeRel --target tests
+
+    - name: Test
+      shell: bash
+      run: ctest --test-dir out -C MinSizeRel --output-on-failure -VV 
     
   pythons:
     runs-on: ubuntu-latest
@@ -410,14 +435,12 @@ jobs:
     
     - name: Configure
       shell: bash
-      run: |
-        cmake -S . -B out -DCMAKE_BUILD_TYPE=MinSizeRel
+      run: cmake -S . -B out -DCMAKE_BUILD_TYPE=MinSizeRel
 
-    - name: Build and Test
+    - name: Build
       shell: bash
-      run: |
-        cmake --build out --config MinSizeRel --target test-20python test-23python
-        echo Running test-20python
-        out/test/test-20python -ni -fc
-        echo Running test-23python
-        out/test/test-23python -ni -fc
+      run: cmake --build out --config MinSizeRel --target test-20python test-23python
+
+    - name: Test
+      shell: bash
+      run: ctest --test-dir out -C MinSizeRel --output-on-failure -VV -R '.*python$'

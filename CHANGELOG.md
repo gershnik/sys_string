@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [3.12] - 2026-06-19
+
 ### Changed
 - Building tests is now gated behind `-DBUILD_TESTING=ON`.
 - Build now supports `ctest`
@@ -457,3 +459,4 @@ This is a major release with some breaking changes
 [3.9]: https://github.com/gershnik/sys_string/releases/v3.9
 [3.10]: https://github.com/gershnik/sys_string/releases/v3.10
 [3.11]: https://github.com/gershnik/sys_string/releases/v3.11
+[3.12]: https://github.com/gershnik/sys_string/releases/v3.12

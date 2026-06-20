@@ -38,7 +38,7 @@ jobs:
           }
 
           win_paltforms = ["x64", "Win32"]
-          win_clang_archs = ["x64", "x86"]
+          win_clang_archs = ["x64"] #, "x86"] github no longer supports x86 clang-cl
 
           gcc_map = {
             #12: 'ubuntu-latest'

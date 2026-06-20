@@ -66,6 +66,7 @@ set(UTIL_FILES
     ${SRCDIR}/inc/sys_string/impl/util/char_vector.h
     ${SRCDIR}/inc/sys_string/impl/util/generic_impl.h
     ${SRCDIR}/inc/sys_string/impl/util/iter_util.h
+    ${SRCDIR}/inc/sys_string/impl/util/ranges-backport.h
     
 )
 source_group("Utils" FILES ${UTIL_FILES})

@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Fixed
+- Previously missing header `impl/util/ranges-backport.h` added to CMake install
+
 ## [3.12] - 2026-06-19
 
 ### Changed

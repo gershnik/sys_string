@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## [3.13] - 2026-06-20
+
 ### Fixed
 - Previously missing header `impl/util/ranges-backport.h` added to CMake install
 
@@ -463,3 +465,4 @@ This is a major release with some breaking changes
 [3.10]: https://github.com/gershnik/sys_string/releases/v3.10
 [3.11]: https://github.com/gershnik/sys_string/releases/v3.11
 [3.12]: https://github.com/gershnik/sys_string/releases/v3.12
+[3.13]: https://github.com/gershnik/sys_string/releases/v3.13

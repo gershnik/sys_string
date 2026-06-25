@@ -41,17 +41,6 @@ namespace sysstr::util
         return src;
     }
     
-    template<size_t N>
-    constexpr auto find_max_codepoint(const char32_t (&ar)[N]) -> char32_t
-    {
-        char32_t max = 0;
-        for(char32_t c: ar) {
-            if (c > max)
-                max = c;
-        }
-        return max;
-    }
-    
     class py_builder_storage
     {
     public:
@@ -539,24 +528,39 @@ namespace sysstr
 
 namespace sysstr::util 
 {
-    template<util::ct_string U32Str, util::ct_string U16Str, util::ct_string U8Str>
+    template<util::ct_string Str>
     inline auto make_static_sys_string_pystr() noexcept -> sys_string_pystr
     {
-        constexpr ::size_t size = U32Str.size();
-        constexpr auto maxChar = find_max_codepoint(U32Str.chars);
+        constexpr auto maxChar = []() constexpr {
+            utf_codepoint_decoder<utf8> decoder;
+            char32_t max = 0;
+            for (auto c: Str.chars) 
+            {
+                decoder.put(c);
+                if (decoder.error())
+                    throw "invalid UTF-8 constant";
+                if (decoder.done()) {
+                    if (SYS_STRING_DECODER_VALUE(decoder) > max)
+                        max = SYS_STRING_DECODER_VALUE(decoder);
+                }
+            }
+            return max;
+        }();
         if constexpr (maxChar <= 0x7fu) { 
-            static PyUnicodeObject_wrapper<PyUnicode_1BYTE_KIND> str(size - 1, U8Str.chars);
+            static PyUnicodeObject_wrapper<PyUnicode_1BYTE_KIND> str(Str.size() - 1, Str.chars);
             return str.as_string();
         } else if constexpr (maxChar <= 0xffffu) {
-            static PyUnicodeObject_wrapper<PyUnicode_2BYTE_KIND> str(size - 1, U16Str.chars);
+            static constexpr auto u16str = ct_utf8_to_utf16<Str>();
+            static PyUnicodeObject_wrapper<PyUnicode_2BYTE_KIND> str(u16str.size() - 1, u16str.chars);
             return str.as_string();
         } else {
-            static PyUnicodeObject_wrapper<PyUnicode_4BYTE_KIND> str(size - 1, U32Str.chars);
+            static constexpr auto u32str = ct_utf8_to_utf32<Str>();
+            static PyUnicodeObject_wrapper<PyUnicode_4BYTE_KIND> str(u32str.size() - 1, u32str.chars);
             return str.as_string();
         }
     }
 }
 
 
-#define SYS_STRING_STATIC_PYSTR(x) ::sysstr::util::make_static_sys_string_pystr<U##x, u##x, u8##x>()
+#define SYS_STRING_STATIC_PYSTR(x) ::sysstr::util::make_static_sys_string_pystr<u8##x>()
 

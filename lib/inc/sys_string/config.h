@@ -92,12 +92,6 @@
     #define SYS_STRING_NO_UNIQUE_ADDRESS [[no_unique_address]]
 #endif
 
-//GCC up to 11.3 has a weird constexpr bug in some palces
-#if __GNUC__ > 11 || (__GNUC__ == 11 && __GNUC_MINOR__ > 2)
-    #define SYS_STRING_BUGGY_CONSTEXPR constexpr
-#else 
-    #define SYS_STRING_BUGGY_CONSTEXPR 
-#endif
 
 #if __has_include(<version>)
     #include <version>

@@ -46,7 +46,7 @@ namespace sysstr::util {
                 decoder.put(*begin++);
                 if (!decoder.done())
                     decoder.put(*begin++); //no need to bounds check, we know end is good
-                dest = write_unsafe<Enc>(decoder.value(), dest);
+                dest = write_unsafe<Enc>(SYS_STRING_DECODER_VALUE(decoder), dest);
             }
             return dest;
         }

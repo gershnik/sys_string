@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Added
+- The library now can be used with GCC on macOS
+
+### Changed
+- Simplified internal handling of Python static strings
+
+### Fixed
+- `utf_decoder::value()` is now constexpr on all compilers that support it
+
 ## [3.13] - 2026-06-20
 
 ### Fixed

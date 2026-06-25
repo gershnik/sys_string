@@ -326,27 +326,6 @@ namespace sysstr
         template<class Char>
         cf_storage(const Char * str, size_t len);
         
-        template<>
-        cf_storage(const char * str, size_t len):
-            cf_storage(buffer_from(str, len), handle_retain::no)
-        {}
-        
-        template<>
-        cf_storage(const char8_t * str, size_t len):
-            cf_storage(buffer_from((const char *)str, len), handle_retain::no)
-        {}
-        
-        template<>
-        cf_storage(const char16_t * str, size_t len) :
-            m_str(util::check_create(
-                CFStringCreateWithCharacters(nullptr, (const UniChar *)str, len)))
-        {}
-
-        template<>
-        cf_storage(const char32_t * str, size_t len):
-            cf_storage(buffer_from(str, len), handle_retain::no)
-        {}
-
         cf_storage(const char_access::iterator & first, size_type length):
             cf_storage(first.container() ? first.container()->get_string() : nullptr, first.index(), first.index() + length)
         {}
@@ -450,6 +429,31 @@ namespace sysstr
         CFStringRef m_str = nullptr;
     };
 
+    template<>
+    inline
+    cf_storage::cf_storage(const char * str, size_t len):
+        cf_storage(buffer_from(str, len), handle_retain::no)
+    {}
+    
+    template<>
+    inline
+    cf_storage::cf_storage(const char8_t * str, size_t len):
+        cf_storage(buffer_from((const char *)str, len), handle_retain::no)
+    {}
+    
+    template<>
+    inline
+    cf_storage::cf_storage(const char16_t * str, size_t len) :
+        m_str(util::check_create(
+            CFStringCreateWithCharacters(nullptr, (const UniChar *)str, len)))
+    {}
+
+    template<>
+    inline
+    cf_storage::cf_storage(const char32_t * str, size_t len):
+        cf_storage(buffer_from(str, len), handle_retain::no)
+    {}
+
 }
 
 namespace sysstr::util
@@ -481,15 +485,51 @@ namespace sysstr
     using sys_string_cfstr_builder = sys_string_builder_t<cf_storage>;
 }
 
+#if defined(__GNUC__) && !defined(__clang__)
+    extern int __CFConstantStringClassReference[];
+#endif
+
 namespace sysstr::util 
 {
-    inline auto make_static_sys_string_cfstr(CFStringRef str) noexcept -> sys_string_cfstr
-    {
-        return sys_string_cfstr(str, handle_retain::no);
-    }
+    #if defined(__GNUC__) && !defined(__clang__)
+        template<util::ct_string Str>
+        inline auto make_static_sys_string_cfstr() noexcept -> sys_string_cfstr
+        {
+            struct cfstr_layout { const void * isa; unsigned long flags; const void * data; long len; };
+
+            constexpr auto it = std::find_if(std::begin(Str.chars), std::end(Str.chars), [](auto c) { return unsigned(c) > 127; });
+            if constexpr (it == std::end(Str.chars)) 
+            {
+                static const cfstr_layout layout{__CFConstantStringClassReference, 0x7C0, Str.chars, Str.size() - 1 };
+                return sys_string_cfstr(CFStringRef(&layout), handle_retain::no);
+            }
+            else 
+            {
+                static constexpr auto u16str = ct_utf8_to_utf16<Str>();
+                static const cfstr_layout layout{__CFConstantStringClassReference, 0x7D0, u16str.chars, u16str.size() - 1 };
+                return sys_string_cfstr(CFStringRef(&layout), handle_retain::no);
+            }
+        }
+    
+    #else
+
+        inline auto make_static_sys_string_cfstr(CFStringRef str) noexcept -> sys_string_cfstr
+        {
+            return sys_string_cfstr(str, handle_retain::no);
+        }
+
+    #endif
 }
 
-#define SYS_STRING_STATIC_CFSTR(x) ::sysstr::util::make_static_sys_string_cfstr(CFSTR(x))
+#if defined(__GNUC__) && !defined(__clang__)
+
+    #define SYS_STRING_STATIC_CFSTR(x) ::sysstr::util::make_static_sys_string_cfstr<x>()
+
+#else
+
+    #define SYS_STRING_STATIC_CFSTR(x) ::sysstr::util::make_static_sys_string_cfstr(CFSTR(x))
+#endif
+
 
 
 

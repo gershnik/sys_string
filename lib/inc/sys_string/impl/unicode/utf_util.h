@@ -398,6 +398,42 @@ namespace sysstr
             return utf32_input::read(first, last);
         }
     }
+
+    template<util::ct_string Str>
+    consteval auto ct_utf8_to_utf16() {
+        constexpr size_t size = []() {
+            utf_codepoint_decoder<utf8> decoder;
+            utf_codepoint_encoder<utf16, false> encoder;
+            size_t size = 0;
+            for (auto c: Str.chars) 
+            {
+                decoder.put(c);
+                if (decoder.error())
+                    throw "invalid UTF-8 constant";
+                if (decoder.done())
+                {
+                    encoder.put(decoder.value());
+                    size += encoder.size();
+                }
+            }
+            return size;
+        }();
+        utf_codepoint_decoder<utf8> decoder;
+        utf_codepoint_encoder<utf16, false> encoder;
+        char16_t ret[size];
+        size_t idx = 0;
+        for (auto c: Str.chars) 
+        {
+            decoder.put(c);
+            if (decoder.done())
+            {
+                encoder.put(decoder.value());
+                for(char16_t uc: encoder)
+                    ret[idx++] = uc;
+            }
+        }
+        return util::ct_string<char16_t, size>(ret);
+    }
 }
 
 #endif 

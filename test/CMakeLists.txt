@@ -356,7 +356,7 @@ foreach(LIB_SUFFIX ${LIB_TYPES})
         test_normalization_data.h
         test_generic.cpp
         test_python.cpp
-        "$<$<PLATFORM_ID:Darwin>:test_apple.mm>"
+        "$<$<CXX_COMPILER_ID:AppleClang>:test_apple.mm>"
         "$<$<PLATFORM_ID:Android>:test_android.cpp>" 
         "$<$<PLATFORM_ID:Windows>:test_windows.cpp>" 
         "$<$<PLATFORM_ID:Linux>:test_linux.cpp>" 

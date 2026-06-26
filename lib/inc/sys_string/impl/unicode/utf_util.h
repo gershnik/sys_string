@@ -179,7 +179,7 @@ namespace sysstr
             m_decoder.put(byte);
             if (m_decoder.done())
             {
-                output(char32_t{SYS_STRING_DECODER_VALUE(m_decoder)});
+                output(char32_t{value(m_decoder)});
                 return;
             }
             if (m_decoder.error())
@@ -202,7 +202,7 @@ namespace sysstr
             m_decoder.put(uint16_t(c));
             if (m_decoder.done())
             {
-                output(char32_t{SYS_STRING_DECODER_VALUE(m_decoder)});
+                output(char32_t{value(m_decoder)});
                 return;
             }
             if (m_decoder.error())
@@ -222,7 +222,7 @@ namespace sysstr
         void put(Char c) noexcept(noexcept(this->output(char32_t{}))) requires(From == utf32)
         {
             if (m_decoder.put(uint32_t(c)))
-                output(char32_t{SYS_STRING_DECODER_VALUE(m_decoder)});
+                output(char32_t{value(m_decoder)});
             else
                 output(char32_t{U'\uFFFD'});
         }
@@ -284,7 +284,7 @@ namespace sysstr
                     return char32_t{U'\uFFFD'};
                 ++first;
                 if (decoder.done())
-                    return char32_t{SYS_STRING_DECODER_VALUE(decoder)};
+                    return char32_t{value(decoder)};
                 if (first == last)
                     return char32_t{U'\uFFFD'};
             }
@@ -296,7 +296,7 @@ namespace sysstr
             decoder.put(uint16_t(*first));
             ++first;
             if (decoder.done())
-                return char32_t{SYS_STRING_DECODER_VALUE(decoder)};
+                return char32_t{value(decoder)};
 
             if (decoder.error() || first == last)
                 return char32_t{U'\uFFFD'};
@@ -306,14 +306,14 @@ namespace sysstr
                 return char32_t{U'\uFFFD'};
             ++first;
 
-            return char32_t{SYS_STRING_DECODER_VALUE(decoder)};
+            return char32_t{value(decoder)};
         } 
         else if constexpr (From == utf32)
         {
             utf_codepoint_decoder<utf32> decoder;
             bool res = decoder.put(uint32_t(*first));
             ++first;
-            return res ? char32_t{SYS_STRING_DECODER_VALUE(decoder)} : U'\uFFFD';
+            return res ? char32_t{value(decoder)} : U'\uFFFD';
         }
 
 
@@ -346,7 +346,7 @@ namespace sysstr
                     decoder.put(byte);
 
                     if (decoder.done())
-                        return char32_t{SYS_STRING_DECODER_VALUE(decoder)};
+                        return char32_t{value(decoder)};
                     
                     if (decoder.error())
                     { 
@@ -368,7 +368,7 @@ namespace sysstr
                         return char32_t{U'\uFFFD'};
                     ++first;
                     if (decoder.done())
-                        return char32_t{SYS_STRING_DECODER_VALUE(decoder)};
+                        return char32_t{value(decoder)};
                     if (first == last)
                         return char32_t{U'\uFFFD'};
                 }
@@ -381,7 +381,7 @@ namespace sysstr
             decoder.put(uint16_t(*first));
             ++first;
             if (decoder.done())
-                return char32_t{SYS_STRING_DECODER_VALUE(decoder)};
+                return char32_t{value(decoder)};
 
             if (decoder.error() || first == last)
                 return char32_t{U'\uFFFD'};
@@ -391,7 +391,7 @@ namespace sysstr
                 return char32_t{U'\uFFFD'};
             ++first;
 
-            return char32_t{SYS_STRING_DECODER_VALUE(decoder)};
+            return char32_t{value(decoder)};
         }
         else if constexpr (From == utf32)
         {
@@ -420,7 +420,7 @@ namespace sysstr
         {
             decoder.put(c);
             if (decoder.done())
-                ret[idx++] = SYS_STRING_DECODER_VALUE(decoder);
+                ret[idx++] = value(decoder);
         }
         return util::ct_string<char32_t, size>(ret);
     }
@@ -438,7 +438,7 @@ namespace sysstr
                     throw "invalid UTF-8 constant";
                 if (decoder.done())
                 {
-                    encoder.put(SYS_STRING_DECODER_VALUE(decoder));
+                    encoder.put(value(decoder));
                     size += encoder.size();
                 }
             }
@@ -453,7 +453,7 @@ namespace sysstr
             decoder.put(c);
             if (decoder.done())
             {
-                encoder.put(SYS_STRING_DECODER_VALUE(decoder));
+                encoder.put(value(decoder));
                 for(char16_t uc: encoder)
                     ret[idx++] = uc;
             }

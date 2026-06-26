@@ -112,6 +112,9 @@ namespace sysstr
         
         constexpr uint32_t value() const noexcept
             { return m_value; }
+
+        friend constexpr uint32_t value(const utf_codepoint_decoder & d) noexcept
+            { return d.m_value; }
     private:
         static constexpr int state_done = 0;
         static constexpr int state_need_trail = 4;
@@ -125,14 +128,7 @@ namespace sysstr
         /* state_error */      0, 4, 8, 0
         };
         
-//GCC up to 11.3 has a weird constexpr bug in some places
-#if defined(__clang__) || !defined(__GNUC__) || (__GNUC__ > 11 || (__GNUC__ == 11 && __GNUC_MINOR__ > 2))
-    private:
-#else
-    public:
-#endif
         uint32_t m_value = 0;
-    private:
         int m_state = state_done;
     };
 
@@ -163,6 +159,8 @@ namespace sysstr
         constexpr uint32_t value() const noexcept
             { return m_value; }
         
+        friend constexpr uint32_t value(const utf_reverse_codepoint_decoder & d) noexcept
+            { return d.m_value; }
     private:
         static constexpr int state_done = 0;
         static constexpr int state_need_lead = 4;
@@ -176,14 +174,7 @@ namespace sysstr
         /* state_error     */ 0, 8, 4, 0
         };
     
-//GCC up to 11.3 has a weird constexpr bug in some places
-#if defined(__clang__) || !defined(__GNUC__) || (__GNUC__ > 11 || (__GNUC__ == 11 && __GNUC_MINOR__ > 2))
-    private:
-#else
-    public:
-#endif
         uint32_t m_value = 0;
-    private:
         int m_state = state_done;
     };
 
@@ -255,14 +246,11 @@ namespace sysstr
         
         constexpr uint32_t value() const noexcept
             { return m_value; }
-    //GCC up to 11.3 has a weird constexpr bug in some places
-#if defined(__clang__) || !defined(__GNUC__) || (__GNUC__ > 11 || (__GNUC__ == 11 && __GNUC_MINOR__ > 2))
+
+        friend constexpr uint32_t value(const utf_codepoint_decoder & d) noexcept
+            { return d.m_value; }
     private:
-#else
-    public:
-#endif
         uint32_t m_value = 0;
-    private:
         uint8_t m_state = state_accept;
         
         
@@ -326,14 +314,11 @@ namespace sysstr
         
         constexpr uint32_t value() const noexcept
             { return m_value; }
-//GCC up to 11.3 has a weird constexpr bug in some places
-#if defined(__clang__) || !defined(__GNUC__) || (__GNUC__ > 11 || (__GNUC__ == 11 && __GNUC_MINOR__ > 2))
+
+        friend constexpr uint32_t value(const utf_reverse_codepoint_decoder & d) noexcept
+            { return d.m_value; }
     private:
-#else
-    public:
-#endif
         uint32_t m_value = 0;
-    private:
         uint8_t m_shift = 0;
         uint8_t m_state = state_accept;
         
@@ -429,12 +414,9 @@ namespace sysstr
         constexpr uint32_t value() const noexcept
             { return m_value; }
     
-//GCC up to 11.3 has a weird constexpr bug in some places
-#if defined(__clang__) || !defined(__GNUC__) || (__GNUC__ > 11 || (__GNUC__ == 11 && __GNUC_MINOR__ > 2))
+        friend constexpr uint32_t value(const utf_codepoint_decoder & d) noexcept
+            { return d.m_value; }
     private:
-#else
-    public:
-#endif
         uint32_t m_value = 0;
     };
 
@@ -462,12 +444,6 @@ namespace sysstr
         char32_t m_val = 0;
     };
 }
-
-#if defined(__clang__) || !defined(__GNUC__) || (__GNUC__ > 11 || (__GNUC__ == 11 && __GNUC_MINOR__ > 2))
-    #define SYS_STRING_DECODER_VALUE(dec) (dec).value()
-#else
-    #define SYS_STRING_DECODER_VALUE(dec) (dec).m_value
-#endif
 
 #endif
 

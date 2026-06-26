@@ -540,8 +540,8 @@ namespace sysstr::util
                 if (decoder.error())
                     throw "invalid UTF-8 constant";
                 if (decoder.done()) {
-                    if (SYS_STRING_DECODER_VALUE(decoder) > max)
-                        max = SYS_STRING_DECODER_VALUE(decoder);
+                    if (value(decoder) > max)
+                        max = value(decoder);
                 }
             }
             return max;

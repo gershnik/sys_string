@@ -180,7 +180,8 @@ namespace sysstr::util
                                         nullptr;
             }
         };
-        return std::visit(converter{builder.size()}, builder.release());
+        auto size = builder.size(); //order of evaluation on the next line!!!
+        return std::visit(converter{size}, builder.release());
     }
 
     class cf_char_access
